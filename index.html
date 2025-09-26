@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cellular Automata</title>
+    
+    <!-- SEO -->
+    <meta name="description" content="Interactive cellular automata simulator — Chaos disguised as order.">
+    <meta name="keywords" content="cellular automata, game of life, conway, life">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Icons -->
+    <link rel="icon" href="/assets/LOGO.png" type="image/png">
+    <link rel="shortcut icon" href="/assets/LOGO.png">
+    <link rel="apple-touch-icon" href="/assets/LOGO.png">
+    
+    <!-- Styles & Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/styles.css">
+
+</head>
+
+<body>
+    <!-- Side Navigation -->
+    <div class="sidenav">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+            <i id="themeIcon" class="bi bi-sun-fill"></i>
+        </button>
+
+        <div class="control-group">
+            <label for="size">
+                Grid size:
+                <input id="size" type="number" value="10" min="1" max="50">
+            </label>
+
+            <label for="shape">
+                Shape:
+                <select id="shape">
+                    <option value="hex">Hex</option>
+                    <option value="triangle">Triangle</option>
+                    <option value="square">Square</option>
+                </select>
+            </label>
+            <label for="drawTiles">
+                Draw Tiles <input type="checkbox" id="drawTiles">
+            </label>
+            <label for="eraseTiles">
+                Erase Tiles <input type="checkbox" id="eraseTiles">
+            </label>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <canvas id="gridCanvas"></canvas>
+
+    <script src="/utils.js"></script>
+    <script>
+        // Get the canvas element and its 2D drawing context
+        const canvas = document.getElementById("gridCanvas");
+        const drawTiles = document.getElementById("drawTiles");
+        const eraseTiles = document.getElementById("eraseTiles");
+        const ctx = canvas.getContext("2d");
+
+        // Define the color for filled cells and initialize canvas dimensions
+        const hex_color = "#32cd32"
+        const line_color = "#555555"
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        // Set canvas size to fill the entire window
+        canvas.width = width;
+        canvas.height = height;
+
+        // Handle window resizing - update canvas dimensions and redraw
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            redraw();
+        });
+
+        // Grid and camera settings
+        const radius = 30;  // Base size for grid elements
+        let camX = 0, camY = 0;  // Camera position (panning)
+        let zoom = 1;  // Zoom level
+        let draggingCam = false, painting = false;  // Interaction states
+        let lastX = 0, lastY = 0;  // Last mouse position for dragging
+
+        // Store which cells are "alive" or filled using a Set for efficient lookups
+        const cells = new Set();
+
+        // Helper function to create unique keys for cell coordinates
+        function getKey(...coords){return coords.join(',');}
+
+        // ---------- DRAWING FUNCTIONS ----------
+
+        // Draw a hexagon at position (x, y), filled if specified
+        function drawHex(x, y, filled) {
+            ctx.beginPath();
+            // Create hexagon by connecting 6 points in a circle
+            for (let i = 0; i < 6; i++) {
+                const a = Math.PI/3 * i;  // Angle for each vertex (60° increments)
+                const px = x + radius * Math.cos(a);
+                const py = y + radius * Math.sin(a);
+                i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+            }
+            ctx.closePath();
+            ctx.strokeStyle = line_color;  // Grid line color
+            ctx.lineWidth = 1/zoom;  // Thinner lines when zoomed out
+            ctx.stroke();
+            if(filled){
+                ctx.fillStyle=hex_color;
+                ctx.fill();
+            }
+        }
+
+        // Draw a triangle at position (x, y), with optional orientation and fill
+        function drawTriangle(x, y, upsideDown, filled) {
+            const side = radius*2;  // Triangle side length
+            const h = Math.sqrt(3)/2*side;  // Triangle height
+            ctx.beginPath();
+            if (!upsideDown) {
+                // Point-up triangle
+                ctx.moveTo(x, y);
+                ctx.lineTo(x+side/2, y+h);
+                ctx.lineTo(x-side/2, y+h);
+            } else {
+                // Point-down triangle
+                ctx.moveTo(x, y+h);
+                ctx.lineTo(x+side/2, y);
+                ctx.lineTo(x-side/2, y);
+            }
+            ctx.closePath();
+            ctx.strokeStyle = line_color;
+            ctx.lineWidth = 1/zoom;
+            ctx.stroke();
+            if(filled){ ctx.fillStyle=hex_color; ctx.fill(); }
+        }
+
+        // Draw a square at position (x, y), filled if specified
+        function drawSquare(x, y, filled) {
+            const size = radius*2;
+            ctx.beginPath();
+            ctx.rect(x-size/2, y-size/2, size, size);  // Center the square on (x,y)
+            ctx.strokeStyle = line_color;
+            ctx.lineWidth = 1/zoom;
+            ctx.stroke();
+            if(filled){ ctx.fillStyle=hex_color; ctx.fill(); }
+        }
+
+        // ---------- COORDINATE TRANSFORMATIONS ----------
+
+        // Convert screen coordinates (pixels) to world coordinates (grid units)
+        function screenToWorld(px, py) {
+            return {
+                x: (px - width/2 - camX) / zoom,  // Account for camera pan and zoom
+                y: (py - height/2 - camY) / zoom
+            };
+        }
+
+        // Convert world coordinates to specific cell coordinates based on grid shape
+        function worldToCell(world, shape) {
+            if (shape==="square") {
+                // Square grid: simple division by cell size
+                const size = radius*2;
+                return [Math.floor(world.x/size), Math.floor(world.y/size)];
+            } else if (shape==="triangle") {
+                // Triangular grid: more complex coordinate system
+                const side = radius*2;
+                const h = Math.sqrt(3)/2*side;  // Triangle height
+                const gridX = Math.floor(world.x / (side/2));
+                const gridY = Math.floor(world.y / h);
+                return [gridX, gridY];
+            } else {
+                // Hexagonal grid: using axial coordinates (q, r)
+                const q = Math.round(world.x / (1.5*radius));
+                const r = Math.round((world.y - (q%2?Math.sqrt(3)*radius/2:0)) / (Math.sqrt(3)*radius));
+                return [q, r];
+            }
+        }
+
+        // ---------- MAIN GRID DRAWING FUNCTION ----------
+
+        function drawGrid(gridSize, shape) {
+            // Clear the entire canvas
+            ctx.clearRect(0,0,width,height);
+            
+            // Save current transformation state and apply camera transformations
+            ctx.save();
+            ctx.translate(width/2+camX, height/2+camY);  // Center the grid + camera offset
+            ctx.scale(zoom,zoom);  // Apply zoom
+
+            // Draw different grid types based on selected shape
+            if (shape==="square") {
+                const size = radius*2;
+                // Iterate through grid coordinates
+                for(let x=-gridSize;x<=gridSize;x++){
+                    for(let y=-gridSize;y<=gridSize;y++){
+                        const filled = cells.has(getKey(x,y));  // Check if cell is active
+                        drawSquare(x*size, y*size, filled);
+                    }
+                }
+            } else if (shape==="triangle") {
+                const side = radius*2;
+                const h = Math.sqrt(3)/2*side;
+                for(let col=-gridSize*2;col<=gridSize*2;col++){
+                    for(let row=-gridSize;row<=gridSize;row++){
+                        const x = col*(side/2);
+                        const y = row*h;
+                        const upsideDown = (col+row)%2===0;  // Alternate triangle orientation
+                        const filled = cells.has(getKey(col,row));
+                        drawTriangle(x,y,upsideDown,filled);
+                    }
+                }
+            } else if (shape == "hex") {
+                const horiz = 1.5 * radius;        // Horizontal spacing between hex centers
+                const vert = Math.sqrt(3) * radius; // Vertical spacing between hex centers
+                
+                for (let row = -gridSize; row <= gridSize; row++) {
+                    for (let col = -gridSize; col <= gridSize; col++) {
+                        const x = col * horiz;
+                        const y = row * vert + (col % 2 ? vert / 2 : 0); // offset every other column
+                        const filled = cells.has(getKey(col, row));
+                        drawHex(x, y, filled);
+                    }
+                }
+            }
+
+            
+            // Restore original transformation state
+            ctx.restore();
+        }
+
+        // ---------- USER INTERACTION HANDLERS ----------
+
+        // Toggle cell state at screen coordinates (px, py)
+function toggleAt(px, py) {
+    const shape = shapeSelect.value;
+    const world = screenToWorld(px, py);      // screen → world
+    const cell  = worldToCell(world, shape);  // world → grid
+    const key   = getKey(...cell);
+
+    // DRAW mode
+    if (drawTiles.checked) {
+        cells.add(key);                        // add cell regardless of previous state
+    }
+    // ERASE mode
+    else if (eraseTiles.checked) {
+        cells.delete(key);                     // remove if present
+    }
+    else {
+        // PAN MODE: don't touch cells, let mouse events handle dragging
+        // (nothing here — just leave cells as is)
+        return;
+    }
+    redraw();
+}
+
+        // Mouse down: start painting or camera dragging
+// Mouse down: start painting or camera dragging
+canvas.addEventListener('mousedown', e=>{
+    if (e.button === 0) {  // Left click
+        if (drawTiles.checked || eraseTiles.checked) {
+            painting = true; 
+            toggleAt(e.clientX, e.clientY);
+        } else {
+            // No mode selected → pan instead of painting
+            draggingCam = true;
+        }
+    }
+    else if (e.button === 1 || e.button === 2) {  // Middle or right click - drag camera
+        draggingCam = true; 
+    }
+    lastX = e.clientX; 
+    lastY = e.clientY;
+});
+
+        // Mouse move: continue painting or camera dragging
+        canvas.addEventListener('mousemove', e=>{
+            if (painting) toggleAt(e.clientX,e.clientY);
+            if (draggingCam) {
+                camX += e.clientX - lastX;  // Update camera position
+                camY += e.clientY - lastY;
+                lastX=e.clientX; lastY=e.clientY;
+                redraw();
+            }
+        });
+
+        // Mouse up/leave: stop interactions
+        canvas.addEventListener('mouseup', ()=>{painting=false; draggingCam=false;});
+        canvas.addEventListener('mouseleave', ()=>{painting=false; draggingCam=false;});
+
+        // Prevent context menu on right click
+        canvas.addEventListener('contextmenu', e=>e.preventDefault());
+
+        // Mouse wheel: zoom in/out
+        canvas.addEventListener('wheel', e=>{
+            e.preventDefault();
+            zoom *= e.deltaY>0?0.9:1.1;  // Zoom out if scrolling down, in if up
+            redraw();
+        },{passive:false});
+
+        // ---------- CONTROL ELEMENTS ----------
+
+        // Get references to UI controls
+        const sizeInput=document.getElementById("size");
+        const shapeSelect=document.getElementById("shape");
+
+        // Redraw function that reads current control values
+        function redraw(){
+            drawGrid(parseInt(sizeInput.value), shapeSelect.value); 
+        }
+
+        // Update grid when controls change
+        shapeSelect.addEventListener('change', redraw);
+        sizeInput.addEventListener('input', redraw);
+
+        // Initial draw
+        redraw();
+    </script>
+
+</body>
+</html>
