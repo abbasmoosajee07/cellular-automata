@@ -1,10 +1,10 @@
-import { squareGrid } from './squares.js';
-import { hexagonGrid } from './hexagons.js';
-import { triangleGrid } from './triangles.js';
+import { SquareGrid } from './squares.js';
+import { HexagonGrid } from './hexagons.js';
+import { TriangleGrid } from './triangles.js';
 
 
-class gridManager {
-    constructor(shape, canvas) {
+class GridManager {
+    constructor(shape, canvas, init_cells = new Map()) {
         this.shape = shape;
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d");
@@ -15,27 +15,26 @@ class gridManager {
         this.zoom = 1;
         this.radius = 20;
 
-        this.cells = new Set();
+        this.cells = init_cells;
         if (shape.value === "square") {
-            this.shapeGrid = new hexagonGrid();
+            this.shapeGrid = new SquareGrid();
         } else if (shape.value ==="triangle") {
-            this.shapeGrid = new hexagonGrid();
+            this.shapeGrid = new TriangleGrid();
         } else if (shape.value === "hex"){
-            this.shapeGrid = new hexagonGrid();
+            this.shapeGrid = new HexagonGrid();
         }
         this.updateCanvasSize();
 
     }
 
-    getKey(...coords) {
-        return coords.join(',');
-    }
 
     updateCanvasSize() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-        this.width = this.canvas.width;
-        this.height = this.canvas.height;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.width = width;
+        this.height = height;
     }
     // Convert screen coordinates (pixels) to world coordinates (grid units)
     screenToWorld(px, py) {
@@ -52,45 +51,55 @@ class gridManager {
 
     // ---------- MAIN GRID DRAWING FUNCTION ----------
     drawGrid(gridSize) {
-        const canvas = document.getElementById("gridCanvas");
-        const ctx = canvas.getContext("2d");
+        const ctx = this.ctx
         // Clear the entire canvas
         ctx.clearRect(0,0,this.width,this.height);
         // Save current transformation state and apply camera transformations
         ctx.save();
         ctx.translate(this.width/2+this.camX, this.height/2+this.camY);  // Center the grid + camera offset
         ctx.scale(this.zoom,this.zoom);  // Apply zoom
-
-        this.shapeGrid.drawGrid(gridSize, this.cells)
+        this.shapeGrid.zoom = this.zoom;
+        this.shapeGrid.drawGrid(ctx, gridSize, this.cells)
 
         // Restore original transformation state
         ctx.restore();
     }
 
-    // Toggle cell state at screen coordinates (px, py)
-    toggleAt(px, py) {
-        const shape = this.shape.value;
-        const world = this.screenToWorld(px, py);      // screen → world
-        const cell  = this.worldToCell(world, shape);  // world → grid
-        const key   = this.getKey(...cell);
+    addCell(x, y) {
+        if (!this.cells.has(x)) this.cells.set(x, new Map());
+        this.cells.get(x).set(y, true);
+    }
 
-        // DRAW mode
-        if (drawTiles.checked) {
-            this.cells.add(key);                        // add cell regardless of previous state
-        }
-        // ERASE mode
-        else if (eraseTiles.checked) {
-            this.cells.delete(key);                     // remove if present
-        }
-        else {
-            // PAN MODE: don't touch cells, let mouse events handle dragging
-            // (nothing here — just leave cells as is)
-            return;
+    deleteCell(x, y) {
+        if (this.cells.has(x)) {
+            this.cells.get(x).delete(y);
+            if (this.cells.get(x).size === 0) {
+                this.cells.delete(x); // cleanup empty rows
+            }
         }
     }
 
+    hasCell(x, y) {
+        return this.cells.has(x) && this.cells.get(x).has(y);
+    }
+
+    // Toggle cell state at screen coordinates (px, py)
+    toggleAt(px, py) {
+        const world = this.screenToWorld(px, py);
+        const [x, y]  = this.worldToCell(world);  // returns numeric coords
+
+        if (drawTiles.checked) {
+            this.addCell(x, y);
+        }
+        else if (eraseTiles.checked) {
+            this.deleteCell(x, y);
+        }
+        else {
+            return; // PAN MODE
+        }
+    }
 }
 
 
 
-export {gridManager};
+export {GridManager};

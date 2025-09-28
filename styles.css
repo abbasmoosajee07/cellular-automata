@@ -1,6 +1,8 @@
 /* CSS Variables for Theming */
 :root {
     --feature-color: #32cd32;
+    --line-color: #555555;
+    --dark-color: #063706;
     --text-color: #eee;
     --muted: #aaa;
     --bg: #111;
@@ -11,7 +13,7 @@
 
 body.light {
     --text-color: #111;
-    --muted: #666;
+    --muted: #111;
     --bg: #fff;
     --card-bg: #fff;
     --card-border: #e1e4e8;
@@ -118,4 +120,36 @@ h1 {
 p {
     margin-bottom: 1rem;
     color: var(--text-color);
+}
+.control-panel {
+  position: fixed;
+  bottom: 1vmin;
+  left: 1vmin;
+  display: flex;
+  gap: 0.5rem;
+  background: transparent !important; /* subtle background */
+  border-radius: 10px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background-color: var(--feature-color);
+  border: 1px solid var(--dark-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+  background-color: var(--dark-color);
+  color: #fff;
+  transform: scale(1.05);
 }
