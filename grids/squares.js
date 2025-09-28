@@ -1,19 +1,21 @@
 class SquareGrid{
-    constructor( zoom = 1, radius = 30) {
-        this.hexColor = "#32cd32";
-        this.lineColor = "#555555";
-        this.radius = radius;
-        this.zoom = zoom;
+    constructor(colorSchema) {
+        this.colorSchema = colorSchema;
+        this.radius = 30;
+        this.zoom = 1;
     }
     // Draw a square at position (x, y), filled if specified
-    drawCell(ctx, x, y, filled) {
+    drawCell(ctx, x, y, status) {
         const size = this.radius*2;
         ctx.beginPath();
         ctx.rect(x-size/2, y-size/2, size, size);  // Center the square on (x,y)
-        ctx.strokeStyle = this.lineColor;
-        ctx.lineWidth = 1/this.zoom;
+        ctx.strokeStyle = this.colorSchema["line"];
+        ctx.lineWidth = 1 / (this.zoom);
         ctx.stroke();
-        if(filled){ ctx.fillStyle=this.hexColor; ctx.fill(); }
+        if(status){
+            ctx.fillStyle=this.colorSchema[status];
+            ctx.fill();
+        }
     }
 
     // Convert world coordinates to specific cell coordinates based on grid shape
@@ -23,14 +25,20 @@ class SquareGrid{
         return [Math.floor(world.x/size), Math.floor(world.y/size)];
     }
 
-    drawGrid(ctx, gridSize, cells) {
-        // Draw different grid types based on selected shape
+    drawGrid(ctx, minX, maxX, minY, maxY, cells) {
+        const horiz = 1.5 * this.radius;
+        const vert  = Math.sqrt(3) * this.radius;
         const size = this.radius*2;
-        // Iterate through grid coordinates
-        for(let x=-gridSize;x<=gridSize;x++){
-            for(let y=-gridSize;y<=gridSize;y++){
-                const filled = cells.has(x) && cells.get(x).has(y);
-                this.drawCell(ctx, x*size, y*size, filled);
+
+        // Find bounding indices of visible cols/rows
+        const minCol = Math.floor(minX / horiz) - 1;
+        const maxCol = Math.ceil(maxX / horiz) + 1;
+        const minRow = Math.floor(minY / vert) - 1;
+        const maxRow = Math.ceil(maxY / vert) + 1;
+        for (let col = minCol; col <= maxCol; col++) {
+            for (let row = minRow; row <= maxRow; row++) {
+                const status = cells.has(col) ? cells.get(col).get(row) : undefined;
+                this.drawCell(ctx, col*size, row*size, status);
             }
         }
     }

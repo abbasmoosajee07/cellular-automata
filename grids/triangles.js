@@ -1,13 +1,13 @@
 
 class TriangleGrid{
-    constructor( zoom = 1, radius = 30) {
-        this.hexColor = "#32cd32";
-        this.lineColor = "#555555";
-        this.radius = radius;
-        this.zoom = zoom;
+    constructor(colorSchema) {
+        this.colorSchema = colorSchema;
+        this.radius = 30;
+        this.zoom = 1;
     }
+
     // Draw a triangle at position (x, y), with optional orientation and fill
-    drawCell(ctx, x, y, upsideDown, filled) {
+    drawCell(ctx, x, y, upsideDown, status) {
         const side = this.radius*2;  // Triangle side length
         const h = Math.sqrt(3)/2*side;  // Triangle height
         ctx.beginPath();
@@ -23,10 +23,13 @@ class TriangleGrid{
             ctx.lineTo(x-side/2, y);
         }
         ctx.closePath();
-        ctx.strokeStyle = this.lineColor;
-        ctx.lineWidth = 1/this.zoom;
+        ctx.strokeStyle = this.colorSchema["line"];
+        ctx.lineWidth = 1 / (this.zoom);
         ctx.stroke();
-        if(filled){ ctx.fillStyle=this.hexColor; ctx.fill(); }
+        if(status){
+            ctx.fillStyle=this.colorSchema[status];
+            ctx.fill();
+        }
     }
 
     // Convert world coordinates to specific cell coordinates based on grid shape
@@ -40,16 +43,23 @@ class TriangleGrid{
 
     }
 
-    drawGrid(ctx, gridSize, cells) {
-        const side = this.radius*2;
-        const h = Math.sqrt(3)/2*side;
-        for(let col=-gridSize*2;col<=gridSize*2;col++){
-            for(let row=-gridSize;row<=gridSize;row++){
+    drawGrid(ctx, minX, maxX, minY, maxY, cells) {
+        const side = 2 * this.radius;
+        const h = Math.sqrt(3) / 2 * side;
+
+        // Find bounding indices of visible cols/rows
+        const minCol = Math.floor(minX / (side / 2)) - 2;
+        const maxCol = Math.ceil(maxX / (side / 2)) + 2;
+        const minRow = Math.floor(minY / (h / 2)) - 2;
+        const maxRow = Math.ceil(maxY / (h / 2)) + 2;
+
+        for (let col = minCol; col <= maxCol; col++) {
+            for (let row = minRow; row <= maxRow; row++) {
                 const x = col * (side / 2);
                 const y = row * h;
-                const upsideDown = (col + row) % 2 === 0;  // Alternate triangle orientation
-                const filled = cells.has(col) && cells.get(col).has(row);
-                this.drawCell(ctx, x,y,upsideDown,filled);
+                const upsideDown = (col + row) % 2 === 0;
+                const status = cells.has(col) ? cells.get(col).get(row) : undefined;
+                this.drawCell(ctx, x, y, upsideDown, status);
             }
         }
     }

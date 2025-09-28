@@ -1,15 +1,13 @@
 
 class HexagonGrid{
-    constructor( zoom = 1, radius = 30) {
-        this.hexColor = "#32cd32";
-        this.lineColor = "#555555";
-        this.radius = radius;
-        this.zoom = zoom;
-
+    constructor(colorSchema) {
+        this.colorSchema = colorSchema;
+        this.radius = 30;
+        this.zoom = 1;
     }
 
     // Draw a hexagon at position (x, y), filled if specified
-    drawCell(ctx, x, y, filled) {
+    drawCell(ctx, x, y, status) {
         ctx.beginPath();
         // Create hexagon by connecting 6 points in a circle
         for (let i = 0; i < 6; i++) {
@@ -19,11 +17,11 @@ class HexagonGrid{
             i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
         }
         ctx.closePath();
-        ctx.strokeStyle = this.lineColor;  // Grid line color
-        ctx.lineWidth = 1/this.zoom;  // Thinner lines when zoomed out
+        ctx.strokeStyle = this.colorSchema["line"];
+        ctx.lineWidth = 1 / (this.zoom);
         ctx.stroke();
-        if(filled){
-            ctx.fillStyle=this.hexColor;
+        if(status){
+            ctx.fillStyle=this.colorSchema[status];
             ctx.fill();
         }
     }
@@ -36,20 +34,26 @@ class HexagonGrid{
             return [q, r];
     }
 
-    drawGrid(ctx, gridSize, cells) {
+    drawGrid(ctx, minX, maxX, minY, maxY, cells) {
+        const horiz = 1.5 * this.radius;
+        const vert  = Math.sqrt(3) * this.radius;
 
-        const horiz = 1.5 * this.radius;        // Horizontal spacing between hex centers
-        const vert = Math.sqrt(3) * this.radius; // Vertical spacing between hex centers
+        // Find bounding indices of visible cols/rows
+        const minCol = Math.floor(minX / horiz) - 1;
+        const maxCol = Math.ceil(maxX / horiz) + 1;
+        const minRow = Math.floor(minY / vert) - 1;
+        const maxRow = Math.ceil(maxY / vert) + 1;
 
-        for (let row = -gridSize; row <= gridSize; row++) {
-            for (let col = -gridSize; col <= gridSize; col++) {
+        for (let col = minCol; col <= maxCol; col++) {
+            for (let row = minRow; row <= maxRow; row++) {
                 const x = col * horiz;
-                const y = row * vert + (col % 2 ? vert / 2 : 0); // offset every other column
-                const filled = cells.has(col) && cells.get(col).has(row);
-                this.drawCell(ctx, x, y, filled);
+                const y = row * vert + (col % 2 ? vert / 2 : 0);
+                const status = cells.has(col) ? cells.get(col).get(row) : undefined;
+                this.drawCell(ctx, x, y, status);
             }
         }
     }
+
 }
 
 

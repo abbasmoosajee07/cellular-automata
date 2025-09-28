@@ -8,25 +8,32 @@ class GridManager {
         this.shape = shape;
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d");
+        this.size = 10;
 
         // Camera + zoom
-        this.camX = 0;
-        this.camY = 0;
-        this.zoom = 1;
-        this.radius = 20;
+        this.cameraView = { camX: 0, camY: 0, zoom: 1,}
+        this.colorSchema = {
+            "line": "#555555",
+            0: "#111111",
+            1: "#32cd32",
+        }
 
         this.cells = init_cells;
-        if (shape.value === "square") {
-            this.shapeGrid = new SquareGrid();
-        } else if (shape.value ==="triangle") {
-            this.shapeGrid = new TriangleGrid();
-        } else if (shape.value === "hex"){
-            this.shapeGrid = new HexagonGrid();
+        switch (shape.value) {
+            case "square":
+                this.shapeGrid = new SquareGrid(this.colorSchema);
+                break;
+            case "triangle":
+                this.shapeGrid = new TriangleGrid(this.colorSchema);
+                break;
+            case "hex":
+                this.shapeGrid = new HexagonGrid(this.colorSchema);
+                break;
+            default:
+                throw new Error(`Unknown grid shape: ${shape.value}`);
         }
         this.updateCanvasSize();
-
     }
-
 
     updateCanvasSize() {
         const width = window.innerWidth;
@@ -36,11 +43,12 @@ class GridManager {
         this.width = width;
         this.height = height;
     }
+
     // Convert screen coordinates (pixels) to world coordinates (grid units)
     screenToWorld(px, py) {
         return {
-            x: (px - this.width/2 - this.camX) / this.zoom,  // Account for camera pan and zoom
-            y: (py - this.height/2 - this.camY) / this.zoom
+            x: (px - this.width/2 - this.cameraView["camX"]) / this.cameraView["zoom"],  // Account for camera pan and zoom
+            y: (py - this.height/2 - this.cameraView["camY"]) / this.cameraView["zoom"]
         };
     }
 
@@ -49,28 +57,37 @@ class GridManager {
         return this.shapeGrid.worldToCell(world);
     }
 
-    // ---------- MAIN GRID DRAWING FUNCTION ----------
-    drawGrid(gridSize) {
-        const ctx = this.ctx
-        // Clear the entire canvas
-        ctx.clearRect(0,0,this.width,this.height);
-        // Save current transformation state and apply camera transformations
+    drawGrid() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.width, this.height);
         ctx.save();
-        ctx.translate(this.width/2+this.camX, this.height/2+this.camY);  // Center the grid + camera offset
-        ctx.scale(this.zoom,this.zoom);  // Apply zoom
-        this.shapeGrid.zoom = this.zoom;
-        this.shapeGrid.drawGrid(ctx, gridSize, this.cells)
+        ctx.translate(this.width/2 + this.cameraView.camX, this.height/2 + this.cameraView.camY);
+        ctx.scale(this.cameraView.zoom, this.cameraView.zoom);
+        this.shapeGrid.zoom = this.cameraView.zoom;
 
-        // Restore original transformation state
+        // --- compute visible world bounds ---
+        const halfW = this.width / (2 * this.cameraView.zoom);
+        const halfH = this.height / (2 * this.cameraView.zoom);
+
+        const minWorldX = -this.cameraView.camX/this.cameraView.zoom - halfW;
+        const maxWorldX = -this.cameraView.camX/this.cameraView.zoom + halfW;
+        const minWorldY = -this.cameraView.camY/this.cameraView.zoom - halfH;
+        const maxWorldY = -this.cameraView.camY/this.cameraView.zoom + halfH;
+
+        // --- delegate to shapeGrid to draw only visible cells ---
+        this.shapeGrid.drawGrid(ctx, minWorldX, maxWorldX, minWorldY, maxWorldY, this.cells);
+
         ctx.restore();
     }
 
     addCell(x, y) {
         if (!this.cells.has(x)) this.cells.set(x, new Map());
-        this.cells.get(x).set(y, true);
+        this.cells.get(x).set(y, 1);
     }
 
     deleteCell(x, y) {
+        // if (!this.cells.has(x)) this.cells.set(x, new Map());
+        // this.cells.get(x).set(y, "dead");
         if (this.cells.has(x)) {
             this.cells.get(x).delete(y);
             if (this.cells.get(x).size === 0) {
@@ -87,6 +104,11 @@ class GridManager {
     toggleAt(px, py) {
         const world = this.screenToWorld(px, py);
         const [x, y]  = this.worldToCell(world);  // returns numeric coords
+
+        // // Bounds check: skip if outside the drawn grid
+        // if (x < -this.size || x > this.size || y < -this.size || y > this.size) {
+        //     return;
+        // }
 
         if (drawTiles.checked) {
             this.addCell(x, y);
