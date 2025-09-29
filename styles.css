@@ -153,3 +153,53 @@ p {
   color: #fff;
   transform: scale(1.05);
 }
+
+/* ===== BUTTONS ===== */
+.btn {
+    display: inline-block;
+    vertical-align: middle;
+    text-align: center;
+    font-weight: 550;
+    color: black !important;
+    transition: filter 0.2s ease, background-color 0.2s ease;
+    user-select: none;
+    white-space: normal !important;
+    padding: 0.25rem 0.25rem;
+    font-size: 1.05rem;
+
+  i { margin-right: 5px; }
+  
+  &:hover, &:focus, &:focus-visible {
+    filter: brightness(var(--hover-brightness)) !important;
+    transform: scale(1.05);
+  }
+  
+  &:active { filter: brightness(var(--active-brightness)) !important; }
+  
+  &:disabled {
+    background-color: #e0e0e0 !important;
+    color: #888 !important;
+    border-color: #ccc !important;
+    cursor: not-allowed !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+  }
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+/* general number input width */
+input[type="number"] {
+  width: 60px;  /* adjust as you like */
+}
+
+/* make checkbox not affected */
+input[type="checkbox"] {
+  width: auto;
+}

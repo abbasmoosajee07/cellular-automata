@@ -2,14 +2,14 @@ import {  GridManager  } from '../grids/gridManager.js';
 
 class AutomataSimulator{
     docIDs = [
-        "gridCanvas", "drawTiles", "eraseTiles", "size", "shape",
-        "resetView", "pinLoc",
+        "gridCanvas", "drawTiles", "eraseTiles", "size", "shape", "rowInput", "colInput",
+        "resetView", "pinLoc", "clearGrid", "randomFill", "infiniteGrid",
     ]
 
     constructor(){
         this.initElements();
         this.gridManager = new GridManager(this.shape, this.gridCanvas);
-        this.savedView = this.gridManager.cameraView;
+        this.savedView = { ...this.gridManager.cameraView };
         this.setupEventListeners();
         this.setupCanvasControls();
         this.gridManager.drawGrid();
@@ -32,19 +32,29 @@ class AutomataSimulator{
     }
 
     toggleAt(px, py) {
-        this.gridManager.size = parseInt(this.size.value);
         this.gridManager.toggleAt(
             px, py,
             this.drawTiles.checked,
-            this.eraseTiles.checked
+            this.eraseTiles.checked,
+            this.infiniteGrid.checked,
         );
         this.gridManager.drawGrid();
         // console.log(this.gridManager.cells);
     }
 
     setupEventListeners() {
-        this.size.addEventListener('input', () => {
-            this.gridManager.size = parseInt(this.size.value);
+        this.rowInput.addEventListener('input', () => {
+            this.gridManager.gridRows = parseInt(this.rowInput.value);
+            this.gridManager.drawGrid();
+        });
+
+        this.colInput.addEventListener('input', () => {
+            this.gridManager.gridCols = parseInt(this.colInput.value);
+            this.gridManager.drawGrid();
+        });
+
+        this.infiniteGrid.addEventListener('change', () => {
+            this.gridManager.infiniteGrid = this.infiniteGrid.checked;
             this.gridManager.drawGrid();
         });
 
@@ -66,6 +76,11 @@ class AutomataSimulator{
 
         this.pinLoc.addEventListener('click', () => {
             this.savedView = { ...this.gridManager.cameraView };
+        });
+
+        this.clearGrid.addEventListener('click', () => {
+            this.gridManager.cells = new Map();
+            this.gridManager.drawGrid();
         });
 
     }
@@ -117,11 +132,18 @@ class AutomataSimulator{
 
         this.gridCanvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            this.gridManager.cameraView["zoom"] *= e.deltaY > 0 ? 0.9 : 1.1;
-            this.gridManager.drawGrid();
+            // Calculate new zoom with limits
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = this.gridManager.cameraView["zoom"] * zoomFactor;
+            
+            // Apply zoom limits (0.1 to 1000)
+            this.gridManager.cameraView["zoom"] = Math.max(0.01, Math.min(10, newZoom));
+                this.gridManager.drawGrid();
         }, { passive: false });
     }
-
 }
 
-export {AutomataSimulator};
+
+
+export { AutomataSimulator };
+

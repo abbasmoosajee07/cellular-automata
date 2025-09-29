@@ -29,26 +29,46 @@
         </button>
 
         <div class="control-group">
-            <label for="size">
-                Grid size:
-                <input id="size" type="number" value="10" min="1" max="50">
-            </label>
 
-            <label for="shape">
+    <div class="form-row">
+      <label for="infiniteGrid">Infinite Grid</label>
+      <input type="checkbox" id="infiniteGrid">
+    </div>
+
+    <div id="finiteGridControls">
+      <div class="form-row">
+        <label for="colInput">Cols:</label>
+        <input type="number" class="grid-size-in" id="colInput" min="1" value="10" step="1">
+      </div>
+
+      <div class="form-row">
+        <label for="rowInput">Rows:</label>
+        <input type="number" class="grid-size-in" id="rowInput" min="1" value="10" step="1">
+      </div>
+    </div>
+
+            <label for="growth">
                 Shape:
                 <select id="shape">
                     <option value="square">Square</option>
-                    <option value="hex">Hex</option>
+                    <option value="hex">Hexagons</option>
                     <option value="triangle">Triangle</option>
                 </select>
             </label>
-            <label for="drawTiles">
-                Draw Tiles <input type="checkbox" id="drawTiles">
-            </label>
-            <label for="eraseTiles">
-                Erase Tiles <input type="checkbox" id="eraseTiles">
-            </label>
-
+            <div class="form-row">
+                <label for="drawTiles">Draw Tiles</label>
+                <input type="checkbox" id="drawTiles">
+            </div>
+            <div class="form-row">
+                <label for="eraseTiles">Erase Tiles</label>
+                <input type="checkbox" id="eraseTiles">
+            </div>
+            <button id="clearGrid" class="action-btn" title="Clear">
+                <i class="bi bi-trash-fill">Clear</i>
+            </button>
+            <button id="randomFill" class="action-btn" title="Random">
+                <i class="bi bi-pencil">Random</i>
+            </button>
         </div>
     </div>
 
@@ -56,23 +76,16 @@
     <canvas id="gridCanvas"></canvas>
 
     <div class="control-panel">
-    <button id="resetView" class="control-btn" title="Reset View">
-        <i class="bi bi-camera-video-fill"></i>
-    </button>
+        <button id="resetView" class="control-btn" title="Reset View">
+            <i class="bi bi-camera-video-fill"></i>
+        </button>
         <button id="pinLoc" class="control-btn" title="Pin Location">
             <i class="bi bi-pin-map-fill"></i>
         </button>
-    <button id="playPause" class="control-btn" title="Play / Pause">
-        <i class="bi bi-play-fill"></i>
-    </button>
-    <button id="step" class="control-btn" title="Step">
-        <i class="bi bi-arrow-right-square"></i>
-    </button>
     </div>
 
 
     <script src="/utils.js"></script>
-
 
     <script type = "module">
 
@@ -82,8 +95,22 @@
             new AutomataSimulator();
         });
     </script>
+<script>
+  const infiniteGrid = document.getElementById("infiniteGrid");
+  const finiteGridControls = document.getElementById("finiteGridControls");
 
-    <!-- <script src="/grids/build_grid1.js"></script> -->
+  function updateInputs() {
+    if (infiniteGrid.checked) {
+      finiteGridControls.style.display = "none"; // hide rows+cols
+    } else {
+      finiteGridControls.style.display = "block"; // show rows+cols
+    }
+  }
 
+  infiniteGrid.addEventListener("change", updateInputs);
+
+  // Run once on load
+  updateInputs();
+</script>
 </body>
 </html>
