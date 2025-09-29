@@ -1,9 +1,9 @@
-import { SquareGrid } from './squares.js';
-import { HexagonGrid } from './hexagons.js';
-import { TriangleGrid } from './triangles.js';
+import { SquareGrid } from '/grids/squares.js';
+import { HexagonGrid } from '/grids/hexagons.js';
+import { TriangleGrid } from '/grids/triangles.js';
 
-import { WebGLRenderer } from '../renderer/WebGL.js';
-import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
+import { WebGLRenderer } from '/renderer/WebGL.js';
+import { Canvas2DRenderer } from '/renderer/Canvas2d.js';
 
 class GridManager {
     constructor(shape, canvas, init_cells = new Map(), useWebGL = true) {
