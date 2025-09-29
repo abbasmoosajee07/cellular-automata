@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "python3 -m http.server 8000",
     "serve": "npx serve .",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "echo \"No tests specified\" && exit 0",
+    "build:css": "sass styles.scss styles.css",
+    "dev:sass": "sass --watch styles.scss:styles.css & python3 -m http.server 8000"
   },
   "keywords": [
     "cellular-automata",
@@ -23,7 +25,8 @@
     "url": "https://github.com/abbasmoosajee07/cellular-automata"
   },
   "homepage": "https://abbasmoosajee07.github.io/cellular-automata",
-  "engines": {
-    "node": ">=18.0.0"
+  "devDependencies": {
+    "sass": "^1.66.0",
+    "serve": "^14.0.0"
   }
 }
