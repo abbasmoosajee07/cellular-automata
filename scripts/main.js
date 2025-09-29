@@ -1,4 +1,4 @@
-import {  GridManager  } from '../grids/gridManager.js';
+import {  GridManager  } from '/grids/gridManager.js';
 
 class AutomataSimulator{
     docIDs = [
