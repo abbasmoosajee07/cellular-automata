@@ -1,0 +1,29 @@
+{
+  "name": "cellular-automata",
+  "version": "1.0.0",
+  "description": "Interactive cellular automata simulator with WebGL rendering",
+  "type": "module",
+  "main": "scripts/main.js",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "serve": "npx serve .",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "cellular-automata",
+    "webgl",
+    "simulation",
+    "grid",
+    "interactive"
+  ],
+  "author": "Abbas Moosajee",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abbasmoosajee07/cellular-automata"
+  },
+  "homepage": "https://abbasmoosajee07.github.io/cellular-automata",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
