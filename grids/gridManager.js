@@ -5,34 +5,36 @@ import { TriangleGrid } from './triangles.js';
 import { WebGLRenderer } from '../renderer/WebGL.js';
 import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 
+
 class GridManager {
     constructor(shape, canvas, init_cells = new Map(), useWebGL = true) {
         this.shape = shape;
         this.canvas = canvas;
-        this.infiniteGrid = false;
+        this.useWebGL = useWebGL;
+        this.cells = init_cells
+
         this.gridRows = 10;
         this.gridCols = 10;
-        this.useWebGL = useWebGL;
+        this.infiniteGrid = false;
 
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
         this.colorSchema = {
-            "line": "#555555",
-            0: "#111111",
+            line: "#555555",
+            0: "#280f6f",
             1: "#32cd32",
         }
+;
 
-        this.cells = init_cells;
-        
         // Initialize grid logic
         switch (shape.value) {
             case "square":
-                this.shapeGrid = new SquareGrid(this.colorSchema);
+                this.shapeGrid = new SquareGrid(this.colorSchema, 1000, 10000);
                 break;
             case "hex":
-                this.shapeGrid = new HexagonGrid(this.colorSchema);
+                this.shapeGrid = new HexagonGrid(this.colorSchema, 1000, 10000);
                 break;
             case "triangle":
-                this.shapeGrid = new TriangleGrid(this.colorSchema);
+                this.shapeGrid = new TriangleGrid(this.colorSchema, 1000, 10000);
                 break;
             default:
                 throw new Error(`Unknown grid shape: ${shape.value}`);
@@ -40,7 +42,6 @@ class GridManager {
 
         // Initialize renderer
         this.initializeRenderer(useWebGL);
-        
         this.updateCanvasSize();
     }
 
@@ -60,14 +61,6 @@ class GridManager {
         }
     }
 
-    switchRenderer(useWebGL) {
-        if (this.useWebGL !== useWebGL) {
-            this.useWebGL = useWebGL;
-            this.initializeRenderer(useWebGL);
-            this.drawGrid(); // Redraw with new renderer
-        }
-    }
-
     updateCanvasSize() {
         const width = window.innerWidth;
         const height = window.innerHeight;
@@ -75,7 +68,7 @@ class GridManager {
         this.canvas.height = height;
         this.width = width;
         this.height = height;
-        
+
         if (this.renderer && this.renderer.updateCanvasSize) {
             this.renderer.updateCanvasSize();
         }
@@ -98,7 +91,7 @@ class GridManager {
         const geometry = this.shapeGrid.getGridGeometry(
             bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid
         );
-        
+
         if (this.useWebGL) {
             // WebGL renderer uses geometry data
             this.renderer.uploadGeometry(geometry);
@@ -109,65 +102,11 @@ class GridManager {
         }
     }
 
-    // Alternative direct drawing method for Canvas2D
-    drawGridDirect() {
-        if (!this.useWebGL && this.renderer.drawDirect) {
-            this.renderer.drawDirect(this.cameraView, (ctx) => {
-                // Direct canvas drawing logic here
-                this.drawGridCanvas2D(ctx);
-            });
-        } else {
-            this.drawGrid(); // Use standard geometry-based drawing
-        }
-    }
-
-    // Direct Canvas2D drawing implementation (optional)
-    drawGridCanvas2D(ctx) {
-        const bounds = this.getVisibleBounds();
-        const [minCol, maxCol, minRow, maxRow] = this.shapeGrid.calculateBounds(bounds, this.infiniteGrid);
-        const size = this.shapeGrid.radius * 2;
-
-        // Apply finite grid limits if needed
-        let actualMinCol = minCol;
-        let actualMaxCol = maxCol;
-        let actualMinRow = minRow;
-        let actualMaxRow = maxRow;
-
-        if (!this.infiniteGrid) {
-            const halfCols = Math.floor(this.gridCols / 2);
-            const halfRows = Math.floor(this.gridRows / 2);
-
-            actualMinCol = Math.max(minCol, -halfCols);
-            actualMaxCol = Math.min(maxCol, halfCols);
-            actualMinRow = Math.max(minRow, -halfRows);
-            actualMaxRow = Math.min(maxRow, halfRows);
-        }
-
-        // Draw grid cells
-        for (let col = actualMinCol; col <= actualMaxCol; col++) {
-            for (let row = actualMinRow; row <= actualMaxRow; row++) {
-                const x = col * size;
-                const y = row * size;
-                const status = this.cells.has(col) ? this.cells.get(col).get(row) : undefined;
-
-                ctx.beginPath();
-                ctx.rect(x - size/2, y - size/2, size, size);
-                ctx.strokeStyle = this.colorSchema["line"];
-                ctx.stroke();
-
-                if (status) {
-                    ctx.fillStyle = this.colorSchema[status];
-                    ctx.fill();
-                }
-            }
-        }
-    }
-
     // Keep all other methods the same...
     screenToWorld(px, py) {
         return {
-            x: (px - this.width/2 - this.cameraView["camX"]) / this.cameraView["zoom"],
-            y: (py - this.height/2 - this.cameraView["camY"]) / this.cameraView["zoom"]
+            x: (px - this.width/2 - this.cameraView.camX) / this.cameraView.zoom,
+            y: (py - this.height/2 - this.cameraView.camY) / this.cameraView.zoom
         };
     }
 
@@ -191,7 +130,7 @@ class GridManager {
 
     getBounds(cols, rows, infinite) {
         if (infinite) return null;
-        
+
         cols = Number(cols) || 0;
         rows = Number(rows) || 0;
 
@@ -213,7 +152,7 @@ class GridManager {
             const minRow = -Math.floor(rows / 2);
             const maxRow = minRow + rows;
 
-            if (x < minCol || x >= maxCol || y < minRow || y >= maxRow) {
+            if (x < minCol || x > maxCol || y < minRow || y > maxRow) {
                 return false;
             }
         }

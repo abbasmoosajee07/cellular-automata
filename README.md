@@ -13,8 +13,8 @@ A web-based simulation of different variations of Cellular Automata
 - Multi-layered grids (stacked CA worlds that interact).
 
 ### 🎨 Visualization
-- Different grid geometries (hexagons, triangles, irregular tessellations).
-- Zoom & pan (explore large universes).
+- ~~Different grid geometries (hexagons, triangles, squares)~~.
+- ~~Zoom & pan (explore large universes)~~.
 - Cell color mapping (e.g. intensity by age, energy, state type).
 - Thematic skins (e.g. “organic” mode, “digital pixels” mode).
 - Heat maps (activity, population density, entropy).

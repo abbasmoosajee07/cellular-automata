@@ -23,6 +23,7 @@
 
 <body>
     <!-- Side Navigation -->
+    <button class="mobile-menu-toggle" id="menuToggle">☰</button>
     <div class="sidenav">
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
             <i id="themeIcon" class="bi bi-sun-fill"></i>
@@ -30,22 +31,22 @@
 
         <div class="control-group">
 
-    <div class="form-row">
-      <label for="infiniteGrid">Infinite Grid</label>
-      <input type="checkbox" id="infiniteGrid">
-    </div>
+            <div class="form-row">
+                <label for="infiniteGrid">Infinite Grid</label>
+                <input type="checkbox" id="infiniteGrid">
+            </div>
 
-    <div id="finiteGridControls">
-      <div class="form-row">
-        <label for="colInput">Cols:</label>
-        <input type="number" class="grid-size-in" id="colInput" min="1" value="10" step="1">
-      </div>
+            <div id="finiteGridControls">
+                <div class="form-row">
+                    <label for="colInput">Cols:</label>
+                    <input type="number" class="grid-size-in" id="colInput" min="1" value="10" step="1">
+                </div>
 
-      <div class="form-row">
-        <label for="rowInput">Rows:</label>
-        <input type="number" class="grid-size-in" id="rowInput" min="1" value="10" step="1">
-      </div>
-    </div>
+                <div class="form-row">
+                    <label for="rowInput">Rows:</label>
+                    <input type="number" class="grid-size-in" id="rowInput" min="1" value="10" step="1">
+                </div>
+            </div>
 
             <label for="growth">
                 Shape:
@@ -94,23 +95,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             new AutomataSimulator();
         });
+// Toggle mobile menu
+document.getElementById('menuToggle').addEventListener('click', function() {
+    document.querySelector('.sidenav').classList.toggle('active');
+});
     </script>
-<script>
-  const infiniteGrid = document.getElementById("infiniteGrid");
-  const finiteGridControls = document.getElementById("finiteGridControls");
 
-  function updateInputs() {
-    if (infiniteGrid.checked) {
-      finiteGridControls.style.display = "none"; // hide rows+cols
-    } else {
-      finiteGridControls.style.display = "block"; // show rows+cols
-    }
-  }
-
-  infiniteGrid.addEventListener("change", updateInputs);
-
-  // Run once on load
-  updateInputs();
-</script>
 </body>
 </html>

@@ -11,6 +11,16 @@ class WebGLRenderer {
         this.updateCanvasSize();
     }
 
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [
+            parseInt(result[1], 16) / 255,
+            parseInt(result[2], 16) / 255,
+            parseInt(result[3], 16) / 255,
+            1.0
+        ] : [0.5, 0.5, 0.5, 1.0];
+    }
+
     initWebGL() {
         const gl = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
         if (!gl) {
@@ -158,11 +168,12 @@ class WebGLRenderer {
         const camX = cameraView.camX;
         const camY = cameraView.camY;
         
+        // FIXED: Proper coordinate transformation that matches mouse calculations
         const scaleX = (2 * zoom) / this.width;
-        const scaleY = (-2 * zoom) / this.height;
+        const scaleY = (-2 * zoom) / this.height; // Keep negative for proper Y direction
         
-        const translateX = (-2 * camX) / this.width;
-        const translateY = (2 * camY) / this.height;
+        const translateX = (2 * camX) / this.width;
+        const translateY = (-2 * camY) / this.height;
         
         return new Float32Array([
             scaleX, 0, 0,

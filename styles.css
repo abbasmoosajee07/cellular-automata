@@ -203,3 +203,81 @@ input[type="number"] {
 input[type="checkbox"] {
   width: auto;
 }
+
+/* Mobile Menu Toggle */
+.mobile-menu-toggle {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    width: 50px;
+    height: 50px;
+    background: var(--feature-color);
+    border: none;
+    border-radius: 50%;
+    color: #333;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px var(--card-shadow);
+}
+
+@media (min-width: 768px) {
+    .mobile-menu-toggle {
+        display: none;
+    }
+}
+
+/* Safe Area Insets for Notches */
+@supports(padding: max(0px)) {
+    .sidenav,
+    .control-panel,
+    .mobile-menu-toggle {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    :root {
+        --card-border: #000;
+        --card-shadow: rgba(0, 0, 0, 0.8);
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+/* Orientation Specific */
+@media (max-width: 767px) and (orientation: landscape) {
+    .sidenav {
+        max-height: 50vh;
+    }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 360px) {
+    .control-panel {
+        bottom: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .content {
+        padding: 0.75rem;
+    }
+}
