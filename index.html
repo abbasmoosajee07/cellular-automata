@@ -22,55 +22,95 @@
 </head>
 
 <body>
-    <!-- Side Navigation -->
-    <button class="mobile-menu-toggle" id="menuToggle">☰</button>
-    <div class="sidenav">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-            <i id="themeIcon" class="bi bi-sun-fill"></i>
-        </button>
+    <!-- Toggle Button -->
+    <button id="togglePanel" class="toggle-panel-btn">
+    <i class="bi bi-list"></i>
+    </button>
 
-        <div class="control-group">
+    <!-- Collapsible Side Panel -->
+    <div class="sidenav" id="menu">
 
-            <div class="form-row">
-                <label for="infiniteGrid">Infinite Grid</label>
-                <input type="checkbox" id="infiniteGrid">
-            </div>
-
-            <div id="finiteGridControls">
-                <div class="form-row">
-                    <label for="colInput">Cols:</label>
-                    <input type="number" class="grid-size-in" id="colInput" min="1" value="10" step="1">
-                </div>
-
-                <div class="form-row">
-                    <label for="rowInput">Rows:</label>
-                    <input type="number" class="grid-size-in" id="rowInput" min="1" value="10" step="1">
-                </div>
-            </div>
-
-            <label for="growth">
-                Shape:
-                <select id="shape">
-                    <option value="square">Square</option>
-                    <option value="hex">Hexagons</option>
-                    <option value="triangle">Triangle</option>
-                </select>
-            </label>
-            <div class="form-row">
-                <label for="drawTiles">Draw Tiles</label>
-                <input type="checkbox" id="drawTiles">
-            </div>
-            <div class="form-row">
-                <label for="eraseTiles">Erase Tiles</label>
-                <input type="checkbox" id="eraseTiles">
-            </div>
-            <button id="clearGrid" class="action-btn" title="Clear">
-                <i class="bi bi-trash-fill">Clear</i>
-            </button>
-            <button id="randomFill" class="action-btn" title="Random">
-                <i class="bi bi-pencil">Random</i>
-            </button>
+    <!-- Vertical Tabs on the left -->
+    <div class="sidenav-tabs">
+        <button class="tab-btn active" data-panel="gridPanel">Grid</button>
+        <button class="tab-btn" data-panel="drawPanel">Draw</button>
+        <button class="tab-btn" data-panel="randomPanel">Rand</button>
+        <button class="tab-btn" data-panel="aboutPanel">About</button>
+    </div>
+    <!-- Panel Content -->
+    <div class="sidenav-panels">
+        <!-- Grid Panel -->
+        <div class="panel active" id="gridPanel">
+        <div class="form-row">
+            <label for="infiniteGrid">Infinite Grid</label>
+            <input type="checkbox" id="infiniteGrid">
         </div>
+
+        <div id="finiteGridControls">
+            <div class="form-row">
+            <label for="colInput">Cols:</label>
+            <input type="number" class="grid-size-in" id="colInput" min="1" value="20" step="1">
+            </div>
+
+            <div class="form-row">
+            <label for="rowInput">Rows:</label>
+            <input type="number" class="grid-size-in" id="rowInput" min="1" value="20" step="1">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label for="shape">Shape:</label>
+            <select id="shape">
+            <option value="square">Square</option>
+            <option value="hex">Hexagons</option>
+            <option value="triangle">Triangle</option>
+            </select>
+        </div>
+        <button class="action-btn" id="themeToggle" aria-label="Toggle theme">
+            <span id="themeText" class="ms-2"></span>
+            <i id="themeIcon" class="bi"></i>
+        </button>
+        </div>
+
+        <!-- Draw Panel -->
+        <div class="panel" id="drawPanel">
+        <div class="form-row">
+            <label for="drawTiles">Draw Tiles</label>
+            <input type="checkbox" id="drawTiles">
+        </div>
+        <div class="form-row">
+            <label for="eraseTiles">Erase Tiles</label>
+            <input type="checkbox" id="eraseTiles">
+        </div>
+        </div>
+
+        <!-- Randomize Panel -->
+        <div class="panel" id="randomPanel">
+        <button id="clearGrid" class="action-btn" title="Clear">
+            <i class="bi bi-trash-fill"></i> Clear
+        </button>
+        <button id="randomFill" class="action-btn" title="Random">
+            <i class="bi bi-shuffle"></i> Random
+        </button>
+        </div>
+        <!-- About Panel -->
+    <div class="panel" id="aboutPanel">
+        <div class="container">
+            <!-- Your main panel content here -->
+            
+            <!-- Footer section at bottom of panel -->
+            <div class="mt-auto pt-3 border-top">
+                <div class="mb-2">
+                    &copy; <span id="year"></span> Abbas Moosajee &nbsp;|&nbsp;
+                    <a href="https://github.com/abbasmoosajee07/cellular-automata" target="_blank" title="View on GitHub" class="text-dark text-decoration-none">
+                        <i class="bi bi-github align-middle"></i> GitHub
+                    </a>
+                    &nbsp;|&nbsp; MIT License
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
     </div>
 
     <!-- Main Content -->
@@ -83,22 +123,20 @@
         <button id="pinLoc" class="control-btn" title="Pin Location">
             <i class="bi bi-pin-map-fill"></i>
         </button>
+        <button id="simCtrl" class="control-btn" title="Pin Location">
+            <i class="bi bi-play-fill"></i>
+        </button>
     </div>
 
 
     <script src="./scripts/utils.js"></script>
 
     <script type = "module">
-
         import { AutomataSimulator } from './scripts/main.js';
         // Initialize the simulator when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             new AutomataSimulator();
         });
-// Toggle mobile menu
-document.getElementById('menuToggle').addEventListener('click', function() {
-    document.querySelector('.sidenav').classList.toggle('active');
-});
     </script>
 
 </body>

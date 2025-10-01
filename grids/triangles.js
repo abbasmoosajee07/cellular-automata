@@ -5,7 +5,7 @@ class TriangleGrid {
         this.SIMPLIFIED_GRID_SIZE = simple; // Show simplified grid up to this many cells
         this.radius = 30;
         this.zoom = 1;
-        this.gridLineColor = this.hexToRgb(this.colorSchema.line);
+        this.gridLineColor = this.colorSchema.line;
         // Geometry functions that can be swapped
         this.geometryStrategies = {
             detailed: this.getDetailedGeometry.bind(this),
@@ -43,7 +43,7 @@ class TriangleGrid {
         return {
             vertices,
             indices,
-            color: status ? this.hexToRgb(this.colorSchema[status]) : this.hexToRgb(this.colorSchema.line),
+            color: status ? this.colorSchema[status] : this.colorSchema.line,
             isFill: !!status
         };
     }
@@ -233,7 +233,7 @@ class TriangleGrid {
                     const y = row * h;
                     const upsideDown = (col + row) % 2 === 0;
                     const cellData = this.getCellVertices(x, y, upsideDown, status);
-                    const fillColor = this.hexToRgb(this.colorSchema[status]);
+                    const fillColor = this.colorSchema[status];
 
                     allVertices.push(...cellData.vertices);
                     allIndices.push(...cellData.indices.map(idx => idx + indexOffset));
@@ -257,17 +257,6 @@ class TriangleGrid {
             vertexCount: vertices.length / 2,
             indexCount: indices.length
         };
-    }
-
-    // Utility functions
-    hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? [
-            parseInt(result[1], 16) / 255,
-            parseInt(result[2], 16) / 255,
-            parseInt(result[3], 16) / 255,
-            1.0
-        ] : [0.5, 0.5, 0.5, 1.0];
     }
 
     worldToCell(world) {

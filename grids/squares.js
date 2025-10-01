@@ -6,7 +6,7 @@ class SquareGrid {
         this.SIMPLIFIED_GRID_SIZE = simple; // Show simplified grid up to this many cells
         this.radius = 30;
         this.zoom = 1;
-        this.gridLineColor = this.hexToRgb(this.colorSchema.line);
+        this.gridLineColor = this.colorSchema.line;
     }
 
     getCellVertices(x, y, status) {
@@ -25,19 +25,9 @@ class SquareGrid {
         return {
             vertices,
             indices,
-            color: status ? this.hexToRgb(this.colorSchema[status]) : this.hexToRgb(this.colorSchema.line),
+            color: status ? this.colorSchema[status] : this.colorSchema.line,
             isFill: !!status
         };
-    }
-
-    hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? [
-            parseInt(result[1], 16) / 255,
-            parseInt(result[2], 16) / 255,
-            parseInt(result[3], 16) / 255,
-            1.0
-        ] : [0.5, 0.5, 0.5, 1.0];
     }
 
     worldToCell(world) {
@@ -150,7 +140,7 @@ class SquareGrid {
                 const status = cells.has(col) ? cells.get(col).get(row) : undefined;
                 if (status) {
                     const cellData = this.getCellVertices(col * size, row * size, status);
-                    const fillColor = this.hexToRgb(this.colorSchema[status]);
+                    const fillColor = this.colorSchema[status];
 
                     allVertices.push(...cellData.vertices);
                     allIndices.push(...cellData.indices.map(idx => idx + indexOffset));
@@ -246,7 +236,7 @@ class SquareGrid {
                 const status = cells.has(col) ? cells.get(col).get(row) : undefined;
                 if (status) {
                     const cellData = this.getCellVertices(col * size, row * size, status);
-                    const fillColor = this.hexToRgb(this.colorSchema[status]);
+                    const fillColor = this.colorSchema[status];
 
                     allVertices.push(...cellData.vertices);
                     allIndices.push(...cellData.indices.map(idx => idx + indexOffset));
@@ -282,7 +272,7 @@ class SquareGrid {
                 const status = cells.has(col) ? cells.get(col).get(row) : undefined;
                 if (status) {
                     const cellData = this.getCellVertices(col * size, row * size, status);
-                    const fillColor = this.hexToRgb(this.colorSchema[status]);
+                    const fillColor = this.colorSchema[status];
 
                     allVertices.push(...cellData.vertices);
                     allIndices.push(...cellData.indices.map(idx => idx + indexOffset));

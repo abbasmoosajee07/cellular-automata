@@ -13,28 +13,29 @@ class GridManager {
         this.useWebGL = useWebGL;
         this.cells = init_cells
 
-        this.gridRows = 10;
-        this.gridCols = 10;
+        this.gridRows = 20;
+        this.gridCols = 20;
         this.infiniteGrid = false;
+        const detail = 2000;
+        const simple = 10000;
 
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
         this.colorSchema = {
-            line: "#555555",
-            0: "#280f6f",
-            1: "#32cd32",
-        }
-;
+            line: this.hexToRgb("#555555"),
+            0: this.hexToRgb("#280f6f"),
+            1: this.hexToRgb("#32cd32"),
+        };
 
         // Initialize grid logic
         switch (shape.value) {
             case "square":
-                this.shapeGrid = new SquareGrid(this.colorSchema, 1000, 10000);
+                this.shapeGrid = new SquareGrid(this.colorSchema, detail, simple);
                 break;
             case "hex":
-                this.shapeGrid = new HexagonGrid(this.colorSchema, 1000, 10000);
+                this.shapeGrid = new HexagonGrid(this.colorSchema, detail, simple);
                 break;
             case "triangle":
-                this.shapeGrid = new TriangleGrid(this.colorSchema, 1000, 10000);
+                this.shapeGrid = new TriangleGrid(this.colorSchema, detail, simple);
                 break;
             default:
                 throw new Error(`Unknown grid shape: ${shape.value}`);
@@ -59,6 +60,17 @@ class GridManager {
             this.renderer = new Canvas2DRenderer(this.canvas);
             this.useWebGL = false;
         }
+    }
+
+    randomCells() {
+        const [minCol, maxCol, minRow, maxRow] = this.getBounds();
+        for (let r = minRow; r <= maxRow; r++) {
+            for (let c = minCol; c <= maxCol; c++) {
+                const status = Math.random() < 0.5 ? 0 : 1; // 50/50 chance
+                this.changeCell(c, r, status);
+            }
+        }
+        this.drawGrid();
     }
 
     updateCanvasSize() {
@@ -102,6 +114,16 @@ class GridManager {
         }
     }
 
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [
+            parseInt(result[1], 16) / 255,
+            parseInt(result[2], 16) / 255,
+            parseInt(result[3], 16) / 255,
+            1.0
+        ] : [0.5, 0.5, 0.5, 1.0];
+    }
+
     // Keep all other methods the same...
     screenToWorld(px, py) {
         return {
@@ -114,25 +136,14 @@ class GridManager {
         return this.shapeGrid.worldToCell(world);
     }
 
-    addCell(x, y) {
+    changeCell(x, y, state) {
         if (!this.cells.has(x)) this.cells.set(x, new Map());
-        this.cells.get(x).set(y, 1);
+        this.cells.get(x).set(y, state);
     }
 
-    deleteCell(x, y) {
-        if (!this.cells.has(x)) this.cells.set(x, new Map());
-        this.cells.get(x).set(y, 0);
-    }
-
-    hasCell(x, y) {
-        return this.cells.has(x) && this.cells.get(x).has(y);
-    }
-
-    getBounds(cols, rows, infinite) {
-        if (infinite) return null;
-
-        cols = Number(cols) || 0;
-        rows = Number(rows) || 0;
+    getBounds() {
+        const cols = Number(this.gridCols) || 0;
+        const rows = Number(this.gridRows) || 0;
 
         const minCol = -Math.floor(cols / 2);
         const maxCol = minCol + cols;
@@ -144,14 +155,7 @@ class GridManager {
 
     checkBounds(x, y) {
         if (!this.infiniteGrid) {
-            const cols = Number(this.gridCols) || 0;
-            const rows = Number(this.gridRows) || 0;
-
-            const minCol = -Math.floor(cols / 2);
-            const maxCol = minCol + cols;
-            const minRow = -Math.floor(rows / 2);
-            const maxRow = minRow + rows;
-
+            const [minCol, maxCol, minRow, maxRow] = this.getBounds();
             if (x < minCol || x > maxCol || y < minRow || y > maxRow) {
                 return false;
             }
@@ -166,9 +170,9 @@ class GridManager {
         if (!this.checkBounds(x, y)) return;
 
         if (window.drawTiles && window.drawTiles.checked) {
-            this.addCell(x, y);
+            this.changeCell(x, y, 1);
         } else if (window.eraseTiles && window.eraseTiles.checked) {
-            this.deleteCell(x, y);
+            this.changeCell(x, y, 0);
         }
     }
 }
