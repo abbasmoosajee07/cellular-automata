@@ -100,7 +100,6 @@ class HexagonGrid {
         return 3;
     }
 
-    // Geometry strategies
     getDetailedGeometry(minCol, maxCol, minRow, maxRow, horiz, vert, cells) {
         const allVertices = [];
         const allIndices = [];
@@ -109,7 +108,10 @@ class HexagonGrid {
 
         const lineWidth = Math.max(0.5, this.radius * 0.02);
 
-        // Draw all hexagon outlines
+        // Add filled cells (will be drawn first, underneath)
+        indexOffset = this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, horiz, vert, cells);
+
+        // Draw all hexagon outlines (will be drawn on top)
         for (let col = minCol; col <= maxCol; col++) {
             for (let row = minRow; row <= maxRow; row++) {
                 const outlineVertices = this.getHexagonOutlineGeometry(col, row, horiz, vert, lineWidth);
@@ -124,9 +126,6 @@ class HexagonGrid {
             }
         }
 
-        // Add filled cells
-        this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, horiz, vert, cells);
-
         return this.createGeometryBuffer(allVertices, allIndices, allColors);
     }
 
@@ -136,11 +135,13 @@ class HexagonGrid {
         const allColors = [];
         let indexOffset = 0;
 
-
         const gridStep = this.getMajorGridStep((maxCol - minCol + 1) * (maxRow - minRow + 1));
         const markerSize = this.radius * 0.1; // Small clear dots
 
-        // Draw simple grid markers at major intersections - much clearer!
+        // Add filled cells (will be drawn first, underneath)
+        indexOffset = this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, horiz, vert, cells);
+
+        // Draw simple grid markers (will be drawn on top)
         for (let col = minCol; col <= maxCol; col += gridStep) {
             for (let row = minRow; row <= maxRow; row += gridStep) {
                 const markerVertices = this.getGridMarkerGeometry(col, row, horiz, vert, markerSize);
@@ -148,9 +149,6 @@ class HexagonGrid {
                 indexOffset += 4;
             }
         }
-
-        // Add filled cells
-        this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, horiz, vert, cells);
 
         return this.createGeometryBuffer(allVertices, allIndices, allColors);
     }
@@ -295,6 +293,7 @@ class HexagonGrid {
     setGeometryStrategy(strategyName, strategyFunction) {
         this.geometryStrategies[strategyName] = strategyFunction.bind(this);
     }
+
 }
 
 export { HexagonGrid };

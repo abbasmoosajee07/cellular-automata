@@ -131,6 +131,9 @@ class TriangleGrid {
 
         const lineWidth = Math.max(0.5, this.radius * 0.02);
 
+        // Add filled cells (will be drawn first, underneath)
+        indexOffset = this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, side, h, cells);
+
         // Draw all triangle outlines
         for (let col = minCol; col <= maxCol; col++) {
             for (let row = minRow; row <= maxRow; row++) {
@@ -146,9 +149,7 @@ class TriangleGrid {
             }
         }
 
-        // Add filled cells
-        this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, side, h, cells);
-        
+
         return this.createGeometryBuffer(allVertices, allIndices, allColors);
     }
 
@@ -160,7 +161,9 @@ class TriangleGrid {
 
         const gridStep = this.getMajorGridStep((maxCol - minCol + 1) * (maxRow - minRow + 1));
         const markerSize = this.radius * 0.1;
-
+        // Add filled cells
+        indexOffset = this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, side, h, cells);
+        
         // Draw simple grid markers at major intersections
         for (let col = minCol; col <= maxCol; col += gridStep) {
             for (let row = minRow; row <= maxRow; row += gridStep) {
@@ -170,9 +173,7 @@ class TriangleGrid {
             }
         }
 
-        // Add filled cells
-        this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, side, h, cells);
-        
+
         return this.createGeometryBuffer(allVertices, allIndices, allColors);
     }
 

@@ -80,6 +80,26 @@ class SquareGrid {
 
         const halfSize = size / 2;
 
+        // Draw filled cells
+        for (let col = minCol; col <= maxCol; col++) {
+            for (let row = minRow; row <= maxRow; row++) {
+                const status = cells.has(col) ? cells.get(col).get(row) : undefined;
+                if (status) {
+                    const cellData = this.getCellVertices(col * size, row * size, status);
+                    const fillColor = this.colorSchema[status];
+
+                    allVertices.push(...cellData.vertices);
+                    allIndices.push(...cellData.indices.map(idx => idx + indexOffset));
+
+                    for (let i = 0; i < 4; i++) {
+                        allColors.push(...fillColor);
+                    }
+
+                    indexOffset += 4;
+                }
+            }
+        }
+
         // Draw detailed grid lines (only when cell count is reasonable)
         // Horizontal grid lines
         for (let row = minRow; row <= maxRow + 1; row++) {
@@ -133,7 +153,26 @@ class SquareGrid {
             }
         }
 
-        // Draw filled cells
+
+
+        return {
+            vertices: new Float32Array(allVertices),
+            indices: new Uint16Array(allIndices),
+            colors: new Float32Array(allColors),
+            vertexCount: allVertices.length / 2,
+            indexCount: allIndices.length
+        };
+    }
+
+    getSimplifiedGridGeometry(minCol, maxCol, minRow, maxRow, size, cells) {
+        const allVertices = [];
+        const allIndices = [];
+        const allColors = [];
+        let indexOffset = 0;
+
+        const halfSize = size / 2;
+
+        // Draw filled cells (always show filled cells)
         for (let col = minCol; col <= maxCol; col++) {
             for (let row = minRow; row <= maxRow; row++) {
                 const status = cells.has(col) ? cells.get(col).get(row) : undefined;
@@ -152,23 +191,6 @@ class SquareGrid {
                 }
             }
         }
-
-        return {
-            vertices: new Float32Array(allVertices),
-            indices: new Uint16Array(allIndices),
-            colors: new Float32Array(allColors),
-            vertexCount: allVertices.length / 2,
-            indexCount: allIndices.length
-        };
-    }
-
-    getSimplifiedGridGeometry(minCol, maxCol, minRow, maxRow, size, cells) {
-        const allVertices = [];
-        const allIndices = [];
-        const allColors = [];
-        let indexOffset = 0;
-
-        const halfSize = size / 2;
 
         // Draw simplified grid - only major grid lines (every 5th line)
         const gridStep = 5;
@@ -226,26 +248,6 @@ class SquareGrid {
                 }
 
                 indexOffset += 4;
-            }
-        }
-
-        // Draw filled cells (always show filled cells)
-        for (let col = minCol; col <= maxCol; col++) {
-            for (let row = minRow; row <= maxRow; row++) {
-                const status = cells.has(col) ? cells.get(col).get(row) : undefined;
-                if (status) {
-                    const cellData = this.getCellVertices(col * size, row * size, status);
-                    const fillColor = this.colorSchema[status];
-
-                    allVertices.push(...cellData.vertices);
-                    allIndices.push(...cellData.indices.map(idx => idx + indexOffset));
-
-                    for (let i = 0; i < 4; i++) {
-                        allColors.push(...fillColor);
-                    }
-
-                    indexOffset += 4;
-                }
             }
         }
 
