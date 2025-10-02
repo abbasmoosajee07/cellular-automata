@@ -2,19 +2,19 @@ import {  GridManager  } from '../grids/gridManager.js';
 
 class AutomataSimulator{
     docIDs = [
-        "gridCanvas", "drawTiles", "eraseTiles", "shape",
-        "infiniteGrid", "finiteGridControls", "rowInput", "colInput",
-        "resetView", "pinLoc", "clearGrid", "randomFill",
+        "gridCanvas", "menuPanel", "menuToggle", "drawTiles", "eraseTiles",
+        "rowInput", "colInput", "resetView", "pinLoc", "clearGrid", "randomFill",
     ]
 
     constructor(){
         this.initElements();
-        this.gridManager = new GridManager(this.shape, this.gridCanvas, new Map());
-        this.savedView = { ...this.gridManager.cameraView };
+        this.initGrid();
+        this.setupGridControls()
         this.setupEventListeners();
         this.setupCanvasControls();
-        this.menuControls();
+        this.setupMenuControls();
         this.gridManager.drawGrid();
+        this.gridManager.buildNeighborsMap();
     }
 
     initElements() {
@@ -33,11 +33,10 @@ class AutomataSimulator{
         });
     }
 
-    menuControls() {
-        const toggleBtn = document.getElementById('togglePanel');
-        const panel = document.getElementById('menu');
+    setupMenuControls() {
+        const panel = this.menuPanel;
 
-        toggleBtn.addEventListener('click', () => {
+        this.menuToggle.addEventListener('click', () => {
         panel.classList.toggle('open');
         });
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -53,18 +52,33 @@ class AutomataSimulator{
         });
     }
 
-    toggleAt(px, py) {
-        this.gridManager.toggleAt(
-            px, py,
-            this.drawTiles.checked,
-            this.eraseTiles.checked,
-            this.infiniteGrid.checked,
-        );
-        this.gridManager.drawGrid();
-        // console.log(this.gridManager.cells);
+    initGrid() {
+        this.gridManager = new GridManager("square", this.gridCanvas);
+        this.savedView = { ...this.gridManager.cameraView };
+        this.gridManager.gridRows = parseInt(this.rowInput.value);
+        this.gridManager.gridCols = parseInt(this.colInput.value);
+        this.gridManager.changeCell(0, 0, 1);
     }
 
-    setupEventListeners() {
+    setupGridControls() {
+        // Store references to all shape radio buttons
+        this.shapeRadios = document.querySelectorAll('input[name="shape"]');
+        this.shapeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    const selectedShape = radio.value;
+                    const old_grid = this.gridManager
+
+                    this.gridManager = new GridManager(selectedShape, this.gridCanvas, old_grid.cells);
+                    this.gridManager.cameraView = { ...old_grid.cameraView };
+                    this.gridManager.gridRows = old_grid.gridRows;
+                    this.gridManager.gridCols = old_grid.gridCols;
+                    this.gridManager.infiniteGrid = old_grid.infiniteGrid;
+                    this.gridManager.drawGrid();
+                }
+            });
+        });
+
         this.rowInput.addEventListener('input', () => {
             this.gridManager.gridRows = parseInt(this.rowInput.value);
             this.gridManager.drawGrid();
@@ -75,28 +89,29 @@ class AutomataSimulator{
             this.gridManager.drawGrid();
         });
 
-        this.infiniteGrid.addEventListener('change', () => {
-            if (infiniteGrid.checked) {
-                this.finiteGridControls.style.display = "none"; // hide rows+cols
-            } else {
-                this.finiteGridControls.style.display = "block"; // show rows+cols
-            }
-            this.gridManager.infiniteGrid = this.infiniteGrid.checked;
-            this.gridManager.drawGrid();
+        // Store references to all neighbors radio buttons
+        this.neighborsRadio = document.querySelectorAll('input[name="neighbors"]');
+        // Add event listener to each radio button
+        this.neighborsRadio.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                };
+            });
         });
 
-        this.shape.addEventListener('change', () => {
-            const old_cells = this.gridManager.cells;
-            const old_view = { ...this.gridManager.cameraView }
-            this.gridManager = new GridManager(this.shape, this.gridCanvas, old_cells);
-            this.gridManager.cameraView = { ...old_view };
-            this.gridManager.gridRows = parseInt(this.rowInput.value);
-            this.gridManager.gridCols = parseInt(this.colInput.value);
-            this.gridManager.infiniteGrid = this.infiniteGrid.checked;
-            this.gridManager.drawGrid();
+        // Store references to all boundary radio buttons
+        this.boundsRadio = document.querySelectorAll('input[name="bounds"]');
+        this.boundsRadio.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    this.gridManager.setBoundaryType(radio.value);
+                    this.gridManager.drawGrid();
+                }
+            });
         });
+    }
 
-
+    setupEventListeners() {
         this.resetView.addEventListener('click', () => {
             this.gridManager.cameraView = { ...this.savedView };
             this.gridManager.drawGrid();
@@ -209,6 +224,17 @@ class AutomataSimulator{
 
         // Prevent elastic scrolling
         this.gridCanvas.style.touchAction = 'none';
+    }
+
+    toggleAt(px, py) {
+        this.gridManager.toggleAt(
+            px, py,
+            this.drawTiles.checked,
+            this.eraseTiles.checked,
+            this.gridManager.infiniteGrid,
+        );
+        this.gridManager.drawGrid();
+        // console.log(this.gridManager.cells);
     }
 
 }

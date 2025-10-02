@@ -6,7 +6,6 @@ class SquareGrid {
         this.SIMPLIFIED_GRID_SIZE = simple; // Show simplified grid up to this many cells
         this.radius = 30;
         this.zoom = 1;
-        this.gridLineColor = this.colorSchema.line;
     }
 
     getCellVertices(x, y, status) {
@@ -101,7 +100,7 @@ class SquareGrid {
                 allIndices.push(...[0, 1, 2, 2, 1, 3].map(idx => idx + indexOffset));
                 
                 for (let i = 0; i < 4; i++) {
-                    allColors.push(...this.gridLineColor);
+                    allColors.push(...this.colorSchema.line);
                 }
                 
                 indexOffset += 4;
@@ -127,7 +126,7 @@ class SquareGrid {
                 allIndices.push(...[0, 1, 2, 2, 1, 3].map(idx => idx + indexOffset));
                 
                 for (let i = 0; i < 4; i++) {
-                    allColors.push(...this.gridLineColor);
+                    allColors.push(...this.colorSchema.line);
                 }
                 
                 indexOffset += 4;
@@ -195,7 +194,7 @@ class SquareGrid {
                 allIndices.push(...[0, 1, 2, 2, 1, 3].map(idx => idx + indexOffset));
 
                 for (let i = 0; i < 4; i++) {
-                    allColors.push(...this.gridLineColor);
+                    allColors.push(...this.colorSchema.line);
                 }
 
                 indexOffset += 4;
@@ -223,7 +222,7 @@ class SquareGrid {
                 allIndices.push(...[0, 1, 2, 2, 1, 3].map(idx => idx + indexOffset));
 
                 for (let i = 0; i < 4; i++) {
-                    allColors.push(...this.gridLineColor);
+                    allColors.push(...this.colorSchema.line);
                 }
 
                 indexOffset += 4;

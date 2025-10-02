@@ -5,7 +5,7 @@ class TriangleGrid {
         this.SIMPLIFIED_GRID_SIZE = simple; // Show simplified grid up to this many cells
         this.radius = 30;
         this.zoom = 1;
-        this.gridLineColor = this.colorSchema.line;
+
         // Geometry functions that can be swapped
         this.geometryStrategies = {
             detailed: this.getDetailedGeometry.bind(this),
@@ -199,7 +199,7 @@ class TriangleGrid {
         );
 
         for (let i = 0; i < 4; i++) {
-            colors.push(...this.gridLineColor);
+            colors.push(...this.colorSchema.line);
         }
     }
 
@@ -219,7 +219,7 @@ class TriangleGrid {
         }
 
         for (let i = 0; i < vertexCount; i++) {
-            colors.push(...this.gridLineColor);
+            colors.push(...this.colorSchema.line);
         }
     }
 

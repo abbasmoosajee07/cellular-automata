@@ -23,114 +23,189 @@
 
 <body>
     <!-- Toggle Button -->
-    <button id="togglePanel" class="toggle-panel-btn">
-    <i class="bi bi-list"></i>
+    <button id="menuToggle" class="toggle-panel-btn">
+        <i class="bi bi-three-dots-vertical"></i>
     </button>
 
     <!-- Collapsible Side Panel -->
-    <div class="sidenav" id="menu">
-
-    <!-- Vertical Tabs on the left -->
-    <div class="sidenav-tabs">
-        <button class="tab-btn active" data-panel="gridPanel">Grid</button>
-        <button class="tab-btn" data-panel="drawPanel">Draw</button>
-        <button class="tab-btn" data-panel="randomPanel">Rand</button>
-        <button class="tab-btn" data-panel="aboutPanel">About</button>
-    </div>
-    <!-- Panel Content -->
-    <div class="sidenav-panels">
-        <!-- Grid Panel -->
-        <div class="panel active" id="gridPanel">
-        <div class="form-row">
-            <label for="infiniteGrid">Infinite Grid</label>
-            <input type="checkbox" id="infiniteGrid">
+    <div class="sidenav" id="menuPanel">
+        <!-- Vertical Tabs on the left -->
+        <div class="sidenav-tabs">
+            <button class="tab-btn" data-panel="aboutPanel">
+                <i class="bi bi-info-circle-fill"></i>
+            </button>
+            <button class="tab-btn active" data-panel="gridPanel" title="Grid Controls">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+            </button>
+            <button class="tab-btn" data-panel="drawPanel">
+                <i class="bi bi-pencil-fill"></i>
+            </button>
+            <button class="tab-btn" data-panel="logicPanel" title="Automata Logic">
+                <i class="bi bi-cpu-fill"></i>
+            </button>
+            <button class="tab-btn" data-panel="statsPanel" title="Statistics">
+                <i class="bi bi-graph-up"></i>
+            </button>
         </div>
 
-        <div id="finiteGridControls">
-            <div class="form-row">
-            <label for="colInput">Cols:</label>
-            <input type="number" class="grid-size-in" id="colInput" min="1" value="20" step="1">
-            </div>
+        <!-- Panel Content -->
+        <div class="sidenav-panels">
+            <!-- About Panel -->
+            <div class="panel active" id="aboutPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-info-circle-fill me-2"></i> Cellular Automaton</h3>
+                </div>
+                <div class="container">
+                    <!-- Your main panel content here -->
 
-            <div class="form-row">
-            <label for="rowInput">Rows:</label>
-            <input type="number" class="grid-size-in" id="rowInput" min="1" value="20" step="1">
-            </div>
-        </div>
-
-        <div class="form-row">
-            <label for="shape">Shape:</label>
-            <select id="shape">
-            <option value="square">Square</option>
-            <option value="hex">Hexagons</option>
-            <option value="triangle">Triangle</option>
-            </select>
-        </div>
-        <button class="action-btn" id="themeToggle" aria-label="Toggle theme">
-            <span id="themeText" class="ms-2"></span>
-            <i id="themeIcon" class="bi"></i>
-        </button>
-        </div>
-
-        <!-- Draw Panel -->
-        <div class="panel" id="drawPanel">
-        <div class="form-row">
-            <label for="drawTiles">Draw Tiles</label>
-            <input type="checkbox" id="drawTiles">
-        </div>
-        <div class="form-row">
-            <label for="eraseTiles">Erase Tiles</label>
-            <input type="checkbox" id="eraseTiles">
-        </div>
-        </div>
-
-        <!-- Randomize Panel -->
-        <div class="panel" id="randomPanel">
-        <button id="clearGrid" class="action-btn" title="Clear">
-            <i class="bi bi-trash-fill"></i> Clear
-        </button>
-        <button id="randomFill" class="action-btn" title="Random">
-            <i class="bi bi-shuffle"></i> Random
-        </button>
-        </div>
-        <!-- About Panel -->
-    <div class="panel" id="aboutPanel">
-        <div class="container">
-            <!-- Your main panel content here -->
-            
-            <!-- Footer section at bottom of panel -->
-            <div class="mt-auto pt-3 border-top">
-                <div class="mb-2">
-                    &copy; <span id="year"></span> Abbas Moosajee &nbsp;|&nbsp;
-                    <a href="https://github.com/abbasmoosajee07/cellular-automata" target="_blank" title="View on GitHub" class="text-dark text-decoration-none">
-                        <i class="bi bi-github align-middle"></i> GitHub
-                    </a>
-                    &nbsp;|&nbsp; MIT License
+                    <!-- Footer section at bottom of panel -->
+                    <div class="mt-auto pt-3 border-top">
+                        <div class="mb-2">
+                            &copy; <span id="year"></span> Abbas Moosajee &nbsp;|&nbsp;
+                            <a href="https://github.com/abbasmoosajee07/cellular-automata" target="_blank" title="View Source Code" class="text-dark text-decoration-none">
+                                <i class="bi bi-github align-middle"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Grid Panel -->
+            <div class="panel" id="gridPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-grid-3x3-gap-fill me-2"></i> Grid Controls</h3>
+                </div>
+                <button class="action-btn" id="themeToggle" aria-label="Toggle theme">
+                    <span id="themeText" class="ms-2"></span>
+                    <i id="themeIcon" class="bi"></i>
+                </button>
+
+                <div class="config-group">
+                    <h3>Cell Shapes:</h3>
+                    <div class="config-row">
+                        <div class="config-option">
+                            <input type="radio" id="shape-hex" name="shape" value="hex">
+                            <label for="shape-hex">Hexagons</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="shape-triangle" name="shape" value="triangle">
+                            <label for="shape-triangle">Triangle</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="shape-square" name="shape" value="square" checked>
+                            <label for="shape-square">Square</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <h3>Neighbor Rules</h3>
+                    <div class="config-row">
+                        <div class="config-option">
+                            <input type="radio" id="neighbors-adjacent" name="neighbors" value="adjacent" checked>
+                            <label for="neighbors-adjacent">Adjacent Only</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="neighbors-touching" name="neighbors" value="touching">
+                            <label for="neighbors-touching">All Touching</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <h3>Boundary Behavior</h3>
+                    <div class="config-row">
+                        <div class="config-option">
+                            <input type="radio" id="bounds-infinite" name="bounds" value="infinite">
+                            <label for="bounds-infinite">Infinite</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="bounds-wrap" name="bounds" value="wrap-around" checked>
+                            <label for="bounds-wrap">Wrap-around</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="bounds-bounded" name="bounds" value="bounded">
+                            <label for="bounds-bounded">Bounded</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="bounds-cliff" name="bounds" value="cliff">
+                            <label for="bounds-cliff">Fall off</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label for="colInput">Cols:</label>
+                    <input type="number" class="grid-size-in" id="colInput" min="1" value="20" step="1">
+                </div>
+
+                <div class="form-row">
+                    <label for="rowInput">Rows:</label>
+                    <input type="number" class="grid-size-in" id="rowInput" min="1" value="20" step="1">
+                </div>
+            </div>
+
+            <!-- Draw Panel -->
+            <div class="panel" id="drawPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-pencil-fill me-2"></i> Drawing Tools</h3>
+                </div>
+                
+                <div class="form-row">
+                    <label for="drawTiles">Draw Tiles</label>
+                    <input type="checkbox" id="drawTiles">
+                </div>
+                
+                <div class="form-row">
+                    <label for="eraseTiles">Erase Tiles</label>
+                    <input type="checkbox" id="eraseTiles">
+                </div>
+                
+                <button id="clearGrid" class="action-btn" title="Clear">
+                    <i class="bi bi-trash-fill"></i> Clear
+                </button>
+                
+                <button id="randomFill" class="action-btn" title="Random">
+                    <i class="bi bi-shuffle"></i> Random
+                </button>
+            </div>
+
+            <!-- Logic Panel -->
+            <div class="panel" id="logicPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-cpu-fill me-2"></i> Automata Logic</h3>
+                </div>
+                <!-- Add your logic panel content here -->
+            </div>
+
+            <!-- Stats Panel -->
+            <div class="panel" id="statsPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-graph-up me-2"></i> Statistics</h3>
+                </div>
+                <!-- Add your stats panel content here -->
+            </div>
         </div>
     </div>
-    </div>
-    </div>
 
-    <!-- Main Content -->
+    <!-- Main Canvas -->
     <canvas id="gridCanvas"></canvas>
 
     <div class="control-panel">
         <button id="resetView" class="control-btn" title="Reset View">
             <i class="bi bi-camera-video-fill"></i>
         </button>
+
         <button id="pinLoc" class="control-btn" title="Pin Location">
             <i class="bi bi-pin-map-fill"></i>
         </button>
+
         <button id="simCtrl" class="control-btn" title="Pin Location">
             <i class="bi bi-play-fill"></i>
         </button>
     </div>
 
-
     <script src="./scripts/utils.js"></script>
-
     <script type = "module">
         import { AutomataSimulator } from './scripts/main.js';
         // Initialize the simulator when the page loads
