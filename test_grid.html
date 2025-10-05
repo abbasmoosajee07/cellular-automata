@@ -1,305 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGL Grid Drawing Simulator - Texture Based</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0a1a;
-            color: white;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .header {
-            background: rgba(10, 15, 30, 0.9);
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.7);
-            z-index: 10;
-            border-bottom: 1px solid rgba(74, 158, 255, 0.3);
-        }
-        
-        h1 {
-            font-size: 1.8rem;
-            margin-right: 20px;
-            background: linear-gradient(90deg, #4a9eff, #6bffb8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 700;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #a0c8ff;
-        }
-        
-        input, select, button {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            background: rgba(20, 25, 45, 0.9);
-            color: white;
-            border: 1px solid rgba(74, 158, 255, 0.3);
-        }
-        
-        button {
-            background: linear-gradient(135deg, #4a9eff, #2d5bff);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        button:hover {
-            background: linear-gradient(135deg, #2d8cff, #1a4aff);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(45, 91, 255, 0.4);
-        }
-        
-        .mode-buttons {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .mode-btn {
-            padding: 8px 15px;
-        }
-        
-        .mode-btn.active {
-            background: linear-gradient(135deg, #ff6b6b, #ff2d2d);
-            box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
-        }
-        
-        .canvas-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            cursor: crosshair;
-        }
-        
-        .instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(10, 15, 30, 0.85);
-            padding: 15px;
-            border-radius: 10px;
-            max-width: 300px;
-            z-index: 5;
-            border: 1px solid rgba(74, 158, 255, 0.3);
-            backdrop-filter: blur(5px);
-        }
-        
-        .instructions h2 {
-            margin-bottom: 10px;
-            font-size: 1.2rem;
-            color: #6bffb8;
-        }
-        
-        .instructions ul {
-            list-style-type: none;
-        }
-        
-        .instructions li {
-            margin-bottom: 8px;
-            display: flex;
-            align-items: flex-start;
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
-        
-        .instructions li:before {
-            content: "•";
-            color: #4a9eff;
-            font-weight: bold;
-            margin-right: 10px;
-        }
-        
-        .status {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(10, 15, 30, 0.85);
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            z-index: 5;
-            border: 1px solid rgba(74, 158, 255, 0.3);
-            backdrop-filter: blur(5px);
-        }
-        
-        .status div {
-            margin-bottom: 5px;
-        }
-        
-        .status span {
-            color: #6bffb8;
-            font-weight: bold;
-        }
-        
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .controls {
-                justify-content: center;
-            }
-            
-            .instructions {
-                max-width: 250px;
-                font-size: 0.8rem;
-            }
-        }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cellular Automata</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Interactive cellular automata simulator — Chaos disguised as order.">
+    <meta name="keywords" content="cellular automata, game of life, conway, life">
+    <meta name="robots" content="index, follow">
+
+    <!-- Icons -->
+    <link rel="icon" href="./assets/LOGO.png" type="image/x-icon">
+    <link rel="shortcut icon" href="./assets/LOGO.png">
+    <link rel="apple-touch-icon" href="./assets/LOGO.png">
+
+    <!-- Styles & Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="./styles.css">
+
 </head>
+
 <body>
-    <div class="header">
-        <h1>WebGL Grid Drawing Simulator - Texture Based</h1>
-        <div class="controls">
-            <div class="control-group">
-                <label for="gridSize">Grid Size:</label>
-                <input type="number" id="gridSize" min="5" max="500" value="50">
-            </div>
-            
-            <div class="control-group">
-                <label for="drawColor">Draw Color:</label>
-                <input type="color" id="drawColor" value="#4a9eff">
-            </div>
-            
-            <div class="control-group">
-                <label for="bgColor">Background Color:</label>
-                <input type="color" id="bgColor" value="#0a0a1a">
-            </div>
-            
-            <div class="mode-buttons">
-                <button id="panMode" class="mode-btn">Pan</button>
-                <button id="drawMode" class="mode-btn active">Draw</button>
-                <button id="eraseMode" class="mode-btn">Erase</button>
-            </div>
-            
-            <button id="fillBtn">Fill All</button>
-            <button id="clearBtn">Clear All</button>
-            <button id="centerBtn">Center</button>
+    <!-- Toggle Button -->
+    <button id="menuToggle" class="toggle-panel-btn">
+        <i class="bi bi-three-dots-vertical"></i>
+    </button>
+
+    <!-- Collapsible Side Panel -->
+    <div class="sidenav" id="menuPanel">
+        <!-- Vertical Tabs on the left -->
+        <div class="sidenav-tabs">
+            <button class="tab-btn active" data-panel="aboutPanel">
+                <i class="bi bi-info-circle-fill"></i>
+            </button>
+            <button class="tab-btn" data-panel="gridPanel" title="Grid Controls">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+            </button>
+            <button class="tab-btn" data-panel="drawPanel">
+                <i class="bi bi-pencil-fill"></i>
+            </button>
+            <button class="tab-btn" data-panel="logicPanel" title="Automata Logic">
+                <i class="bi bi-cpu-fill"></i>
+            </button>
+            <button class="tab-btn" data-panel="statsPanel" title="Statistics">
+                <i class="bi bi-graph-up"></i>
+            </button>
         </div>
-    </div>
-    
-    <div class="canvas-container">
-        <canvas id="gridCanvas"></canvas>
-        
-        <div class="instructions">
-            <h2>Controls:</h2>
-            <ul>
-                <li><strong>Pan:</strong> Drag to move around the grid</li>
-                <li><strong>Draw:</strong> Click and drag to fill cells</li>
-                <li><strong>Erase:</strong> Click and drag to clear cells</li>
-                <li><strong>Zoom:</strong> Use mouse wheel to zoom in/out</li>
-                <li><strong>Fill All:</strong> Completely fill the grid</li>
-                <li><strong>Clear All:</strong> Reset the entire grid</li>
-                <li><strong>Cell Size:</strong> Automatically adjusts with zoom</li>
-            </ul>
-        </div>
-        
-        <div class="status">
-            <div>Mode: <span id="modeDisplay">Draw</span></div>
-            <div>Zoom: <span id="zoomDisplay">100%</span></div>
-            <div>Grid: <span id="gridDisplay">50x50</span></div>
-            <div>Cell Size: <span id="cellSizeDisplay">20px</span></div>
-            <div>FPS: <span id="fpsDisplay">60</span></div>
+
+        <!-- Panel Content -->
+        <div class="sidenav-panels">
+            <!-- About Panel -->
+            <div class="panel active" id="aboutPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-info-circle-fill me-2"></i> Cellular Automaton</h3>
+                </div>
+                <div class="container">
+                    <!-- Your main panel content here -->
+
+                    <!-- Footer section at bottom of panel -->
+                    <div class="mt-auto pt-3 border-top">
+                        <div class="mb-2">
+                            &copy; <span id="year"></span> Abbas Moosajee &nbsp;|&nbsp;
+                            <a href="https://github.com/abbasmoosajee07/cellular-automata" target="_blank" title="View Source Code" class="text-dark text-decoration-none">
+                                <i class="bi bi-github align-middle"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Panel -->
+            <div class="panel" id="gridPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-grid-3x3-gap-fill me-2"></i> Grid Controls</h3>
+                </div>
+                <button class="action-btn" id="themeToggle" aria-label="Toggle theme">
+                    <span id="themeText" class="ms-2"></span>
+                    <i id="themeIcon" class="bi"></i>
+                </button>
+
+                <div class="config-group">
+                    <h3>Cell Shapes:</h3>
+                    <div class="config-row">
+                        <div class="config-option">
+                            <input type="radio" id="shape-hex" name="shape" value="hex">
+                            <label for="shape-hex">Hexagons</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="shape-triangle" name="shape" value="triangle">
+                            <label for="shape-triangle">Triangle</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="shape-square" name="shape" value="square" checked>
+                            <label for="shape-square">Square</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <h3>Neighbor Rules</h3>
+                    <div class="config-row">
+                        <div class="config-option">
+                            <input type="radio" id="neighbors-adjacent" name="neighbors" value="adjacent" checked>
+                            <label for="neighbors-adjacent">Adjacent Only</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="neighbors-touching" name="neighbors" value="touching">
+                            <label for="neighbors-touching">All Touching</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <h3>Boundary Behavior</h3>
+                    <div class="config-row">
+                        <div class="config-option">
+                            <input type="radio" id="bounds-infinite" name="bounds" value="infinite">
+                            <label for="bounds-infinite">Infinite</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="bounds-wrap" name="bounds" value="wrap-around" checked>
+                            <label for="bounds-wrap">Wrap-around</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="bounds-bounded" name="bounds" value="bounded">
+                            <label for="bounds-bounded">Bounded</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="bounds-cliff" name="bounds" value="cliff">
+                            <label for="bounds-cliff">Fall off</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label for="colInput">Cols:</label>
+                    <input type="number" class="grid-size-in" id="colInput" min="1" value="20" step="1">
+                </div>
+
+                <div class="form-row">
+                    <label for="rowInput">Rows:</label>
+                    <input type="number" class="grid-size-in" id="rowInput" min="1" value="20" step="1">
+                </div>
+            </div>
+
+            <!-- Draw Panel -->
+            <div class="panel" id="drawPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-pencil-fill me-2"></i> Drawing Tools</h3>
+                </div>
+
+                <div class="form-row">
+                    <label for="drawTiles">Draw Tiles</label>
+                    <input type="checkbox" id="drawTiles">
+                </div>
+
+                <div class="form-row">
+                    <label for="eraseTiles">Erase Tiles</label>
+                    <input type="checkbox" id="eraseTiles">
+                </div>
+
+                <button id="clearGrid" class="action-btn" title="Clear">
+                    <i class="bi bi-trash-fill"></i> Clear
+                </button>
+
+                <button id="randomFill" class="action-btn" title="Random">
+                    <i class="bi bi-shuffle"></i> Random
+                </button>
+                <button id="neighborTiles" class="action-btn" title="Add Neighbors">
+                    <i class="bi bi-bounding-box"></i> Neighbor Tiles
+                </button>
+            </div>
+
+            <!-- Logic Panel -->
+            <div class="panel" id="logicPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-cpu-fill me-2"></i> Automata Logic</h3>
+                </div>
+                <!-- Add your logic panel content here -->
+            </div>
+
+            <!-- Stats Panel -->
+            <div class="panel" id="statsPanel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-graph-up me-2"></i> Statistics</h3>
+                </div>
+                <!-- Add your stats panel content here -->
+            </div>
         </div>
     </div>
 
+    <!-- Main Canvas -->
+    <canvas id="gridCanvas"></canvas>
+
+    <div class="control-panel">
+        <button id="resetView" class="control-btn" title="Reset View">
+            <i class="bi bi-camera-video-fill"></i>
+        </button>
+
+        <button id="pinLoc" class="control-btn" title="Pin Location">
+            <i class="bi bi-pin-map-fill"></i>
+        </button>
+
+        <button id="simCtrl" class="control-btn" title="Pin Location">
+            <i class="bi bi-play-fill"></i>
+        </button>
+    </div>
+
+    <script src="./scripts/utils.js"></script>
     <script>
-        "use strict";
+        class WebGLRenderer {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.gl = this.initWebGL();
+                if (!this.gl) {
+                    throw new Error("WebGL not supported");
+                }
 
-        class WebGLGridSimulator {
-            constructor(canvasId) {
-                this.canvas = document.getElementById(canvasId);
+                this.initShaders();
+                this.initBuffers();
+                this.updateCanvasSize();
                 
-                // Initialize properties
-                this.gridSize = 50;
-                this.baseCellSize = 20; // Fixed base cell size in world coordinates
-                this.grid = [];
-                
-                // Camera view in world coordinates
-                this.cameraView = { 
-                    camX: 0,  // World X offset
-                    camY: 0,  // World Y offset  
-                    zoom: 1   // Zoom factor
-                };
-                
-                // Color properties
-                this.drawColor = this.hexToRgb("#4a9eff");
-                this.bgColor = this.hexToRgb("#0a0a1a");
-                
-                // Input state
-                this.isDrawing = false;
-                this.isPanning = false;
-                this.currentMode = 'draw';
-                this.lastWorldPos = null; // Track last position in world coordinates
-                this.lastPanX = 0;
-                this.lastPanY = 0;
-                
-                // Performance monitoring
-                this.frameCount = 0;
-                this.lastFpsUpdate = 0;
-                this.fps = 60;
-                
-                // WebGL properties for texture-based approach
-                this.program = null;
-                this.vertexBuffer = null;
-                this.indexBuffer = null;
-                this.gridTexture = null;
-                this.textureData = null;
-                
-                // Initialize WebGL and other components
-                this.initWebGL();
-                this.initGrid();
-                this.setupEventListeners();
-                this.centerView();
-                this.updateGridTexture();
-                this.drawGrid();
-                this.updateStatus();
+                this.cachedGeometry = null;
             }
 
-            // Update the fragment shader to use normalized world coordinates
+            initWebGL() {
+                const gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
+                if (!gl) {
+                    console.error('WebGL not supported');
+                    return null;
+                }
+                
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+                gl.clearColor(0, 0, 0, 0);
+                
+                return gl;
+            }
+
             initShaders() {
                 const gl = this.gl;
 
@@ -326,11 +265,13 @@
                     varying vec2 vTexCoord;
                     
                     void main() {
-                        // Convert to normalized world coordinates
-                        vec2 worldPos = (vTexCoord * uResolution - uOffset) / uScale;
+                        // Convert to world coordinates (centered at 0,0)
+                        vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
                         
-                        // Calculate grid coordinates using base cell size (consistent at all zoom levels)
-                        vec2 gridPos = floor(worldPos / uBaseCellSize);
+                        // Calculate grid coordinates using base cell size
+                        // Grid is centered at (0,0) in world space
+                        float halfGridWorld = uGridSize * uBaseCellSize * 0.5;
+                        vec2 gridPos = floor((worldPos + halfGridWorld) / uBaseCellSize);
                         
                         // Check if within grid bounds
                         if (gridPos.x >= 0.0 && gridPos.x < uGridSize && gridPos.y >= 0.0 && gridPos.y < uGridSize) {
@@ -338,7 +279,7 @@
                             vec2 texCoord = gridPos / uGridSize;
                             vec4 cellValue = texture2D(uGridTexture, texCoord);
                             
-                            if (cellValue.r > 0.5) {
+                            if (cellValue.a > 0.5) {
                                 gl_FragColor = uDrawColor;
                             } else {
                                 gl_FragColor = uBgColor;
@@ -361,22 +302,21 @@
                 if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
                     console.error('Shader program failed to link:', gl.getProgramInfoLog(this.program));
                 }
-            }
 
-            // WebGL Renderer Methods - TEXTURE BASED
-            initWebGL() {
-                this.gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
-                if (!this.gl) {
-                    throw new Error("WebGL not supported");
-                }
-                
-                this.gl.enable(this.gl.BLEND);
-                this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-                this.gl.clearColor(0, 0, 0, 0);
-                
-                this.initShaders();
-                this.initBuffers();
-                this.updateCanvasSize();
+                this.attribLocations = {
+                    position: gl.getAttribLocation(this.program, 'aPosition')
+                };
+
+                this.uniformLocations = {
+                    resolution: gl.getUniformLocation(this.program, 'uResolution'),
+                    offset: gl.getUniformLocation(this.program, 'uOffset'),
+                    scale: gl.getUniformLocation(this.program, 'uScale'),
+                    gridSize: gl.getUniformLocation(this.program, 'uGridSize'),
+                    baseCellSize: gl.getUniformLocation(this.program, 'uBaseCellSize'),
+                    drawColor: gl.getUniformLocation(this.program, 'uDrawColor'),
+                    bgColor: gl.getUniformLocation(this.program, 'uBgColor'),
+                    gridTexture: gl.getUniformLocation(this.program, 'uGridTexture')
+                };
             }
 
             compileShader(type, source) {
@@ -416,19 +356,11 @@
                 
                 const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
                 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-                
-                // Create grid texture
-                this.gridTexture = gl.createTexture();
-                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             }
 
             updateCanvasSize() {
                 const width = window.innerWidth;
-                const height = window.innerHeight - document.querySelector('.header').offsetHeight;
+                const height = window.innerHeight;
                 
                 this.canvas.width = width;
                 this.canvas.height = height;
@@ -439,76 +371,148 @@
                 gl.viewport(0, 0, width, height);
             }
 
-            // Grid Management Methods - TEXTURE BASED
-            initGrid() {
-                this.grid = [];
-                this.textureData = new Uint8Array(this.gridSize * this.gridSize * 4);
-                
-                for (let y = 0; y < this.gridSize; y++) {
-                    this.grid[y] = [];
-                    for (let x = 0; x < this.gridSize; x++) {
-                        this.grid[y][x] = false;
-                        this.setTexturePixel(x, y, [0, 0, 0, 0]);
-                    }
-                }
+            uploadGeometry(geometry) {
+                // For texture-based approach, geometry is always the same (full-screen quad)
+                this.cachedGeometry = geometry;
             }
 
-            setTexturePixel(x, y, color) {
-                const index = (y * this.gridSize + x) * 4;
-                this.textureData[index] = color[0] * 255;     // R
-                this.textureData[index + 1] = color[1] * 255; // G
-                this.textureData[index + 2] = color[2] * 255; // B
-                this.textureData[index + 3] = color[3] * 255; // A
-            }
-
-            updateGridTexture() {
+            draw(cameraView, gridGeometry, drawColor, bgColor) {
                 const gl = this.gl;
                 
-                // Update texture data based on grid state
-                for (let y = 0; y < this.gridSize; y++) {
-                    for (let x = 0; x < this.gridSize; x++) {
-                        if (this.grid[y][x]) {
-                            this.setTexturePixel(x, y, [1, 1, 1, 1]); // White for filled cells
-                        } else {
-                            this.setTexturePixel(x, y, [0, 0, 0, 0]); // Black for empty cells
+                if (!gridGeometry || !gridGeometry.texture) {
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                    return;
+                }
+
+                // Clear the canvas
+                gl.clearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                
+                // Use the shader program
+                gl.useProgram(this.program);
+                
+                // Set up vertex buffer
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                gl.enableVertexAttribArray(this.attribLocations.position);
+                gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, 0, 0);
+                
+                // Set up index buffer
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+                
+                // Set uniforms
+                gl.uniform2f(this.uniformLocations.resolution, this.width, this.height);
+                gl.uniform2f(this.uniformLocations.offset, cameraView.camX, cameraView.camY);
+                gl.uniform1f(this.uniformLocations.scale, cameraView.zoom);
+                gl.uniform1f(this.uniformLocations.gridSize, gridGeometry.gridSize);
+                gl.uniform1f(this.uniformLocations.baseCellSize, gridGeometry.baseCellSize);
+                gl.uniform4fv(this.uniformLocations.drawColor, drawColor);
+                gl.uniform4fv(this.uniformLocations.bgColor, bgColor);
+                
+                // Bind texture
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, gridGeometry.texture);
+                gl.uniform1i(this.uniformLocations.gridTexture, 0);
+                
+                // Draw the full-screen quad
+                gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+            }
+        }
+
+        class SquareGrid {
+            constructor(colorSchema, detailed, simple) {
+                this.colorSchema = colorSchema;
+                this.DETAILED_GRID_SIZE = detailed;
+                this.SIMPLIFIED_GRID_SIZE = simple;
+                this.radius = 30;
+                this.zoom = 1;
+                this.baseCellSize = 60; // 30 radius * 2
+                
+                // Texture properties
+                this.gridTexture = null;
+                this.textureData = null;
+                this.gridSize = 50; // Default grid size
+            }
+
+            initGridTexture(gl, gridSize) {
+                this.gridSize = gridSize;
+                this.textureData = new Uint8Array(gridSize * gridSize * 4);
+                
+                // Initialize texture data to empty
+                for (let i = 0; i < gridSize * gridSize * 4; i += 4) {
+                    this.textureData[i] = 0;     // R
+                    this.textureData[i + 1] = 0; // G
+                    this.textureData[i + 2] = 0; // B
+                    this.textureData[i + 3] = 0; // A (0 = transparent)
+                }
+                
+                // Create WebGL texture
+                this.gridTexture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gridSize, gridSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+            }
+
+            resizeGridTexture(gl, newGridSize, oldCells) {
+                // Save current texture data
+                const oldData = this.textureData;
+                const oldSize = this.gridSize;
+                
+                // Create new texture with new size
+                this.initGridTexture(gl, newGridSize);
+                
+                // Copy old cell data to new texture
+                if (oldCells && oldData) {
+                    for (let y = 0; y < Math.min(oldSize, newGridSize); y++) {
+                        for (let x = 0; x < Math.min(oldSize, newGridSize); x++) {
+                            const oldIndex = (y * oldSize + x) * 4;
+                            const newIndex = (y * newGridSize + x) * 4;
+                            
+                            // Check if cell was alive in old data
+                            if (oldData[oldIndex + 3] > 0) {
+                                this.setCellState(gl, x, y, true);
+                            }
                         }
                     }
                 }
+            }
+
+            updateGridTexture(gl) {
+                if (!this.gridTexture) return;
                 
-                // Upload texture to GPU
                 gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.gridSize, this.gridSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.gridSize, this.gridSize, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
             }
 
-            fillGrid() {
-                for (let y = 0; y < this.gridSize; y++) {
-                    for (let x = 0; x < this.gridSize; x++) {
-                        this.grid[y][x] = true;
-                    }
-                }
-                this.updateGridTexture();
-            }
-
-            toggleCell(x, y, mode) {
+            setCellState(gl, x, y, state) {
                 if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
-                    const gl = this.gl;
+                    const index = (y * this.gridSize + x) * 4;
                     
-                    if (mode === 'draw') {
-                        this.grid[y][x] = true;
-                    } else if (mode === 'erase') {
-                        this.grid[y][x] = false;
+                    if (state) {
+                        // Filled cell - use the color from schema
+                        const color = this.colorSchema[1] || [1, 1, 1, 1];
+                        this.textureData[index] = color[0] * 255;     // R
+                        this.textureData[index + 1] = color[1] * 255; // G
+                        this.textureData[index + 2] = color[2] * 255; // B
+                        this.textureData[index + 3] = 255;            // A
+                    } else {
+                        // Empty cell - transparent
+                        this.textureData[index] = 0;
+                        this.textureData[index + 1] = 0;
+                        this.textureData[index + 2] = 0;
+                        this.textureData[index + 3] = 0;
                     }
                     
-                    // Update the texture - only the changed pixel
+                    // Update single pixel in texture
                     gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-                    
                     const pixelData = new Uint8Array([
-                        this.grid[y][x] ? 255 : 0,
-                        this.grid[y][x] ? 255 : 0,
-                        this.grid[y][x] ? 255 : 0,
-                        255
+                        this.textureData[index],
+                        this.textureData[index + 1],
+                        this.textureData[index + 2],
+                        this.textureData[index + 3]
                     ]);
-                    
                     gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
                     
                     return true;
@@ -516,22 +520,243 @@
                 return false;
             }
 
-            resizeGrid(newSize) {
-                const oldGrid = this.grid;
-                const oldSize = this.gridSize;
-                
-                this.gridSize = newSize;
-                this.initGrid();
-                
-                // Copy old grid data
-                const minSize = Math.min(oldSize, newSize);
-                for (let y = 0; y < minSize; y++) {
-                    for (let x = 0; x < minSize; x++) {
-                        this.grid[y][x] = oldGrid[y][x];
+            fillGrid(gl) {
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
+                        this.setCellState(gl, x, y, true);
                     }
                 }
-                this.updateGridTexture();
-                this.centerView();
+            }
+
+            clearGrid(gl) {
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
+                        this.setCellState(gl, x, y, false);
+                    }
+                }
+            }
+
+            worldToCell(world) {
+                const size = this.baseCellSize;
+                // Convert from world coordinates to grid coordinates
+                // World coordinates are centered at (0,0), grid coordinates start at (0,0) in top-left
+                const halfGridSize = (this.gridSize * size) / 2;
+                const cellX = Math.floor((world.x + halfGridSize) / size);
+                const cellY = Math.floor((world.y + halfGridSize) / size);
+                return [cellX, cellY];
+            }
+
+            calculateBounds(bounds) {
+                const [minX, maxX, minY, maxY] = bounds;
+                const size = this.baseCellSize;
+
+                const minCol = Math.floor(minX / size) - 1;
+                const maxCol = Math.ceil(maxX / size) + 1;
+                const minRow = Math.floor(minY / size) - 1;
+                const maxRow = Math.ceil(maxY / size) + 1;
+
+                return [minCol, maxCol, minRow, maxRow];
+            }
+
+            getGridGeometry(bounds, cells, maxCols, maxRows, infinite, gl) {
+                // For texture-based approach, we don't need geometry
+                // The entire grid is rendered with a full-screen quad
+                return {
+                    texture: this.gridTexture,
+                    gridSize: this.gridSize,
+                    baseCellSize: this.baseCellSize,
+                    vertexCount: 4, // Full-screen quad
+                    indexCount: 6   // Two triangles
+                };
+            }
+        }
+
+        class GridManager {
+            adj_neighbors = [[0, -1], [0, 1], [1, 0], [-1, 0]];
+
+            constructor1(shape, canvas, init_cells = new Map(), useWebGL = true) {
+                this.shape = shape.value || shape;
+                this.canvas = canvas;
+                this.useWebGL = useWebGL;
+                this.cells = init_cells;
+                this.neighborsMap = new Map();
+
+                // Grid defaults
+                this.gridRows = 20;
+                this.gridCols = 20;
+                this.infiniteGrid = false;
+                this.boundaryType = "wrap";
+                this.neighborType = "adjacent";
+
+                // Performance settings
+                this.detail = 1;
+                this.simple = 2;
+
+                // Camera & colors
+                this.cameraView = { camX: 0, camY: 0, zoom: 1 };
+                this.colorSchema = {
+                    line: this.hexToRgb("#555555"),
+                    1: this.hexToRgb("#32cd32"),
+                };
+                this.drawColor = this.colorSchema[1];
+                this.bgColor = this.hexToRgb("#0a0a1a");
+
+                // Initialize shape-specific grid
+                this.shapeGrid = this.createShapeGrid(this.shape);
+                
+                // Initialize WebGL renderer and texture
+                this.initializeRenderer(this.useWebGL);
+                this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols);
+                
+                // Sync existing cells to texture
+                this.syncCellsToTexture();
+                
+                this.updateCanvasSize();
+                
+                // Start continuous rendering
+                this.startRendering();
+            }
+
+            createShapeGrid(shape) {
+                const { colorSchema, detail, simple } = this;
+                switch (shape) {
+                    case "square":   return new SquareGrid(colorSchema, detail, simple);
+                    default:
+                        throw new Error(`Unknown grid shape: ${shape}`);
+                }
+            }
+
+            initializeRenderer(useWebGL) {
+                try {
+                    if (useWebGL) {
+                        this.renderer = new WebGLRenderer(this.canvas);
+                        console.log("Using WebGL texture-based renderer");
+                    } else {
+                        throw new Error("Canvas2D not implemented for texture approach");
+                    }
+                } catch (error) {
+                    console.warn("WebGL not supported:", error);
+                    throw error; // No fallback for texture-based approach
+                }
+            }
+
+            syncCellsToTexture() {
+                // Sync existing cells data to texture
+                for (const [col, colMap] of this.cells) {
+                    for (const [row, state] of colMap) {
+                        if (state) {
+                            this.shapeGrid.setCellState(this.renderer.gl, col, row, state);
+                        }
+                    }
+                }
+            }
+
+            startRendering() {
+                const renderLoop = () => {
+                    this.drawGrid();
+                    requestAnimationFrame(renderLoop);
+                };
+                renderLoop();
+            }
+
+            // FIXED: Proper screen to world coordinate conversion
+            screenToWorld(px, py) {
+                // Convert screen coordinates to world coordinates
+                // Screen: (0,0) at top-left, (width,height) at bottom-right
+                // World: (0,0) at center, positive Y up
+                const worldX = (px - this.width / 2 - this.cameraView.camX) / this.cameraView.zoom;
+                const worldY = (this.height / 2 - py - this.cameraView.camY) / this.cameraView.zoom; // Flip Y axis
+                return { x: worldX, y: worldY };
+            }
+
+            worldToCell(world) {
+                return this.shapeGrid.worldToCell(world);
+            }
+
+            // FIXED: Direct screen to cell conversion for better accuracy
+            screenToCell(px, py) {
+                const world = this.screenToWorld(px, py);
+                return this.worldToCell(world);
+            }
+
+            setBoundaryType(boundaryType) {
+                this.boundaryType = boundaryType;
+                this.infiniteGrid = (boundaryType === "infinite");
+            }
+
+            getNeighbors(x, y) {
+                const neighbors = [];
+                for (const [dx, dy] of this.adj_neighbors) {
+                    const nx = dx + x;
+                    const ny = dy + y;
+                    neighbors.push([nx, ny]);
+                }
+                return neighbors;
+            }
+
+            buildNeighborsMap() {
+                const neighborsMap = new Map();
+                const [minCol, maxCol, minRow, maxRow] = this.getBounds();
+                for (let c = minCol; c <= maxCol; c++) {
+                    for (let r = minRow; r <= maxRow; r++) {
+                        const cellNeighbors = this.getNeighbors(c, r)
+                        neighborsMap.set([c, r], cellNeighbors);
+                    }
+                }
+                console.log("Neighbors dict", neighborsMap);
+            }
+
+            addNeighbors(x, y) {
+                const valid_neighbors = this.getNeighbors(x, y);
+                this.neighborsMap.set([x, y], valid_neighbors)
+            }
+
+            randomCells() {
+                const [minCol, maxCol, minRow, maxRow] = this.getBounds();
+                console.log(minCol, maxCol, minRow, maxRow);
+                for (let c = minCol; c <= maxCol; c++) {
+                    for (let r = minRow; r <= maxRow; r++) {
+                        const status = Math.random() < 0.05 ? 0 : 1;
+                        this.changeCell(c, r, status);
+                    }
+                }
+            }
+
+            updateCanvasSize() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                this.canvas.width = width;
+                this.canvas.height = height;
+                this.width = width;
+                this.height = height;
+
+                if (this.renderer && this.renderer.updateCanvasSize) {
+                    this.renderer.updateCanvasSize();
+                }
+            }
+
+            getVisibleBounds() {
+                const halfW = this.width / (2 * this.cameraView.zoom);
+                const halfH = this.height / (2 * this.cameraView.zoom);
+
+                const minWorldX = -this.cameraView.camX / this.cameraView.zoom - halfW;
+                const maxWorldX = -this.cameraView.camX / this.cameraView.zoom + halfW;
+                const minWorldY = -this.cameraView.camY / this.cameraView.zoom - halfH;
+                const maxWorldY = -this.cameraView.camY / this.cameraView.zoom + halfH;
+
+                return [minWorldX, maxWorldX, minWorldY, maxWorldY];
+            }
+
+            drawGrid() {
+                const bounds = this.getVisibleBounds();
+                const geometry = this.shapeGrid.getGridGeometry(
+                    bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, this.renderer.gl
+                );
+
+                if (this.useWebGL) {
+                    this.renderer.uploadGeometry(geometry);
+                    this.renderer.draw(this.cameraView, geometry, this.drawColor, this.bgColor);
+                }
             }
 
             hexToRgb(hex) {
@@ -544,363 +769,539 @@
                 ] : [0.5, 0.5, 0.5, 1.0];
             }
 
-            setMode(mode) {
-                this.currentMode = mode;
+            changeCell(x, y, state) {
+                if (!this.cells.has(x)) this.cells.set(x, new Map());
+                this.cells.get(x).set(y, state);
                 
-                if (mode === 'pan') {
-                    this.canvas.style.cursor = 'grab';
+                // Update texture
+                this.shapeGrid.setCellState(this.renderer.gl, x, y, state);
+                
+                this.addNeighbors(x, y);
+            }
+
+            getBounds() {
+                const cols = Number(this.gridCols) || 0;
+                const rows = Number(this.gridRows) || 0;
+
+                const minCol = 0;
+                const maxCol = cols - 1;
+                const minRow = 0;
+                const maxRow = rows - 1;
+
+                return [minCol, maxCol, minRow, maxRow];
+            }
+
+            checkBounds(x, y) {
+                if (!this.infiniteGrid) {
+                    const [minCol, maxCol, minRow, maxRow] = this.getBounds();
+                    if (x < minCol || x > maxCol || y < minRow || y > maxRow) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            toggleAt(px, py, drawMode, eraseMode) {
+                // Use direct screen to cell conversion for better accuracy
+                const cell = this.screenToCell(px, py);
+                if (!cell) return false;
+
+                const [x, y] = cell;
+
+                if (!this.checkBounds(x, y)) return false;
+
+                let newState;
+                if (drawMode) {
+                    newState = 1;
+                } else if (eraseMode) {
+                    newState = 0;
                 } else {
-                    this.canvas.style.cursor = 'crosshair';
+                    // safer check: ensure y exists in nested Map
+                    const currentState = (this.cells.has(x) && this.cells.get(x).has(y)) ? this.cells.get(x).get(y) : 0;
+                    newState = currentState ? 0 : 1;
                 }
+
+                this.changeCell(x, y, newState);
+                return true;
             }
 
-            setupEventListeners() {
-                // Window resize
-                window.addEventListener('resize', () => {
-                    this.updateCanvasSize();
-                });
-                
-                // Mouse events
-                this.canvas.addEventListener('mousedown', (e) => this.startAction(e));
-                this.canvas.addEventListener('mousemove', (e) => this.handleMove(e));
-                this.canvas.addEventListener('mouseup', () => this.stopAction());
-                this.canvas.addEventListener('mouseleave', () => this.stopAction());
-                
-                // Touch events
-                this.canvas.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.startAction(e.touches[0]);
-                });
-                this.canvas.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    this.handleMove(e.touches[0]);
-                });
-                this.canvas.addEventListener('touchend', () => this.stopAction());
-                
-                // Zoom with mouse wheel
-                this.canvas.addEventListener('wheel', (e) => {
-                    e.preventDefault();
-                    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-                    const rect = this.canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    this.zoomAt(zoomFactor, x, y);
-                    this.updateStatus();
-                });
-                
-                // Control panel events
-                document.getElementById('gridSize').addEventListener('change', (e) => {
-                    const newSize = parseInt(e.target.value);
-                    this.resizeGrid(newSize);
-                    this.updateStatus();
-                });
-                
-                document.getElementById('drawColor').addEventListener('change', (e) => {
-                    const hex = e.target.value;
-                    this.drawColor = this.hexToRgb(hex);
-                });
-                
-                document.getElementById('bgColor').addEventListener('change', (e) => {
-                    const hex = e.target.value;
-                    this.bgColor = this.hexToRgb(hex);
-                });
-                
-                document.getElementById('clearBtn').addEventListener('click', () => {
-                    this.initGrid();
-                    this.updateGridTexture();
-                });
-                
-                document.getElementById('fillBtn').addEventListener('click', () => {
-                    this.fillGrid();
-                    this.updateGridTexture();
-                });
-                
-                document.getElementById('centerBtn').addEventListener('click', () => {
-                    this.centerView();
-                    this.updateStatus();
-                });
-                
-                // Mode buttons
-                document.getElementById('panMode').addEventListener('click', () => {
-                    this.setMode('pan');
-                    this.updateModeButtons('pan');
-                    this.updateStatus();
-                });
-                
-                document.getElementById('drawMode').addEventListener('click', () => {
-                    this.setMode('draw');
-                    this.updateModeButtons('draw');
-                    this.updateStatus();
-                });
-                
-                document.getElementById('eraseMode').addEventListener('click', () => {
-                    this.setMode('erase');
-                    this.updateModeButtons('erase');
-                    this.updateStatus();
-                });
-            }
-
-            // Main Application Methods
-            updateModeButtons(activeMode) {
-                document.getElementById('panMode').classList.toggle('active', activeMode === 'pan');
-                document.getElementById('drawMode').classList.toggle('active', activeMode === 'draw');
-                document.getElementById('eraseMode').classList.toggle('active', activeMode === 'erase');
-            }
-
-            // Continuous rendering loop for texture-based approach
-            drawGrid() {
-                const gl = this.gl;
-                
-                // Clear the canvas with background color
-                gl.clearColor(this.bgColor[0], this.bgColor[1], this.bgColor[2], this.bgColor[3]);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-                
-                // Use the shader program
-                gl.useProgram(this.program);
-                
-                // Set up vertex buffer
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-                const positionAttribute = gl.getAttribLocation(this.program, 'aPosition');
-                gl.enableVertexAttribArray(positionAttribute);
-                gl.vertexAttribPointer(positionAttribute, 2, gl.FLOAT, false, 0, 0);
-                
-                // Set up index buffer
-                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-                
-                // Set uniforms
-                const resolutionUniform = gl.getUniformLocation(this.program, 'uResolution');
-                gl.uniform2f(resolutionUniform, this.canvas.width, this.canvas.height);
-                
-                const offsetUniform = gl.getUniformLocation(this.program, 'uOffset');
-                gl.uniform2f(offsetUniform, this.cameraView.camX, this.cameraView.camY);
-                
-                const scaleUniform = gl.getUniformLocation(this.program, 'uScale');
-                gl.uniform1f(scaleUniform, this.cameraView.zoom);
-                
-                const gridSizeUniform = gl.getUniformLocation(this.program, 'uGridSize');
-                gl.uniform1f(gridSizeUniform, this.gridSize);
-                
-                const baseCellSizeUniform = gl.getUniformLocation(this.program, 'uBaseCellSize');
-                gl.uniform1f(baseCellSizeUniform, this.baseCellSize);
-                
-                const drawColorUniform = gl.getUniformLocation(this.program, 'uDrawColor');
-                gl.uniform4fv(drawColorUniform, this.drawColor);
-                
-                const bgColorUniform = gl.getUniformLocation(this.program, 'uBgColor');
-                gl.uniform4fv(bgColorUniform, this.bgColor);
-                
-                // Bind texture
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-                const textureUniform = gl.getUniformLocation(this.program, 'uGridTexture');
-                gl.uniform1i(textureUniform, 0);
-                
-                // Draw the full-screen quad
-                gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-                
-                // Update FPS counter
-                this.updateFPS();
-                
-                // Request next frame - continuous rendering
-                requestAnimationFrame(() => this.drawGrid());
-            }
-
-            updateFPS() {
-                this.frameCount++;
-                const now = performance.now();
-                
-                if (now >= this.lastFpsUpdate + 1000) {
-                    this.fps = Math.round((this.frameCount * 1000) / (now - this.lastFpsUpdate));
-                    this.frameCount = 0;
-                    this.lastFpsUpdate = now;
-                    
-                    document.getElementById('fpsDisplay').textContent = this.fps;
-                }
-            }
-
-            updateStatus() {
-                document.getElementById('modeDisplay').textContent = 
-                    this.currentMode.charAt(0).toUpperCase() + 
-                    this.currentMode.slice(1);
-                document.getElementById('zoomDisplay').textContent = 
-                    Math.round(this.cameraView.zoom * 100) + '%';
-                document.getElementById('gridDisplay').textContent = 
-                    this.gridSize + 'x' + this.gridSize;
-                document.getElementById('cellSizeDisplay').textContent = 
-                    Math.round(this.baseCellSize * this.cameraView.zoom) + 'px';
-            }
-
-            // Normalized coordinate conversion methods
-            screenToWorld(screenX, screenY) {
-                // Convert screen coordinates to normalized world coordinates
-                const worldX = (screenX - this.cameraView.camX) / this.cameraView.zoom;
-                const worldY = (screenY - this.cameraView.camY) / this.cameraView.zoom;
-                return { x: worldX, y: worldY };
-            }
-
-            worldToScreen(worldX, worldY) {
-                // Convert world coordinates back to screen coordinates
-                const screenX = worldX * this.cameraView.zoom + this.cameraView.camX;
-                const screenY = worldY * this.cameraView.zoom + this.cameraView.camY;
-                return { x: screenX, y: screenY };
-            }
-
-            worldToCell(worldX, worldY) {
-                // Convert world coordinates to grid cell coordinates
-                const gridX = Math.floor(worldX / this.baseCellSize);
-                const gridY = Math.floor(worldY / this.baseCellSize);
-                
-                if (gridX >= 0 && gridX < this.gridSize && gridY >= 0 && gridY < this.gridSize) {
-                    return [gridX, gridY];
-                }
-                return null;
-            }
-
-            screenToCell(screenX, screenY) {
-                // Convert screen coordinates directly to grid cell coordinates
-                const world = this.screenToWorld(screenX, screenY);
-                return this.worldToCell(world.x, world.y);
-            }
-
-            cellToWorld(cellX, cellY) {
-                // Convert grid cell coordinates to world coordinates (center of cell)
-                const worldX = cellX * this.baseCellSize + this.baseCellSize / 2;
-                const worldY = cellY * this.baseCellSize + this.baseCellSize / 2;
-                return { x: worldX, y: worldY };
-            }
-
-            cellToScreen(cellX, cellY) {
-                // Convert grid cell coordinates to screen coordinates
-                const world = this.cellToWorld(cellX, cellY);
-                return this.worldToScreen(world.x, world.y);
-            }
-
-            // Input Handler Methods with normalized coordinates
-            startAction(e) {
-                const rect = this.canvas.getBoundingClientRect();
-                const screenX = e.clientX - rect.left;
-                const screenY = e.clientY - rect.top;
-                
-                if (this.currentMode === 'pan') {
-                    this.isPanning = true;
-                    this.lastPanX = e.clientX;
-                    this.lastPanY = e.clientY;
-                    this.canvas.style.cursor = 'grabbing';
-                } else {
-                    this.isDrawing = true;
-                    const cell = this.screenToCell(screenX, screenY);
-                    if (cell) {
-                        this.toggleCell(cell[0], cell[1], this.currentMode);
-                        // Store the world position for continuous drawing
-                        this.lastWorldPos = this.screenToWorld(screenX, screenY);
+            fillAll() {
+                this.shapeGrid.fillGrid(this.renderer.gl);
+                // Also update the cells map
+                const [minCol, maxCol, minRow, maxRow] = this.getBounds();
+                for (let c = minCol; c <= maxCol; c++) {
+                    for (let r = minRow; r <= maxRow; r++) {
+                        if (!this.cells.has(c)) this.cells.set(c, new Map());
+                        this.cells.get(c).set(r, 1);
                     }
                 }
             }
 
-            handleMove(e) {
-                const rect = this.canvas.getBoundingClientRect();
-                const screenX = e.clientX - rect.left;
-                const screenY = e.clientY - rect.top;
+            clearAll() {
+                this.shapeGrid.clearGrid(this.renderer.gl);
+                this.cells.clear();
+            }
+
+            // Add method for continuous drawing
+            drawLineBetweenPoints(startWorld, endWorld, mode) {
+                const startCell = this.worldToCell(startWorld);
+                const endCell = this.worldToCell(endWorld);
                 
-                if (this.isPanning) {
-                    const dx = e.clientX - this.lastPanX;
-                    const dy = e.clientY - this.lastPanY;
-                    this.pan(dx, dy);
-                    this.lastPanX = e.clientX;
-                    this.lastPanY = e.clientY;
-                } else if (this.isDrawing) {
-                    const currentWorldPos = this.screenToWorld(screenX, screenY);
-                    const cell = this.worldToCell(currentWorldPos.x, currentWorldPos.y);
-                    
-                    if (cell) {
-                        this.toggleCell(cell[0], cell[1], this.currentMode);
-                        
-                        // For continuous drawing, interpolate between last and current world positions
-                        if (this.lastWorldPos) {
-                            this.drawLineBetweenPoints(this.lastWorldPos, currentWorldPos);
+                if (!startCell || !endCell) return;
+
+                const [x1, y1] = startCell;
+                const [x2, y2] = endCell;
+
+                // Simple line drawing algorithm
+                const dx = Math.abs(x2 - x1);
+                const dy = Math.abs(y2 - y1);
+                const sx = (x1 < x2) ? 1 : -1;
+                const sy = (y1 < y2) ? 1 : -1;
+                let err = dx - dy;
+
+                let x = x1;
+                let y = y1;
+
+                while (true) {
+                    if (this.checkBounds(x, y)) {
+                        const state = (mode === 'draw') ? 1 : 0;
+                        this.changeCell(x, y, state);
+                    }
+
+                    if (x === x2 && y === y2) break;
+
+                    const e2 = 2 * err;
+                    if (e2 > -dy) {
+                        err -= dy;
+                        x += sx;
+                    }
+                    if (e2 < dx) {
+                        err += dx;
+                        y += sy;
+                    }
+                }
+            }
+
+            constructor(shape, canvas, init_cells = new Map(), useWebGL = true) {
+                this.shape = shape.value || shape;
+                this.canvas = canvas;
+                this.useWebGL = useWebGL;
+                this.cells = init_cells;
+                this.neighborsMap = new Map();
+
+                // Grid defaults
+                this.gridRows = 20;
+                this.gridCols = 20;
+                this.infiniteGrid = false;
+                this.boundaryType = "wrap";
+                this.neighborType = "adjacent";
+
+                // Performance settings
+                this.detail = 1;
+                this.simple = 2;
+
+                // Camera & colors
+                this.cameraView = { camX: 0, camY: 0, zoom: 1 };
+                this.colorSchema = {
+                    line: this.hexToRgb("#555555"),
+                    1: this.hexToRgb("#32cd32"),
+                };
+                this.drawColor = this.colorSchema[1];
+                this.bgColor = this.hexToRgb("#0a0a1a");
+
+                // Initialize shape-specific grid
+                this.shapeGrid = this.createShapeGrid(this.shape);
+                
+                // Initialize WebGL renderer and texture
+                this.initializeRenderer(this.useWebGL);
+                this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols);
+                
+                // Sync existing cells to texture
+                this.syncCellsToTexture();
+                
+                this.updateCanvasSize();
+                
+                // Start continuous rendering
+                this.startRendering();
+            }
+
+            createShapeGrid(shape) {
+                const { colorSchema, detail, simple } = this;
+                switch (shape) {
+                    case "square":   return new SquareGrid(colorSchema, detail, simple);
+                    default:
+                        throw new Error(`Unknown grid shape: ${shape}`);
+                }
+            }
+
+            initializeRenderer(useWebGL) {
+                try {
+                    if (useWebGL) {
+                        this.renderer = new WebGLRenderer(this.canvas);
+                        console.log("Using WebGL texture-based renderer");
+                    } else {
+                        throw new Error("Canvas2D not implemented for texture approach");
+                    }
+                } catch (error) {
+                    console.warn("WebGL not supported:", error);
+                    throw error; // No fallback for texture-based approach
+                }
+            }
+
+            syncCellsToTexture() {
+                // Sync existing cells data to texture
+                for (const [col, colMap] of this.cells) {
+                    for (const [row, state] of colMap) {
+                        if (state && col < this.gridCols && row < this.gridRows) {
+                            this.shapeGrid.setCellState(this.renderer.gl, col, row, state);
                         }
-                        
-                        this.lastWorldPos = currentWorldPos;
                     }
                 }
             }
 
-            drawLineBetweenPoints(startWorld, endWorld) {
-                // Interpolate between two world points and draw all cells along the line
-                const distance = Math.sqrt(
-                    Math.pow(endWorld.x - startWorld.x, 2) + 
-                    Math.pow(endWorld.y - startWorld.y, 2)
-                );
+            // NEW: Method to resize the grid
+            resizeGrid(newCols, newRows) {
+                const oldCols = this.gridCols;
+                const oldRows = this.gridRows;
                 
-                const steps = Math.max(1, Math.ceil(distance / (this.baseCellSize * 0.5)));
+                this.gridCols = newCols;
+                this.gridRows = newRows;
                 
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const interpWorldX = startWorld.x + (endWorld.x - startWorld.x) * t;
-                    const interpWorldY = startWorld.y + (endWorld.y - startWorld.y) * t;
-                    
-                    const cell = this.worldToCell(interpWorldX, interpWorldY);
-                    if (cell) {
-                        this.toggleCell(cell[0], cell[1], this.currentMode);
+                // Save current cells data
+                const oldCells = new Map();
+                for (const [col, colMap] of this.cells) {
+                    if (col < newCols) {
+                        const newColMap = new Map();
+                        for (const [row, state] of colMap) {
+                            if (row < newRows && state) {
+                                newColMap.set(row, state);
+                            }
+                        }
+                        if (newColMap.size > 0) {
+                            oldCells.set(col, newColMap);
+                        }
                     }
                 }
-            }
-
-            stopAction() {
-                this.isDrawing = false;
-                this.isPanning = false;
-                this.lastWorldPos = null;
                 
-                if (this.currentMode === 'pan') {
-                    this.canvas.style.cursor = 'grab';
-                } else {
-                    this.canvas.style.cursor = 'crosshair';
-                }
+                // Resize the texture
+                this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, oldCells);
+                
+                // Update cells with the resized data
+                this.cells = oldCells;
+                
+                // Re-center the view
+                this.centerView();
             }
 
-            // Camera Controller Methods with normalized coordinates
             centerView() {
-                // Center the view on the grid in world coordinates
-                const gridWorldWidth = this.gridSize * this.baseCellSize;
-                const gridWorldHeight = this.gridSize * this.baseCellSize;
+                // Center the view on the grid
+                const gridWorldWidth = this.gridCols * this.shapeGrid.baseCellSize;
+                const gridWorldHeight = this.gridRows * this.shapeGrid.baseCellSize;
                 
-                this.cameraView.camX = (this.canvas.width - gridWorldWidth) / 2;
-                this.cameraView.camY = (this.canvas.height - gridWorldHeight) / 2;
+                this.cameraView.camX = 0;
+                this.cameraView.camY = 0;
                 this.cameraView.zoom = 1;
             }
 
-            zoomAt(factor, screenX, screenY) {
-                const newZoom = this.cameraView.zoom * factor;
-                
-                if (newZoom < 0.001 || newZoom > 10) return;
-                
-                // Get the world position under the cursor before zooming
-                const worldBeforeZoom = this.screenToWorld(screenX, screenY);
-                
-                // Update zoom
-                this.cameraView.zoom = newZoom;
-                
-                // Get the screen position that should correspond to the same world position after zooming
-                const screenAfterZoom = this.worldToScreen(worldBeforeZoom.x, worldBeforeZoom.y);
-                
-                // Adjust camera to maintain the same world position under the cursor
-                this.cameraView.camX += screenX - screenAfterZoom.x;
-                this.cameraView.camY += screenY - screenAfterZoom.y;
+            startRendering() {
+                const renderLoop = () => {
+                    this.drawGrid();
+                    requestAnimationFrame(renderLoop);
+                };
+                renderLoop();
             }
 
-            pan(dx, dy) {
-                // Pan in screen coordinates (dx, dy are screen space deltas)
-                this.cameraView.camX += dx;
-                this.cameraView.camY += dy;
+            // ... rest of the GridManager methods remain the same ...
+
+            getBounds() {
+                const cols = Number(this.gridCols) || 0;
+                const rows = Number(this.gridRows) || 0;
+
+                const minCol = 0;
+                const maxCol = cols - 1;
+                const minRow = 0;
+                const maxRow = rows - 1;
+
+                return [minCol, maxCol, minRow, maxRow];
+            }
+
+            // ... other methods remain unchanged ...
+        }
+
+        class AutomataSimulator{
+            docIDs = [
+                "gridCanvas", "menuPanel", "menuToggle", "drawTiles", "eraseTiles",
+                "rowInput", "colInput", "resetView", "pinLoc", "clearGrid", "randomFill",
+                "neighborTiles",
+            ]
+
+            constructor(){
+                this.initElements();
+                this.initGrid();
+                this.setupGridControls()
+                this.setupEventListeners();
+                this.setupCanvasControls();
+                this.setupMenuControls();
+                this.gridManager.drawGrid();
+            }
+
+            initElements() {
+                for (const id of this.docIDs) {
+                    this[id] = document.getElementById(id);
+                }
+            }
+
+            delElements() {
+                this.docIDs.forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem) {
+                        const newElem = elem.cloneNode(true);
+                        elem.parentNode.replaceChild(newElem, elem);
+                    }
+                });
+            }
+
+            setupMenuControls() {
+                const panel = this.menuPanel;
+
+                this.menuToggle.addEventListener('click', () => {
+                panel.classList.toggle('open');
+                });
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // deactivate all
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.sidenav-panels .panel').forEach(p => p.classList.remove('active'));
+
+                    // activate chosen
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.panel).classList.add('active');
+                });
+                });
+            }
+
+            initGrid() {
+                this.gridManager = new GridManager("square", this.gridCanvas);
+                this.savedView = { ...this.gridManager.cameraView };
+                this.gridManager.gridRows = parseInt(this.rowInput.value);
+                this.gridManager.gridCols = parseInt(this.colInput.value);
+            }
+
+            setupGridControls() {
+                // Store references to all shape radio buttons
+                this.shapeRadios = document.querySelectorAll('input[name="shape"]');
+                this.shapeRadios.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        if (radio.checked) {
+                            const selectedShape = radio.value;
+                            const old_grid = this.gridManager
+
+                            this.gridManager = new GridManager(selectedShape, this.gridCanvas, old_grid.cells);
+                            this.gridManager.cameraView = { ...old_grid.cameraView };
+                            this.gridManager.gridRows = old_grid.gridRows;
+                            this.gridManager.gridCols = old_grid.gridCols;
+                            this.gridManager.infiniteGrid = old_grid.infiniteGrid;
+                            this.gridManager.drawGrid();
+                        }
+                    });
+                });
+
+                this.rowInput.addEventListener('input', () => {
+                    const newRows = parseInt(this.rowInput.value);
+                    const newCols = parseInt(this.colInput.value);
+                    this.gridManager.resizeGrid(newCols, newRows);
+                    this.gridManager.drawGrid();
+                });
+
+                this.colInput.addEventListener('input', () => {
+                    const newRows = parseInt(this.rowInput.value);
+                    const newCols = parseInt(this.colInput.value);
+                    this.gridManager.resizeGrid(newCols, newRows);
+                    this.gridManager.drawGrid();
+                });
+
+                // Store references to all neighbors radio buttons
+                this.neighborsRadio = document.querySelectorAll('input[name="neighbors"]');
+                // Add event listener to each radio button
+                this.neighborsRadio.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        if (radio.checked) {
+                        };
+                    });
+                });
+
+                // Store references to all boundary radio buttons
+                this.boundsRadio = document.querySelectorAll('input[name="bounds"]');
+                this.boundsRadio.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        if (radio.checked) {
+                            this.gridManager.setBoundaryType(radio.value);
+                            this.gridManager.drawGrid();
+                        }
+                    });
+                });
+            }
+
+            setupEventListeners() {
+                this.resetView.addEventListener('click', () => {
+                    this.gridManager.cameraView = { ...this.savedView };
+                    this.gridManager.drawGrid();
+                });
+
+                this.pinLoc.addEventListener('click', () => {
+                    this.savedView = { ...this.gridManager.cameraView };
+                });
+
+                this.clearGrid.addEventListener('click', () => {
+                    // use existing API so texture and internal state both cleared
+                    this.gridManager.clearAll();
+                    this.gridManager.drawGrid();
+                });
+
+                this.randomFill.addEventListener('click', () => this.gridManager.randomCells());
+
+                window.addEventListener('resize', () => {
+                    this.gridManager.updateCanvasSize();
+                    this.gridManager.drawGrid();
+                });
+
+        this.neighborTiles.addEventListener('click', () => {
+            const availCells = this.gridManager.cells;
+            const neighborsToActivate = [];
+
+            // Collect neighbors of all active cells
+            for (const [col, colMap] of availCells) {
+                for (const [row, cellData] of colMap) {
+                    if (cellData === 1) { // expand only from alive cells
+                        const neighborCells = this.gridManager.getNeighbors(col, row);
+                        neighborsToActivate.push(...neighborCells); // just dump them in
+                    }
+                }
+            }
+
+            // Apply neighbor activation
+            for (const [nc, nr] of neighborsToActivate) {
+                this.gridManager.changeCell(nc, nr, 1);
+            }
+
+            this.gridManager.drawGrid();
+        });
+
+
+            }
+
+            setupCanvasControls() {
+                let painting = false;
+                let draggingCam = false;
+                let lastX = 0, lastY = 0;
+                let lastTouchDistance = null;
+                const MIN_ZOOM = 10;
+                const MAX_ZOOM = 0.001;
+
+                const getPointer = (e) => {
+                    if (e.touches && e.touches.length > 0) {
+                        return { x: e.touches[0].clientX, y: e.touches[0].clientY, touches: e.touches.length };
+                    }
+                    return { x: e.clientX, y: e.clientY, touches: 1 };
+                };
+
+                const handleDown = (pointer) => {
+                    if (pointer.touches === 1) {
+                        if (this.drawTiles.checked || this.eraseTiles.checked) {
+                            painting = true;
+                            this.toggleAt(pointer.x, pointer.y);
+                        } else {
+                            draggingCam = true;
+                        }
+                        lastX = pointer.x;
+                        lastY = pointer.y;
+                    } else if (pointer.touches === 2) {
+                        painting = false;
+                        draggingCam = false;
+                        lastTouchDistance = null;
+                    }
+                };
+
+                const handleMove = (e) => {
+                    if (e.touches && e.touches.length === 2) {
+                        // Pinch zoom
+                        const [t1, t2] = e.touches;
+                        const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                        if (lastTouchDistance) {
+                            const zoomFactor = dist / lastTouchDistance;
+                            const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
+                            this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
+                            this.gridManager.drawGrid();
+                        }
+                        lastTouchDistance = dist;
+                        return;
+                    }
+
+                    const pointer = getPointer(e);
+                    if (painting) {
+                        this.toggleAt(pointer.x, pointer.y);
+                    }
+                    if (draggingCam) {
+                        this.gridManager.cameraView.camX += pointer.x - lastX;
+                        this.gridManager.cameraView.camY += pointer.y - lastY;
+                        lastX = pointer.x;
+                        lastY = pointer.y;
+                        this.gridManager.drawGrid();
+                    }
+                };
+
+                const handleUp = () => {
+                    painting = false;
+                    draggingCam = false;
+                    lastTouchDistance = null;
+                };
+
+                // Mouse
+                this.gridCanvas.addEventListener('mousedown', (e) => handleDown(getPointer(e)));
+                this.gridCanvas.addEventListener('mousemove', handleMove);
+                this.gridCanvas.addEventListener('mouseup', handleUp);
+                this.gridCanvas.addEventListener('mouseleave', handleUp);
+
+                // Touch
+                this.gridCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleDown(getPointer(e)); });
+                this.gridCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); });
+                this.gridCanvas.addEventListener('touchend', handleUp);
+                this.gridCanvas.addEventListener('touchcancel', handleUp);
+
+                // Context menu disable
+                this.gridCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+                // Wheel zoom
+                this.gridCanvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                    const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
+                    this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
+                    this.gridManager.drawGrid();
+                }, { passive: false });
+
+                // Prevent elastic scrolling
+                this.gridCanvas.style.touchAction = 'none';
+            }
+
+            toggleAt(px, py) {
+                this.gridManager.toggleAt(
+                    px, py,
+                    this.drawTiles.checked,
+                    this.eraseTiles.checked,
+                    this.gridManager.infiniteGrid,
+                );
+                this.gridManager.drawGrid();
+                // console.log(this.gridManager.cells);
             }
 
         }
 
         // Initialize the simulator when the page loads
-        window.addEventListener('DOMContentLoaded', () => {
-            new WebGLGridSimulator('gridCanvas');
+        document.addEventListener('DOMContentLoaded', () => {
+            new AutomataSimulator();
         });
     </script>
+
 </body>
 </html>
