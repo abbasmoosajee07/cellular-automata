@@ -210,39 +210,28 @@
 
     <script src="./scripts/utils.js"></script>
     <script>
-        class WebGLRenderer {
-            constructor(canvas) {
-                this.canvas = canvas;
-                this.gl = this.initWebGL();
-                if (!this.gl) {
-                    throw new Error("WebGL not supported");
-                }
 
-                this.initShaders();
-                this.initBuffers();
-                this.updateCanvasSize();
+        class SquareGrid {
+            constructor(colorSchema, detailed, simple) {
+                this.colorSchema = colorSchema;
+                this.DETAILED_GRID_SIZE = detailed;
+                this.SIMPLIFIED_GRID_SIZE = simple;
+                this.radius = 30;
+                this.zoom = 1;
+                this.baseCellSize = 60; // 30 radius * 2
                 
-                this.cachedGeometry = null;
+                // Texture properties
+                this.gridTexture = null;
+                this.textureData = null;
+                this.gridSize = 50; // Default grid size
+
+                // Shape-specific properties
+                this.shape = "square";
             }
 
-            initWebGL() {
-                const gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
-                if (!gl) {
-                    console.error('WebGL not supported');
-                    return null;
-                }
-                
-                gl.enable(gl.BLEND);
-                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                gl.clearColor(0, 0, 0, 0);
-                
-                return gl;
-            }
-
-            initShaders() {
-                const gl = this.gl;
-
-                const vsSource = `
+            // Shape-specific WebGL shader source
+            getVertexShaderSource() {
+                return `
                     attribute vec2 aPosition;
                     varying vec2 vTexCoord;
                     
@@ -251,8 +240,10 @@
                         vTexCoord = aPosition * 0.5 + 0.5;
                     }
                 `;
+            }
 
-                const fsSource = `
+            getFragmentShaderSource() {
+                return `
                     precision mediump float;
                     uniform vec2 uResolution;
                     uniform vec2 uOffset;
@@ -290,53 +281,41 @@
                         }
                     }
                 `;
-
-                const vertexShader = this.compileShader(gl.VERTEX_SHADER, vsSource);
-                const fragmentShader = this.compileShader(gl.FRAGMENT_SHADER, fsSource);
-
-                this.program = gl.createProgram();
-                gl.attachShader(this.program, vertexShader);
-                gl.attachShader(this.program, fragmentShader);
-                gl.linkProgram(this.program);
-
-                if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-                    console.error('Shader program failed to link:', gl.getProgramInfoLog(this.program));
-                }
-
-                this.attribLocations = {
-                    position: gl.getAttribLocation(this.program, 'aPosition')
-                };
-
-                this.uniformLocations = {
-                    resolution: gl.getUniformLocation(this.program, 'uResolution'),
-                    offset: gl.getUniformLocation(this.program, 'uOffset'),
-                    scale: gl.getUniformLocation(this.program, 'uScale'),
-                    gridSize: gl.getUniformLocation(this.program, 'uGridSize'),
-                    baseCellSize: gl.getUniformLocation(this.program, 'uBaseCellSize'),
-                    drawColor: gl.getUniformLocation(this.program, 'uDrawColor'),
-                    bgColor: gl.getUniformLocation(this.program, 'uBgColor'),
-                    gridTexture: gl.getUniformLocation(this.program, 'uGridTexture')
-                };
+            }
+            screenToWorld(px, py, width, height, cameraView) {
+                // Convert screen coordinates to world coordinates
+                // Screen: (0,0) at top-left, (width,height) at bottom-right
+                // World: (0,0) at center, positive Y up
+                const worldX = (px - width / 2 - cameraView.camX) / cameraView.zoom;
+                const worldY = (height / 2 - py - cameraView.camY) / cameraView.zoom; // Flip Y axis
+                return { x: worldX, y: worldY };
+            }
+            // Shape-specific coordinate conversion
+            worldToCell(world) {
+                const size = this.baseCellSize;
+                // Convert from world coordinates to grid coordinates
+                // World coordinates are centered at (0,0), grid coordinates start at (0,0) in top-left
+                const halfGridSize = (this.gridSize * size) / 2;
+                const cellX = Math.floor((world.x + halfGridSize) / size);
+                const cellY = Math.floor((world.y + halfGridSize) / size);
+                return [cellX, cellY];
             }
 
-            compileShader(type, source) {
-                const gl = this.gl;
-                const shader = gl.createShader(type);
-                gl.shaderSource(shader, source);
-                gl.compileShader(shader);
+            // Shape-specific bounds calculation
+            calculateBounds(bounds) {
+                const [minX, maxX, minY, maxY] = bounds;
+                const size = this.baseCellSize;
 
-                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                    console.error('Shader compile error:', gl.getShaderInfoLog(shader));
-                    gl.deleteShader(shader);
-                    return null;
-                }
+                const minCol = Math.floor(minX / size) - 1;
+                const maxCol = Math.ceil(maxX / size) + 1;
+                const minRow = Math.floor(minY / size) - 1;
+                const maxRow = Math.ceil(maxY / size) + 1;
 
-                return shader;
+                return [minCol, maxCol, minRow, maxRow];
             }
 
-            initBuffers() {
-                const gl = this.gl;
-                
+            // Shape-specific geometry setup
+            setupGeometryBuffers(gl) {
                 // Create vertex buffer for full-screen quad
                 this.vertexBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -356,81 +335,37 @@
                 
                 const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
                 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+                
+                return {
+                    vertexBuffer: this.vertexBuffer,
+                    indexBuffer: this.indexBuffer,
+                    vertexCount: 4,
+                    indexCount: 6
+                };
             }
 
-            updateCanvasSize() {
-                const width = window.innerWidth;
-                const height = window.innerHeight;
-                
-                this.canvas.width = width;
-                this.canvas.height = height;
-                this.width = width;
-                this.height = height;
-                
-                const gl = this.gl;
-                gl.viewport(0, 0, width, height);
-            }
+            // Shape-specific uniform setup
+            setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
+                const uniformLocations = {
+                    resolution: gl.getUniformLocation(program, 'uResolution'),
+                    offset: gl.getUniformLocation(program, 'uOffset'),
+                    scale: gl.getUniformLocation(program, 'uScale'),
+                    gridSize: gl.getUniformLocation(program, 'uGridSize'),
+                    baseCellSize: gl.getUniformLocation(program, 'uBaseCellSize'),
+                    drawColor: gl.getUniformLocation(program, 'uDrawColor'),
+                    bgColor: gl.getUniformLocation(program, 'uBgColor'),
+                    gridTexture: gl.getUniformLocation(program, 'uGridTexture')
+                };
 
-            uploadGeometry(geometry) {
-                // For texture-based approach, geometry is always the same (full-screen quad)
-                this.cachedGeometry = geometry;
-            }
-
-            draw(cameraView, gridGeometry, drawColor, bgColor) {
-                const gl = this.gl;
+                gl.uniform2f(uniformLocations.resolution, width, height);
+                gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
+                gl.uniform1f(uniformLocations.scale, cameraView.zoom);
+                gl.uniform1f(uniformLocations.gridSize, geometry.gridSize);
+                gl.uniform1f(uniformLocations.baseCellSize, geometry.baseCellSize);
+                gl.uniform4fv(uniformLocations.drawColor, drawColor);
+                gl.uniform4fv(uniformLocations.bgColor, bgColor);
                 
-                if (!gridGeometry || !gridGeometry.texture) {
-                    gl.clear(gl.COLOR_BUFFER_BIT);
-                    return;
-                }
-
-                // Clear the canvas
-                gl.clearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-                
-                // Use the shader program
-                gl.useProgram(this.program);
-                
-                // Set up vertex buffer
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-                gl.enableVertexAttribArray(this.attribLocations.position);
-                gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, 0, 0);
-                
-                // Set up index buffer
-                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-                
-                // Set uniforms
-                gl.uniform2f(this.uniformLocations.resolution, this.width, this.height);
-                gl.uniform2f(this.uniformLocations.offset, cameraView.camX, cameraView.camY);
-                gl.uniform1f(this.uniformLocations.scale, cameraView.zoom);
-                gl.uniform1f(this.uniformLocations.gridSize, gridGeometry.gridSize);
-                gl.uniform1f(this.uniformLocations.baseCellSize, gridGeometry.baseCellSize);
-                gl.uniform4fv(this.uniformLocations.drawColor, drawColor);
-                gl.uniform4fv(this.uniformLocations.bgColor, bgColor);
-                
-                // Bind texture
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, gridGeometry.texture);
-                gl.uniform1i(this.uniformLocations.gridTexture, 0);
-                
-                // Draw the full-screen quad
-                gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-            }
-        }
-
-        class SquareGrid {
-            constructor(colorSchema, detailed, simple) {
-                this.colorSchema = colorSchema;
-                this.DETAILED_GRID_SIZE = detailed;
-                this.SIMPLIFIED_GRID_SIZE = simple;
-                this.radius = 30;
-                this.zoom = 1;
-                this.baseCellSize = 60; // 30 radius * 2
-                
-                // Texture properties
-                this.gridTexture = null;
-                this.textureData = null;
-                this.gridSize = 50; // Default grid size
+                return uniformLocations;
             }
 
             initGridTexture(gl, gridSize) {
@@ -536,28 +471,6 @@
                 }
             }
 
-            worldToCell(world) {
-                const size = this.baseCellSize;
-                // Convert from world coordinates to grid coordinates
-                // World coordinates are centered at (0,0), grid coordinates start at (0,0) in top-left
-                const halfGridSize = (this.gridSize * size) / 2;
-                const cellX = Math.floor((world.x + halfGridSize) / size);
-                const cellY = Math.floor((world.y + halfGridSize) / size);
-                return [cellX, cellY];
-            }
-
-            calculateBounds(bounds) {
-                const [minX, maxX, minY, maxY] = bounds;
-                const size = this.baseCellSize;
-
-                const minCol = Math.floor(minX / size) - 1;
-                const maxCol = Math.ceil(maxX / size) + 1;
-                const minRow = Math.floor(minY / size) - 1;
-                const maxRow = Math.ceil(maxY / size) + 1;
-
-                return [minCol, maxCol, minRow, maxRow];
-            }
-
             getGridGeometry(bounds, cells, maxCols, maxRows, infinite, gl) {
                 // For texture-based approach, we don't need geometry
                 // The entire grid is rendered with a full-screen quad
@@ -571,10 +484,739 @@
             }
         }
 
+        class TriangleGrid {
+            constructor(colorSchema, detailed, simple) {
+                this.colorSchema = colorSchema;
+                this.DETAILED_GRID_SIZE = detailed;
+                this.SIMPLIFIED_GRID_SIZE = simple;
+
+                this.sideLength = 60;
+                this.height = this.sideLength * Math.sqrt(3) / 2; // Equilateral triangle height
+                this.zoom = 1;
+                this.gridSize = 50;
+
+                this.gridTexture = null;
+                this.textureData = null;
+                this.shape = "triangle";
+
+                this.bindMethods();
+            }
+
+            bindMethods() {
+                const methods = [
+                    'getVertexShaderSource', 'getFragmentShaderSource', 'setupGeometryBuffers',
+                    'setupUniforms', 'initGridTexture', 'updateGridTexture', 'setCellState',
+                    'screenToWorld', 'worldToCell', 'getGridGeometry'
+                ];
+
+                methods.forEach(method => {
+                    if (this[method]) this[method] = this[method].bind(this);
+                });
+            }
+
+            getVertexShaderSource() {
+                return `
+                    attribute vec2 aPosition;
+                    varying vec2 vTexCoord;
+                    void main() {
+                        gl_Position = vec4(aPosition, 0.0, 1.0);
+                        vTexCoord = aPosition * 0.5 + 0.5;
+                    }
+                `;
+            }
+
+            getFragmentShaderSource() {
+                return `
+                    precision mediump float;
+
+                    uniform vec2 uResolution;
+                    uniform vec2 uOffset;
+                    uniform float uScale;
+                    uniform float uGridSize;
+                    uniform float uSideLength;
+                    uniform float uHeight;
+                    uniform vec4 uDrawColor;
+                    uniform vec4 uBgColor;
+                    uniform sampler2D uGridTexture;
+
+                    varying vec2 vTexCoord;
+
+                    void main() {
+                        vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                        float s = uSideLength;
+                        float h = uHeight;
+
+                        // Compute row and column
+                        float row = floor(worldPos.y / h);
+                        float col = floor((worldPos.x - mod(row,2.0) * 0.5 * s) / s);
+
+                        // Out-of-bounds check
+                        if (row < 0.0 || row >= uGridSize * 2.0 || col < 0.0 || col >= uGridSize) {
+                            gl_FragColor = uBgColor;
+                            return;
+                        }
+
+                        // Local coordinates in triangle bounding box
+                        float localX = worldPos.x - (col * s + mod(row,2.0) * 0.5 * s);
+                        float localY = worldPos.y - row * h;
+
+                        bool isUp = mod(row,2.0) < 0.5;
+                        float slope = h / (s * 0.5);
+                        bool inTriangle;
+
+                        if (isUp) {
+                            // Upward triangle (apex at top)
+                            inTriangle = localY >= 0.0 && localY <= h - slope * abs(localX - s * 0.5);
+                        } else {
+                            // Downward triangle (apex at bottom)
+                            inTriangle = localY <= h && localY >= slope * abs(localX - s * 0.5);
+                        }
+
+                        if (!inTriangle) {
+                            gl_FragColor = uBgColor;
+                            return;
+                        }
+
+                        // Sample cell from texture
+                        vec2 texCoord = vec2(col + 0.5, row + 0.5) / vec2(uGridSize, uGridSize * 2.0);
+                        vec4 cellValue = texture2D(uGridTexture, texCoord);
+
+                        gl_FragColor = (cellValue.a > 0.1) ? uDrawColor : uBgColor;
+                    }
+                `;
+            }
+
+            setupGeometryBuffers(gl) {
+                this.vertexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                const vertices = new Float32Array([-1, -1, 1, -1, 1, 1, -1, 1]);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+                this.indexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+                const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
+                gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+                return {
+                    vertexBuffer: this.vertexBuffer,
+                    indexBuffer: this.indexBuffer,
+                    vertexCount: 4,
+                    indexCount: 6
+                };
+            }
+
+            setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
+                const uniformLocations = {
+                    resolution: gl.getUniformLocation(program, 'uResolution'),
+                    offset: gl.getUniformLocation(program, 'uOffset'),
+                    scale: gl.getUniformLocation(program, 'uScale'),
+                    gridSize: gl.getUniformLocation(program, 'uGridSize'),
+                    sideLength: gl.getUniformLocation(program, 'uSideLength'),
+                    height: gl.getUniformLocation(program, 'uHeight'),
+                    drawColor: gl.getUniformLocation(program, 'uDrawColor'),
+                    bgColor: gl.getUniformLocation(program, 'uBgColor'),
+                    gridTexture: gl.getUniformLocation(program, 'uGridTexture')
+                };
+
+                gl.uniform2f(uniformLocations.resolution, width, height);
+                gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
+                gl.uniform1f(uniformLocations.scale, cameraView.zoom);
+                gl.uniform1f(uniformLocations.gridSize, this.gridSize);
+                gl.uniform1f(uniformLocations.sideLength, this.sideLength);
+                gl.uniform1f(uniformLocations.height, this.height);
+                gl.uniform4fv(uniformLocations.drawColor, drawColor);
+                gl.uniform4fv(uniformLocations.bgColor, bgColor);
+
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                gl.uniform1i(uniformLocations.gridTexture, 0);
+
+                return uniformLocations;
+            }
+
+            initGridTexture(gl, gridSize) {
+                this.gridSize = gridSize;
+                this.textureWidth = gridSize;
+                this.textureHeight = gridSize * 2;
+
+                this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
+                for (let i = 0; i < this.textureData.length; i += 4) {
+                    this.textureData[i] = 255;
+                    this.textureData[i + 1] = 255;
+                    this.textureData[i + 2] = 255;
+                    this.textureData[i + 3] = 255;
+                }
+
+                this.gridTexture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+            }
+
+            updateGridTexture(gl) {
+                if (!this.gridTexture) return;
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.textureWidth, this.textureHeight, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+            }
+
+            setCellState(gl, x, y, state) {
+                if (x >= 0 && x < this.textureWidth && y >= 0 && y < this.textureHeight) {
+                    const idx = (y * this.textureWidth + x) * 4;
+                    if (state) {
+                        const color = this.colorSchema[1] || [1, 1, 1, 1];
+                        this.textureData[idx] = color[0] * 255;
+                        this.textureData[idx + 1] = color[1] * 255;
+                        this.textureData[idx + 2] = color[2] * 255;
+                        this.textureData[idx + 3] = 255;
+                    } else {
+                        this.textureData[idx] = 0;
+                        this.textureData[idx + 1] = 0;
+                        this.textureData[idx + 2] = 0;
+                        this.textureData[idx + 3] = 0;
+                    }
+                    this.updateGridTexture(gl);
+                    return true;
+                }
+                return false;
+            }
+
+            screenToWorld(px, py, width, height, cameraView) {
+                const worldX = (px - width / 2 - cameraView.camX) / cameraView.zoom;
+                const worldY = (height / 2 - py - cameraView.camY) / cameraView.zoom;
+                return { x: worldX, y: worldY };
+            }
+
+            worldToCell(world) {
+                const s = this.sideLength;
+                const h = this.height;
+
+                const row = Math.floor(world.y / h);
+                const col = Math.floor((world.x - (row % 2) * 0.5 * s) / s);
+
+                if (row < 0 || row >= this.gridSize * 2 || col < 0 || col >= this.gridSize) return [-1, -1];
+
+                const localX = world.x - (col * s + (row % 2) * 0.5 * s);
+                const localY = world.y - row * h;
+
+                const isUp = row % 2 === 0;
+                const slope = h / (s * 0.5);
+                const inTriangle = isUp
+                    ? localY >= 0 && localY <= h - slope * Math.abs(localX - s / 2)
+                    : localY <= h && localY >= slope * Math.abs(localX - s / 2);
+
+                if (!inTriangle) return [-1, -1];
+                return [col, row];
+            }
+
+            getGridGeometry(bounds, cells, maxCols, maxRows, infinite, gl) {
+                return {
+                    texture: this.gridTexture,
+                    gridSize: this.gridSize,
+                    baseCellSize: this.sideLength,
+                    vertexCount: 4,
+                    indexCount: 6
+                };
+            }
+
+            fillGrid(gl) {
+                for (let y = 0; y < this.textureHeight; y++) {
+                    for (let x = 0; x < this.textureWidth; x++) {
+                        this.setCellState(gl, x, y, true);
+                    }
+                }
+            }
+
+            clearGrid(gl) {
+                for (let y = 0; y < this.textureHeight; y++) {
+                    for (let x = 0; x < this.textureWidth; x++) {
+                        this.setCellState(gl, x, y, false);
+                    }
+                }
+            }
+        }
+
+        class HexagonGrid {
+            constructor(colorSchema, detailed, simple) {
+                this.colorSchema = colorSchema;
+                this.DETAILED_GRID_SIZE = detailed;
+                this.SIMPLIFIED_GRID_SIZE = simple;
+                this.radius = 30;
+                this.zoom = 1;
+                this.gridSize = 50;
+                this.gridTexture = null;
+                this.textureData = null;
+                this.shape = "hexagon";
+            }
+
+            resizeGridTexture(gl, newSize) {
+                this.gridSize = newSize;
+                this.textureData = new Uint8Array(newSize * newSize * 4);
+                this.textureData.fill(0);
+                if (!this.gridTexture) this.gridTexture = gl.createTexture();
+
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, newSize, newSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+            }
+
+            getVertexShaderSource() {
+                return `
+                    attribute vec2 aPosition;
+                    varying vec2 vTexCoord;
+                    void main() {
+                        gl_Position = vec4(aPosition, 0.0, 1.0);
+                        vTexCoord = aPosition * 0.5 + 0.5;
+                    }
+                `;
+            }
+
+            // ⬇️ Fixed flat-topped hex layout
+            getFragmentShaderSource() {
+                return `
+                    precision mediump float;
+                    uniform vec2 uResolution;
+                    uniform vec2 uOffset;
+                    uniform float uScale;
+                    uniform float uGridSize;
+                    uniform float uRadius;
+                    uniform vec4 uDrawColor;
+                    uniform vec4 uBgColor;
+                    uniform sampler2D uGridTexture;
+                    varying vec2 vTexCoord;
+
+                    // flat-topped axial conversion
+                    vec2 worldToHex(vec2 pos, float r) {
+                        float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                        float s = (2.0/3.0 * pos.y) / r;
+                        return vec2(q, s);
+                    }
+
+                    ivec2 hexRound(vec2 h) {
+                        float x = h.x;
+                        float z = h.y;
+                        float y = -x - z;
+                        float rx = floor(x + 0.5);
+                        float ry = floor(y + 0.5);
+                        float rz = floor(z + 0.5);
+                        float dx = abs(rx - x);
+                        float dy = abs(ry - y);
+                        float dz = abs(rz - z);
+                        if (dx > dy && dx > dz) rx = -ry - rz;
+                        else if (dy > dz) ry = -rx - rz;
+                        else rz = -rx - ry;
+                        return ivec2(int(rx), int(rz));
+                    }
+
+                    void main() {
+                        vec2 worldPos = (vTexCoord * uResolution - uResolution*0.5 - uOffset) / uScale;
+                        vec2 axial = worldToHex(worldPos, uRadius);
+                        ivec2 cell = hexRound(axial);
+
+                        // map to texture coords
+                        vec2 texCoord = (vec2(float(cell.x) + uGridSize*0.5, float(cell.y) + uGridSize*0.5)) / uGridSize;
+
+                        if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
+                            gl_FragColor = uBgColor;
+                            return;
+                        }
+
+                        vec4 cellValue = texture2D(uGridTexture, texCoord);
+                        if (cellValue.a > 0.5)
+                            gl_FragColor = uDrawColor;
+                        else
+                            gl_FragColor = uBgColor;
+                    }
+                `;
+            }
+
+            setupGeometryBuffers(gl) {
+                const vertexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+                const vertices = new Float32Array([-1, -1, 1, -1, 1, 1, -1, 1]);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+                const indexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+                const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
+                gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+                return { vertexBuffer, indexBuffer, vertexCount: 4, indexCount: 6 };
+            }
+
+            setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
+                const u = {
+                    resolution: gl.getUniformLocation(program, "uResolution"),
+                    offset: gl.getUniformLocation(program, "uOffset"),
+                    scale: gl.getUniformLocation(program, "uScale"),
+                    gridSize: gl.getUniformLocation(program, "uGridSize"),
+                    radius: gl.getUniformLocation(program, "uRadius"),
+                    drawColor: gl.getUniformLocation(program, "uDrawColor"),
+                    bgColor: gl.getUniformLocation(program, "uBgColor"),
+                    gridTexture: gl.getUniformLocation(program, "uGridTexture")
+                };
+                gl.uniform2f(u.resolution, width, height);
+                gl.uniform2f(u.offset, cameraView.camX, cameraView.camY);
+                gl.uniform1f(u.scale, cameraView.zoom);
+                gl.uniform1f(u.gridSize, geometry.gridSize);
+                gl.uniform1f(u.radius, this.radius);
+                gl.uniform4fv(u.drawColor, drawColor);
+                gl.uniform4fv(u.bgColor, bgColor);
+                return u;
+            }
+
+            initGridTexture(gl, gridSize) {
+                this.gridSize = gridSize;
+                this.textureData = new Uint8Array(gridSize * gridSize * 4);
+                this.textureData.fill(0);
+                this.gridTexture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gridSize, gridSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+            }
+
+            updateGridTexture(gl) {
+                if (!this.gridTexture) return;
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.gridSize, this.gridSize, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+            }
+
+            setCellState(gl, x, y, state) {
+                if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+                    const idx = (y * this.gridSize + x) * 4;
+                    if (state) {
+                        const color = this.colorSchema[1] || [1, 1, 1, 1];
+                        this.textureData[idx]   = color[0] * 255;
+                        this.textureData[idx+1] = color[1] * 255;
+                        this.textureData[idx+2] = color[2] * 255;
+                        this.textureData[idx+3] = 255;
+                    } else {
+                        this.textureData[idx] = this.textureData[idx+1] = this.textureData[idx+2] = this.textureData[idx+3] = 0;
+                    }
+                    const pixelData = this.textureData.slice(idx, idx + 4);
+                    gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                    gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+                    return true;
+                }
+                return false;
+            }
+
+            screenToWorld(px, py, width, height, cameraView) {
+                const texX = px / width;
+                const texY = 1 - (py / height);
+                const pixelX = texX * width;
+                const pixelY = texY * height;
+                const worldX = (pixelX - width * 0.5 - cameraView.camX) / cameraView.zoom;
+                const worldY = (pixelY - height * 0.5 - cameraView.camY) / cameraView.zoom;
+                return { x: worldX, y: worldY };
+            }
+
+            // match shader’s flat-topped version
+            worldToCell(worldPos) {
+                const q = ((Math.sqrt(3) / 3) * worldPos.x - (1 / 3) * worldPos.y) / this.radius;
+                const s = ((2.0 / 3.0) * worldPos.y) / this.radius;
+                let x = q, z = s;
+                let y = -x - z;
+                let rx = Math.round(x);
+                let ry = Math.round(y);
+                let rz = Math.round(z);
+                const dx = Math.abs(rx - x);
+                const dy = Math.abs(ry - y);
+                const dz = Math.abs(rz - z);
+                if (dx > dy && dx > dz) rx = -ry - rz;
+                else if (dy > dz) ry = -rx - rz;
+                else rz = -rx - ry;
+                return [rx, rz];
+            }
+
+            getGridGeometry(bounds, cells, maxCols, maxRows, infinite, gl) {
+                return { texture: this.gridTexture, gridSize: this.gridSize, baseCellSize: this.radius, vertexCount: 4, indexCount: 6 };
+            }
+
+        }
+
+        class Canvas2DRenderer {
+            constructor(canvas, shapeGrid) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.shapeGrid = shapeGrid;
+                this.updateCanvasSize();
+            }
+
+            updateCanvasSize() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                this.canvas.width = width;
+                this.canvas.height = height;
+                this.width = width;
+                this.height = height;
+            }
+
+            drawExact(cameraView, geometry, drawColor, bgColor, cells) {
+                const ctx = this.ctx;
+                
+                // Clear canvas with background color
+                ctx.fillStyle = `rgba(${Math.round(bgColor[0] * 255)}, ${Math.round(bgColor[1] * 255)}, ${Math.round(bgColor[2] * 255)}, ${bgColor[3]})`;
+                ctx.fillRect(0, 0, this.width, this.height);
+                
+                if (!cells || cells.size === 0) return;
+
+                // Set up transformation for camera view - match WebGL coordinate system
+                ctx.save();
+                ctx.translate(this.width / 2, this.height / 2);
+                ctx.scale(cameraView.zoom, cameraView.zoom);
+                ctx.translate(cameraView.camX, cameraView.camY);
+
+                // Draw grid cells using the shape-specific rendering
+                this.drawCells(ctx, cells, drawColor);
+
+                ctx.restore();
+            }
+
+            drawCells(ctx, cells, drawColor) {
+                const shape = this.shapeGrid.shape;
+                
+                ctx.fillStyle = `rgba(${Math.round(drawColor[0] * 255)}, ${Math.round(drawColor[1] * 255)}, ${Math.round(drawColor[2] * 255)}, ${drawColor[3]})`;
+                
+                switch (shape) {
+                    case "square":
+                        this.drawSquareCells(ctx, cells);
+                        break;
+                    case "hexagon":
+                        this.drawHexagonCells(ctx, cells);
+                        break;
+                    case "triangle":
+                        this.drawTriangleCells(ctx, cells);
+                        break;
+                    default:
+                        this.drawSquareCells(ctx, cells);
+                }
+            }
+
+            drawSquareCells(ctx, cells) {
+                const cellSize = this.shapeGrid.baseCellSize || 60;
+                const halfGridSize = (this.shapeGrid.gridSize * cellSize) / 2;
+                
+                for (const [col, colMap] of cells) {
+                    for (const [row, state] of colMap) {
+                        if (state) {
+                            const worldX = col * cellSize - halfGridSize;
+                            const worldY = row * cellSize - halfGridSize;
+                            ctx.fillRect(worldX, worldY, cellSize, cellSize);
+                        }
+                    }
+                }
+            }
+
+            drawHexagonCells(ctx, cells) {
+                const radius = this.shapeGrid.radius || 30;
+                
+                for (const [q, colMap] of cells) {
+                    for (const [r, state] of colMap) {
+                        if (state) {
+                            // PROPER flat-topped hexagon grid coordinates
+                            // This creates a perfect honeycomb structure
+                            const x = radius * Math.sqrt(3) * (q + r * 0.5);
+                            const y = radius * 1.5 * r;
+                            
+                            this.drawFlatTopHexagon(ctx, x, y, radius);
+                        }
+                    }
+                }
+            }
+
+            drawFlatTopHexagon(ctx, centerX, centerY, radius) {
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = Math.PI / 3 * i - Math.PI / 6; // -30° offset for flat-topped
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            drawTriangleCells(ctx, cells) {
+                const cellSize = this.shapeGrid.baseCellSize || 60;
+                const height = cellSize * Math.sqrt(3) / 2;
+                
+                for (const [col, colMap] of cells) {
+                    for (const [row, state] of colMap) {
+                        if (state) {
+                            // Proper triangle grid that forms equilateral triangles
+                            const x = col * (cellSize / 2);
+                            const y = row * height;
+                            
+                            // Determine triangle orientation
+                            const orientation = (col + row) % 2;
+                            this.drawEquilateralTriangle(ctx, x, y, cellSize, orientation);
+                        }
+                    }
+                }
+            }
+
+            drawEquilateralTriangle(ctx, x, y, size, orientation) {
+                const height = size * Math.sqrt(3) / 2;
+                
+                ctx.beginPath();
+                if (orientation === 0) {
+                    // Pointing up
+                    ctx.moveTo(x, y + height);
+                    ctx.lineTo(x + size / 2, y);
+                    ctx.lineTo(x + size, y + height);
+                } else {
+                    // Pointing down
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + size / 2, y + height);
+                    ctx.lineTo(x + size, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        class WebGLRenderer {
+            constructor(canvas, shapeGrid) {
+                this.canvas = canvas;
+                this.shapeGrid = shapeGrid;
+                this.gl = this.initWebGL();
+                if (!this.gl) {
+                    throw new Error("WebGL not supported");
+                }
+
+                this.initShaders();
+                this.initBuffers();
+                this.updateCanvasSize();
+                
+                this.cachedGeometry = null;
+            }
+
+            initWebGL() {
+                const gl = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
+                if (!gl) {
+                    console.error('WebGL not supported');
+                    return null;
+                }
+                
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+                gl.clearColor(0, 0, 0, 0);
+                
+                return gl;
+            }
+
+            initShaders() {
+                const gl = this.gl;
+
+                const vsSource = this.shapeGrid.getVertexShaderSource();
+                const fsSource = this.shapeGrid.getFragmentShaderSource();
+
+                const vertexShader = this.compileShader(gl.VERTEX_SHADER, vsSource);
+                const fragmentShader = this.compileShader(gl.FRAGMENT_SHADER, fsSource);
+
+                this.program = gl.createProgram();
+                gl.attachShader(this.program, vertexShader);
+                gl.attachShader(this.program, fragmentShader);
+                gl.linkProgram(this.program);
+
+                if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
+                    console.error('Shader program failed to link:', gl.getProgramInfoLog(this.program));
+                }
+
+                this.attribLocations = {
+                    position: gl.getAttribLocation(this.program, 'aPosition')
+                };
+            }
+
+            compileShader(type, source) {
+                const gl = this.gl;
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                    gl.deleteShader(shader);
+                    return null;
+                }
+
+                return shader;
+            }
+
+            initBuffers() {
+                const buffers = this.shapeGrid.setupGeometryBuffers(this.gl);
+                this.vertexBuffer = buffers.vertexBuffer;
+                this.indexBuffer = buffers.indexBuffer;
+                this.vertexCount = buffers.vertexCount;
+                this.indexCount = buffers.indexCount;
+            }
+
+            updateCanvasSize() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                this.canvas.width = width;
+                this.canvas.height = height;
+                this.width = width;
+                this.height = height;
+                
+                const gl = this.gl;
+                gl.viewport(0, 0, width, height);
+            }
+
+            uploadGeometry(geometry) {
+                this.cachedGeometry = geometry;
+            }
+
+            draw(cameraView, gridGeometry, drawColor, bgColor) {
+                const gl = this.gl;
+                
+                if (!gridGeometry || !gridGeometry.texture) {
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                    return;
+                }
+
+                gl.clearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                
+                gl.useProgram(this.program);
+                
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                gl.enableVertexAttribArray(this.attribLocations.position);
+                gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, 0, 0);
+                
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+                
+                const uniformLocations = this.shapeGrid.setupUniforms(
+                    gl, this.program, cameraView, gridGeometry, drawColor, bgColor, this.width, this.height
+                );
+                
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, gridGeometry.texture);
+                gl.uniform1i(uniformLocations.gridTexture, 0);
+                
+                gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
+            }
+        }
+
         class GridManager {
             adj_neighbors = [[0, -1], [0, 1], [1, 0], [-1, 0]];
 
-            constructor1(shape, canvas, init_cells = new Map(), useWebGL = true) {
+            constructor(shape, canvas, init_cells = new Map(), useWebGL = false) {
                 this.shape = shape.value || shape;
                 this.canvas = canvas;
                 this.useWebGL = useWebGL;
@@ -604,11 +1246,19 @@
                 // Initialize shape-specific grid
                 this.shapeGrid = this.createShapeGrid(this.shape);
                 
-                // Initialize WebGL renderer and texture
+                // Initialize renderer (WebGL or Canvas2D)
                 this.initializeRenderer(this.useWebGL);
-                this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols);
                 
-                // Sync existing cells to texture
+                // Initialize grid - only call initGridTexture if we have a valid WebGL context
+                if (this.useWebGL && this.renderer.gl) {
+                    this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols);
+                } else {
+                    // For Canvas2D, manually set the grid size without calling initGridTexture
+                    this.shapeGrid.gridSize = this.gridCols;
+                    this.shapeGrid.useWebGL = false;
+                }
+                
+                // Sync existing cells
                 this.syncCellsToTexture();
                 
                 this.updateCanvasSize();
@@ -617,37 +1267,47 @@
                 this.startRendering();
             }
 
-            createShapeGrid(shape) {
-                const { colorSchema, detail, simple } = this;
-                switch (shape) {
-                    case "square":   return new SquareGrid(colorSchema, detail, simple);
-                    default:
-                        throw new Error(`Unknown grid shape: ${shape}`);
+            getVisibleBounds() {
+                const halfW = this.width / (2 * this.cameraView.zoom);
+                const halfH = this.height / (2 * this.cameraView.zoom);
+
+                const minWorldX = -this.cameraView.camX / this.cameraView.zoom - halfW;
+                const maxWorldX = -this.cameraView.camX / this.cameraView.zoom + halfW;
+                const minWorldY = -this.cameraView.camY / this.cameraView.zoom - halfH;
+                const maxWorldY = -this.cameraView.camY / this.cameraView.zoom + halfH;
+
+                return [minWorldX, maxWorldX, minWorldY, maxWorldY];
+            }
+
+            syncCellsToTexture() {
+                // Sync existing cells data
+                for (const [col, colMap] of this.cells) {
+                    for (const [row, state] of colMap) {
+                        if (state && col < this.gridCols && row < this.gridRows) {
+                            // Only update texture if in WebGL mode
+                            if (this.useWebGL && this.renderer.gl) {
+                                this.shapeGrid.setCellState(this.renderer.gl, col, row, state);
+                            }
+                        }
+                    }
                 }
             }
 
             initializeRenderer(useWebGL) {
                 try {
                     if (useWebGL) {
-                        this.renderer = new WebGLRenderer(this.canvas);
+                        this.renderer = new WebGLRenderer(this.canvas, this.shapeGrid);
                         console.log("Using WebGL texture-based renderer");
+                        this.useWebGL = true;
                     } else {
-                        throw new Error("Canvas2D not implemented for texture approach");
+                        this.renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid);
+                        console.log("Using Canvas2D renderer");
+                        this.useWebGL = false;
                     }
                 } catch (error) {
-                    console.warn("WebGL not supported:", error);
-                    throw error; // No fallback for texture-based approach
-                }
-            }
-
-            syncCellsToTexture() {
-                // Sync existing cells data to texture
-                for (const [col, colMap] of this.cells) {
-                    for (const [row, state] of colMap) {
-                        if (state) {
-                            this.shapeGrid.setCellState(this.renderer.gl, col, row, state);
-                        }
-                    }
+                    console.warn("WebGL not supported, falling back to Canvas2D:", error);
+                    this.renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid);
+                    this.useWebGL = false;
                 }
             }
 
@@ -661,12 +1321,7 @@
 
             // FIXED: Proper screen to world coordinate conversion
             screenToWorld(px, py) {
-                // Convert screen coordinates to world coordinates
-                // Screen: (0,0) at top-left, (width,height) at bottom-right
-                // World: (0,0) at center, positive Y up
-                const worldX = (px - this.width / 2 - this.cameraView.camX) / this.cameraView.zoom;
-                const worldY = (this.height / 2 - py - this.cameraView.camY) / this.cameraView.zoom; // Flip Y axis
-                return { x: worldX, y: worldY };
+                return this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
             }
 
             worldToCell(world) {
@@ -716,7 +1371,7 @@
                 console.log(minCol, maxCol, minRow, maxRow);
                 for (let c = minCol; c <= maxCol; c++) {
                     for (let r = minRow; r <= maxRow; r++) {
-                        const status = Math.random() < 0.05 ? 0 : 1;
+                        const status = Math.random() < 0.5 ? 0 : 1;
                         this.changeCell(c, r, status);
                     }
                 }
@@ -747,18 +1402,6 @@
                 return [minWorldX, maxWorldX, minWorldY, maxWorldY];
             }
 
-            drawGrid() {
-                const bounds = this.getVisibleBounds();
-                const geometry = this.shapeGrid.getGridGeometry(
-                    bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, this.renderer.gl
-                );
-
-                if (this.useWebGL) {
-                    this.renderer.uploadGeometry(geometry);
-                    this.renderer.draw(this.cameraView, geometry, this.drawColor, this.bgColor);
-                }
-            }
-
             hexToRgb(hex) {
                 const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
                 return result ? [
@@ -773,8 +1416,10 @@
                 if (!this.cells.has(x)) this.cells.set(x, new Map());
                 this.cells.get(x).set(y, state);
                 
-                // Update texture
-                this.shapeGrid.setCellState(this.renderer.gl, x, y, state);
+                // Update texture only if in WebGL mode
+                if (this.useWebGL && this.renderer.gl) {
+                    this.shapeGrid.setCellState(this.renderer.gl, x, y, state);
+                }
                 
                 this.addNeighbors(x, y);
             }
@@ -826,7 +1471,11 @@
             }
 
             fillAll() {
-                this.shapeGrid.fillGrid(this.renderer.gl);
+                // Update texture only if in WebGL mode
+                if (this.useWebGL && this.renderer.gl) {
+                    this.shapeGrid.fillGrid(this.renderer.gl);
+                }
+                
                 // Also update the cells map
                 const [minCol, maxCol, minRow, maxRow] = this.getBounds();
                 for (let c = minCol; c <= maxCol; c++) {
@@ -838,7 +1487,10 @@
             }
 
             clearAll() {
-                this.shapeGrid.clearGrid(this.renderer.gl);
+                // Update texture only if in WebGL mode
+                if (this.useWebGL && this.renderer.gl) {
+                    this.shapeGrid.clearGrid(this.renderer.gl);
+                }
                 this.cells.clear();
             }
 
@@ -882,83 +1534,6 @@
                 }
             }
 
-            constructor(shape, canvas, init_cells = new Map(), useWebGL = true) {
-                this.shape = shape.value || shape;
-                this.canvas = canvas;
-                this.useWebGL = useWebGL;
-                this.cells = init_cells;
-                this.neighborsMap = new Map();
-
-                // Grid defaults
-                this.gridRows = 20;
-                this.gridCols = 20;
-                this.infiniteGrid = false;
-                this.boundaryType = "wrap";
-                this.neighborType = "adjacent";
-
-                // Performance settings
-                this.detail = 1;
-                this.simple = 2;
-
-                // Camera & colors
-                this.cameraView = { camX: 0, camY: 0, zoom: 1 };
-                this.colorSchema = {
-                    line: this.hexToRgb("#555555"),
-                    1: this.hexToRgb("#32cd32"),
-                };
-                this.drawColor = this.colorSchema[1];
-                this.bgColor = this.hexToRgb("#0a0a1a");
-
-                // Initialize shape-specific grid
-                this.shapeGrid = this.createShapeGrid(this.shape);
-                
-                // Initialize WebGL renderer and texture
-                this.initializeRenderer(this.useWebGL);
-                this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols);
-                
-                // Sync existing cells to texture
-                this.syncCellsToTexture();
-                
-                this.updateCanvasSize();
-                
-                // Start continuous rendering
-                this.startRendering();
-            }
-
-            createShapeGrid(shape) {
-                const { colorSchema, detail, simple } = this;
-                switch (shape) {
-                    case "square":   return new SquareGrid(colorSchema, detail, simple);
-                    default:
-                        throw new Error(`Unknown grid shape: ${shape}`);
-                }
-            }
-
-            initializeRenderer(useWebGL) {
-                try {
-                    if (useWebGL) {
-                        this.renderer = new WebGLRenderer(this.canvas);
-                        console.log("Using WebGL texture-based renderer");
-                    } else {
-                        throw new Error("Canvas2D not implemented for texture approach");
-                    }
-                } catch (error) {
-                    console.warn("WebGL not supported:", error);
-                    throw error; // No fallback for texture-based approach
-                }
-            }
-
-            syncCellsToTexture() {
-                // Sync existing cells data to texture
-                for (const [col, colMap] of this.cells) {
-                    for (const [row, state] of colMap) {
-                        if (state && col < this.gridCols && row < this.gridRows) {
-                            this.shapeGrid.setCellState(this.renderer.gl, col, row, state);
-                        }
-                    }
-                }
-            }
-
             // NEW: Method to resize the grid
             resizeGrid(newCols, newRows) {
                 const oldCols = this.gridCols;
@@ -983,8 +1558,13 @@
                     }
                 }
                 
-                // Resize the texture
-                this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, oldCells);
+                // Resize the texture (only in WebGL mode)
+                if (this.useWebGL && this.renderer.gl) {
+                    this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, oldCells);
+                } else {
+                    // For Canvas2D, just update the grid size
+                    this.shapeGrid.gridSize = newCols;
+                }
                 
                 // Update cells with the resized data
                 this.cells = oldCells;
@@ -1003,29 +1583,89 @@
                 this.cameraView.zoom = 1;
             }
 
-            startRendering() {
-                const renderLoop = () => {
-                    this.drawGrid();
-                    requestAnimationFrame(renderLoop);
-                };
-                renderLoop();
+            // Update the drawGrid method to pass cells to Canvas2D renderer
+            drawGrid() {
+                const bounds = this.getVisibleBounds();
+                
+                const geometry = this.shapeGrid.getGridGeometry(
+                    bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, null
+                );
+
+                if (this.useWebGL) {
+                    // WebGL path
+                    this.renderer.uploadGeometry(geometry);
+                    this.renderer.draw(this.cameraView, geometry, this.drawColor, this.bgColor);
+                } else {
+                    // Canvas2D path - pass cells for rendering
+                    this.renderer.drawExact(this.cameraView, geometry, this.drawColor, this.bgColor, this.cells);
+                }
             }
 
-            // ... rest of the GridManager methods remain the same ...
+            createShapeGrid(shape) {
+                const { colorSchema, detail, simple } = this;
+                switch (shape) {
+                    case "square":   return new SquareGrid(colorSchema, detail, simple);
+                    case "hex":  return new HexagonGrid(colorSchema, detail, simple);
+                    case "triangle":  return new TriangleGrid(colorSchema, detail, simple);
+                    default:
+                        throw new Error(`Unknown grid shape: ${shape}`);
+                }
+            }
 
+            // Update bounds checking for hexagon grid
+            checkBounds(q, r) {
+                if (!this.infiniteGrid) {
+                    if (this.shapeGrid.shape === "hexagon") {
+                        // For hexagon grid, check if within the hexagonal bounds
+                        const center = this.gridCols / 2;
+                        const radius = this.gridCols / 2;
+                        return Math.abs(q) <= radius && Math.abs(r) <= radius && Math.abs(q + r) <= radius;
+                    } else {
+                        // Square grid bounds check
+                        const [minCol, maxCol, minRow, maxRow] = this.getBounds();
+                        if (q < minCol || q > maxCol || r < minRow || r > maxRow) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            // Update getBounds for hexagon grid
             getBounds() {
                 const cols = Number(this.gridCols) || 0;
                 const rows = Number(this.gridRows) || 0;
 
-                const minCol = 0;
-                const maxCol = cols - 1;
-                const minRow = 0;
-                const maxRow = rows - 1;
-
-                return [minCol, maxCol, minRow, maxRow];
+                if (this.shapeGrid.shape === "hexagon") {
+                    // Hexagon grid bounds (axial coordinates)
+                    const radius = Math.floor(cols / 2);
+                    return [-radius, radius, -radius, radius];
+                } else {
+                    // Square grid bounds
+                    const minCol = 0;
+                    const maxCol = cols - 1;
+                    const minRow = 0;
+                    const maxRow = rows - 1;
+                    return [minCol, maxCol, minRow, maxRow];
+                }
             }
 
-            // ... other methods remain unchanged ...
+            drawGrid() {
+                const bounds = this.getVisibleBounds();
+                
+                const geometry = this.shapeGrid.getGridGeometry(
+                    bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, null
+                );
+
+                if (this.useWebGL) {
+                    // WebGL path
+                    this.renderer.uploadGeometry(geometry);
+                    this.renderer.draw(this.cameraView, geometry, this.drawColor, this.bgColor);
+                } else {
+                    // Canvas2D path - pass cells for rendering
+                    this.renderer.drawExact(this.cameraView, geometry, this.drawColor, this.bgColor, this.cells);
+                }
+            }
         }
 
         class AutomataSimulator{
@@ -1165,19 +1805,19 @@
                     this.gridManager.drawGrid();
                 });
 
-        this.neighborTiles.addEventListener('click', () => {
-            const availCells = this.gridManager.cells;
-            const neighborsToActivate = [];
+                this.neighborTiles.addEventListener('click', () => {
+                    const availCells = this.gridManager.cells;
+                    const neighborsToActivate = [];
 
-            // Collect neighbors of all active cells
-            for (const [col, colMap] of availCells) {
-                for (const [row, cellData] of colMap) {
-                    if (cellData === 1) { // expand only from alive cells
-                        const neighborCells = this.gridManager.getNeighbors(col, row);
-                        neighborsToActivate.push(...neighborCells); // just dump them in
+                    // Collect neighbors of all active cells
+                    for (const [col, colMap] of availCells) {
+                        for (const [row, cellData] of colMap) {
+                            if (cellData === 1) { // expand only from alive cells
+                                const neighborCells = this.gridManager.getNeighbors(col, row);
+                                neighborsToActivate.push(...neighborCells); // just dump them in
+                            }
+                        }
                     }
-                }
-            }
 
             // Apply neighbor activation
             for (const [nc, nr] of neighborsToActivate) {
@@ -1297,7 +1937,6 @@
 
         }
 
-        // Initialize the simulator when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             new AutomataSimulator();
         });
