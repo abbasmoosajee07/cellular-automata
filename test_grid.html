@@ -212,10 +212,9 @@
     <script>
 
         class SquareGrid {
-            constructor(colorSchema, detailed, simple) {
+            constructor(colorSchema) {
                 this.colorSchema = colorSchema;
-                this.DETAILED_GRID_SIZE = detailed;
-                this.SIMPLIFIED_GRID_SIZE = simple;
+
                 this.radius = 30;
                 this.zoom = 1;
                 this.baseCellSize = 60; // 30 radius * 2
@@ -485,19 +484,21 @@
         }
 
         class TriangleGrid {
-            constructor(colorSchema, detailed, simple) {
+            constructor(colorSchema) {
                 this.colorSchema = colorSchema;
-                this.DETAILED_GRID_SIZE = detailed;
-                this.SIMPLIFIED_GRID_SIZE = simple;
-
                 this.sideLength = 60;
-                this.height = this.sideLength * Math.sqrt(3) / 2; // Equilateral triangle height
+                this.height = this.sideLength * Math.sqrt(3) / 2;
                 this.zoom = 1;
-                this.gridSize = 50;
-
+                this.baseCellSize = this.sideLength;
+                
+                // Texture properties
                 this.gridTexture = null;
                 this.textureData = null;
+                this.gridSize = 20;
+
+                // Shape-specific properties
                 this.shape = "triangle";
+                this.usesTriIndex = false;
 
                 this.bindMethods();
             }
@@ -506,7 +507,8 @@
                 const methods = [
                     'getVertexShaderSource', 'getFragmentShaderSource', 'setupGeometryBuffers',
                     'setupUniforms', 'initGridTexture', 'updateGridTexture', 'setCellState',
-                    'screenToWorld', 'worldToCell', 'getGridGeometry'
+                    'screenToWorld', 'worldToCell', 'getGridGeometry', 'fillGrid', 'clearGrid',
+                    'resizeGridTexture', 'pickTriangle', 'fillAll', 'fillRandom', 'clear'
                 ];
 
                 methods.forEach(method => {
@@ -518,6 +520,7 @@
                 return `
                     attribute vec2 aPosition;
                     varying vec2 vTexCoord;
+                    
                     void main() {
                         gl_Position = vec4(aPosition, 0.0, 1.0);
                         vTexCoord = aPosition * 0.5 + 0.5;
@@ -541,62 +544,140 @@
 
                     varying vec2 vTexCoord;
 
+                    bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
+                        vec2 v0 = b - a;
+                        vec2 v1 = c - a;
+                        vec2 v2 = p - a;
+
+                        float d00 = dot(v0, v0);
+                        float d01 = dot(v0, v1);
+                        float d11 = dot(v1, v1);
+                        float d20 = dot(v2, v0);
+                        float d21 = dot(v2, v1);
+
+                        float denom = d00 * d11 - d01 * d01;
+                        float v = (d11 * d20 - d01 * d21) / denom;
+                        float w = (d00 * d21 - d01 * d20) / denom;
+                        float u = 1.0 - v - w;
+
+                        return (u >= -0.001 && v >= -0.001 && w >= -0.001);
+                    }
+
                     void main() {
                         vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                        worldPos += vec2(0.0001, 0.0001);
+
                         float s = uSideLength;
                         float h = uHeight;
 
-                        // Compute row and column
                         float row = floor(worldPos.y / h);
-                        float col = floor((worldPos.x - mod(row,2.0) * 0.5 * s) / s);
+                        float col = floor((worldPos.x - mod(row, 2.0) * s * 0.5) / s);
 
-                        // Out-of-bounds check
-                        if (row < 0.0 || row >= uGridSize * 2.0 || col < 0.0 || col >= uGridSize) {
-                            gl_FragColor = uBgColor;
-                            return;
-                        }
-
-                        // Local coordinates in triangle bounding box
-                        float localX = worldPos.x - (col * s + mod(row,2.0) * 0.5 * s);
+                        float localX = worldPos.x - col * s - mod(row, 2.0) * s * 0.5;
                         float localY = worldPos.y - row * h;
 
-                        bool isUp = mod(row,2.0) < 0.5;
-                        float slope = h / (s * 0.5);
+                        bool isUpTriangle = mod(row + col, 2.0) == 0.0;
+                        vec2 p = vec2(localX, localY);
                         bool inTriangle;
 
-                        if (isUp) {
-                            // Upward triangle (apex at top)
-                            inTriangle = localY >= 0.0 && localY <= h - slope * abs(localX - s * 0.5);
+                        if (isUpTriangle) {
+                            vec2 a = vec2(0.0, 0.0);
+                            vec2 b = vec2(s, 0.0);
+                            vec2 c = vec2(s * 0.5, h);
+                            inTriangle = pointInTriangle(p, a, b, c);
                         } else {
-                            // Downward triangle (apex at bottom)
-                            inTriangle = localY <= h && localY >= slope * abs(localX - s * 0.5);
+                            vec2 a = vec2(0.0, h);
+                            vec2 b = vec2(s, h);
+                            vec2 c = vec2(s * 0.5, 0.0);
+                            inTriangle = pointInTriangle(p, a, b, c);
                         }
 
-                        if (!inTriangle) {
+                        if (!inTriangle || row < 0.0 || row >= uGridSize || col < 0.0 || col >= uGridSize) {
                             gl_FragColor = uBgColor;
                             return;
                         }
 
-                        // Sample cell from texture
-                        vec2 texCoord = vec2(col + 0.5, row + 0.5) / vec2(uGridSize, uGridSize * 2.0);
+                        vec2 texCoord = vec2((col + 0.5) / uGridSize, (row + 0.5) / uGridSize);
                         vec4 cellValue = texture2D(uGridTexture, texCoord);
-
                         gl_FragColor = (cellValue.a > 0.1) ? uDrawColor : uBgColor;
                     }
                 `;
             }
 
+            screenToWorld(px, py, width, height, cameraView) {
+                const worldX = (px - width / 2 - cameraView.camX) / cameraView.zoom;
+                const worldY = (height / 2 - py - cameraView.camY) / cameraView.zoom;
+                return { x: worldX, y: worldY };
+            }
+
+            worldToCell(world) {
+                const s = this.sideLength;
+                const h = this.height;
+
+                const row = Math.floor(world.y / h);
+                const col = Math.floor((world.x - (row % 2) * s * 0.5) / s);
+
+                const localX = world.x - col * s - (row % 2) * s * 0.5;
+                const localY = world.y - row * h;
+
+                const isUpTriangle = (row + col) % 2 === 0;
+                let inTriangle = false;
+
+                if (isUpTriangle) {
+                    inTriangle = this.pointInTriangle(
+                        { x: localX, y: localY },
+                        { x: 0, y: 0 },
+                        { x: s, y: 0 },
+                        { x: s * 0.5, y: h }
+                    );
+                } else {
+                    inTriangle = this.pointInTriangle(
+                        { x: localX, y: localY },
+                        { x: 0, y: h },
+                        { x: s, y: h },
+                        { x: s * 0.5, y: 0 }
+                    );
+                }
+
+                if (!inTriangle || row < 0 || row >= this.gridSize || col < 0 || col >= this.gridSize) {
+                    return [-1, -1];
+                }
+
+                return [col, row];
+            }
+
+            pointInTriangle(p, a, b, c) {
+                const v0 = { x: b.x - a.x, y: b.y - a.y };
+                const v1 = { x: c.x - a.x, y: c.y - a.y };
+                const v2 = { x: p.x - a.x, y: p.y - a.y };
+
+                const d00 = v0.x * v0.x + v0.y * v0.y;
+                const d01 = v0.x * v1.x + v0.y * v1.y;
+                const d11 = v1.x * v1.x + v1.y * v1.y;
+                const d20 = v2.x * v0.x + v2.y * v0.y;
+                const d21 = v2.x * v1.x + v2.y * v1.y;
+
+                const denom = d00 * d11 - d01 * d01;
+                const v = (d11 * d20 - d01 * d21) / denom;
+                const w = (d00 * d21 - d01 * d20) / denom;
+                const u = 1 - v - w;
+
+                return (u >= -0.001 && v >= -0.001 && w >= -0.001);
+            }
+
             setupGeometryBuffers(gl) {
                 this.vertexBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-                const vertices = new Float32Array([-1, -1, 1, -1, 1, 1, -1, 1]);
+                
+                const vertices = new Float32Array([-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]);
                 gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
+                
                 this.indexBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+                
                 const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
                 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-
+                
                 return {
                     vertexBuffer: this.vertexBuffer,
                     indexBuffer: this.indexBuffer,
@@ -621,12 +702,12 @@
                 gl.uniform2f(uniformLocations.resolution, width, height);
                 gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
                 gl.uniform1f(uniformLocations.scale, cameraView.zoom);
-                gl.uniform1f(uniformLocations.gridSize, this.gridSize);
-                gl.uniform1f(uniformLocations.sideLength, this.sideLength);
-                gl.uniform1f(uniformLocations.height, this.height);
+                gl.uniform1f(uniformLocations.gridSize, geometry.gridSize);
+                gl.uniform1f(uniformLocations.sideLength, geometry.baseCellSize);
+                gl.uniform1f(uniformLocations.height, geometry.baseCellSize * Math.sqrt(3) / 2);
                 gl.uniform4fv(uniformLocations.drawColor, drawColor);
                 gl.uniform4fv(uniformLocations.bgColor, bgColor);
-
+                
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
                 gl.uniform1i(uniformLocations.gridTexture, 0);
@@ -636,113 +717,165 @@
 
             initGridTexture(gl, gridSize) {
                 this.gridSize = gridSize;
-                this.textureWidth = gridSize;
-                this.textureHeight = gridSize * 2;
-
-                this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
-                for (let i = 0; i < this.textureData.length; i += 4) {
-                    this.textureData[i] = 255;
-                    this.textureData[i + 1] = 255;
-                    this.textureData[i + 2] = 255;
-                    this.textureData[i + 3] = 255;
+                this.textureData = new Uint8Array(gridSize * gridSize * 4);
+                
+                for (let i = 0; i < gridSize * gridSize * 4; i += 4) {
+                    this.textureData[i] = 0;
+                    this.textureData[i + 1] = 0;
+                    this.textureData[i + 2] = 0;
+                    this.textureData[i + 3] = 0;
                 }
-
+                
                 this.gridTexture = gl.createTexture();
                 gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gridSize, gridSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+            }
+
+            resizeGridTexture(gl, newGridSize, oldCells) {
+                const oldData = this.textureData;
+                const oldSize = this.gridSize;
+                
+                this.initGridTexture(gl, newGridSize);
+                
+                if (oldCells && oldData) {
+                    for (let y = 0; y < Math.min(oldSize, newGridSize); y++) {
+                        for (let x = 0; x < Math.min(oldSize, newGridSize); x++) {
+                            const oldIndex = (y * oldSize + x) * 4;
+                            if (oldData[oldIndex + 3] > 0) {
+                                this.setCellState(gl, x, y, true);
+                            }
+                        }
+                    }
+                }
             }
 
             updateGridTexture(gl) {
                 if (!this.gridTexture) return;
                 gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.textureWidth, this.textureHeight, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.gridSize, this.gridSize, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
             }
 
             setCellState(gl, x, y, state) {
-                if (x >= 0 && x < this.textureWidth && y >= 0 && y < this.textureHeight) {
-                    const idx = (y * this.textureWidth + x) * 4;
+                if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+                    const index = (y * this.gridSize + x) * 4;
+                    
                     if (state) {
                         const color = this.colorSchema[1] || [1, 1, 1, 1];
-                        this.textureData[idx] = color[0] * 255;
-                        this.textureData[idx + 1] = color[1] * 255;
-                        this.textureData[idx + 2] = color[2] * 255;
-                        this.textureData[idx + 3] = 255;
+                        this.textureData[index] = color[0] * 255;
+                        this.textureData[index + 1] = color[1] * 255;
+                        this.textureData[index + 2] = color[2] * 255;
+                        this.textureData[index + 3] = 255;
                     } else {
-                        this.textureData[idx] = 0;
-                        this.textureData[idx + 1] = 0;
-                        this.textureData[idx + 2] = 0;
-                        this.textureData[idx + 3] = 0;
+                        this.textureData[index] = 0;
+                        this.textureData[index + 1] = 0;
+                        this.textureData[index + 2] = 0;
+                        this.textureData[index + 3] = 0;
                     }
-                    this.updateGridTexture(gl);
+                    
+                    gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                    const pixelData = new Uint8Array([
+                        this.textureData[index],
+                        this.textureData[index + 1],
+                        this.textureData[index + 2],
+                        this.textureData[index + 3]
+                    ]);
+                    gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+                    
                     return true;
                 }
                 return false;
             }
 
-            screenToWorld(px, py, width, height, cameraView) {
-                const worldX = (px - width / 2 - cameraView.camX) / cameraView.zoom;
-                const worldY = (height / 2 - py - cameraView.camY) / cameraView.zoom;
-                return { x: worldX, y: worldY };
-            }
-
-            worldToCell(world) {
-                const s = this.sideLength;
-                const h = this.height;
-
-                const row = Math.floor(world.y / h);
-                const col = Math.floor((world.x - (row % 2) * 0.5 * s) / s);
-
-                if (row < 0 || row >= this.gridSize * 2 || col < 0 || col >= this.gridSize) return [-1, -1];
-
-                const localX = world.x - (col * s + (row % 2) * 0.5 * s);
-                const localY = world.y - row * h;
-
-                const isUp = row % 2 === 0;
-                const slope = h / (s * 0.5);
-                const inTriangle = isUp
-                    ? localY >= 0 && localY <= h - slope * Math.abs(localX - s / 2)
-                    : localY <= h && localY >= slope * Math.abs(localX - s / 2);
-
-                if (!inTriangle) return [-1, -1];
-                return [col, row];
-            }
-
-            getGridGeometry(bounds, cells, maxCols, maxRows, infinite, gl) {
-                return {
-                    texture: this.gridTexture,
-                    gridSize: this.gridSize,
-                    baseCellSize: this.sideLength,
-                    vertexCount: 4,
-                    indexCount: 6
-                };
-            }
-
             fillGrid(gl) {
-                for (let y = 0; y < this.textureHeight; y++) {
-                    for (let x = 0; x < this.textureWidth; x++) {
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
                         this.setCellState(gl, x, y, true);
                     }
                 }
             }
 
             clearGrid(gl) {
-                for (let y = 0; y < this.textureHeight; y++) {
-                    for (let x = 0; x < this.textureWidth; x++) {
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
                         this.setCellState(gl, x, y, false);
                     }
                 }
             }
+
+            getGridGeometry() {
+                return {
+                    texture: this.gridTexture,
+                    gridSize: this.gridSize,
+                    baseCellSize: this.baseCellSize,
+                    vertexCount: 4,
+                    indexCount: 6
+                };
+            }
+
+            fillAll(rgba) {
+                const r = Math.floor(rgba[0] * 255);
+                const g = Math.floor(rgba[1] * 255);
+                const b = Math.floor(rgba[2] * 255);
+                const a = Math.floor(rgba[3] * 255);
+                
+                for (let i = 0; i < this.textureData.length; i += 4) {
+                    this.textureData[i] = r;
+                    this.textureData[i + 1] = g;
+                    this.textureData[i + 2] = b;
+                    this.textureData[i + 3] = a;
+                }
+                this.updateGridTexture(this.gl);
+            }
+
+            fillRandom(rgba, density = 0.3) {
+                const r = Math.floor(rgba[0] * 255);
+                const g = Math.floor(rgba[1] * 255);
+                const b = Math.floor(rgba[2] * 255);
+                const a = Math.floor(rgba[3] * 255);
+                
+                this.clearGrid(this.gl);
+                
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
+                        if (Math.random() < density) {
+                            const idx = (y * this.gridSize + x) * 4;
+                            this.textureData[idx] = r;
+                            this.textureData[idx + 1] = g;
+                            this.textureData[idx + 2] = b;
+                            this.textureData[idx + 3] = a;
+                        }
+                    }
+                }
+                this.updateGridTexture(this.gl);
+            }
+
+            clear() {
+                for (let i = 0; i < this.textureData.length; i += 4) {
+                    this.textureData[i] = 0;
+                    this.textureData[i + 1] = 0;
+                    this.textureData[i + 2] = 0;
+                    this.textureData[i + 3] = 0;
+                }
+                this.updateGridTexture(this.gl);
+            }
+
+            pickTriangle(x, y) {
+                const world = this.screenToWorld(x, y, window.innerWidth, window.innerHeight, { camX: 0, camY: 0, zoom: 1 });
+                const cell = this.worldToCell(world);
+                if (cell[0] !== -1 && cell[1] !== -1) {
+                    return { col: cell[0], row: cell[1] };
+                }
+                return null;
+            }
         }
 
         class HexagonGrid {
-            constructor(colorSchema, detailed, simple) {
+            constructor(colorSchema) {
                 this.colorSchema = colorSchema;
-                this.DETAILED_GRID_SIZE = detailed;
-                this.SIMPLIFIED_GRID_SIZE = simple;
                 this.radius = 30;
                 this.zoom = 1;
                 this.gridSize = 50;
@@ -941,6 +1074,35 @@
                 return { texture: this.gridTexture, gridSize: this.gridSize, baseCellSize: this.radius, vertexCount: 4, indexCount: 6 };
             }
 
+        worldToCell(worldPos) {
+            // === worldToHex ===
+            const q = (Math.sqrt(3)/3 * worldPos.x - 1/3 * worldPos.y) / this.radius;
+            const s = (2/3 * worldPos.y) / this.radius;
+
+            // === hexRound ===
+            const x = q;
+            const z = s;
+            const y = -x - z;
+
+            let rx = Math.floor(x + 0.5);
+            let ry = Math.floor(y + 0.5);
+            let rz = Math.floor(z + 0.5);
+
+            const dx = Math.abs(rx - x);
+            const dy = Math.abs(ry - y);
+            const dz = Math.abs(rz - z);
+
+            if (dx > dy && dx > dz) {
+                rx = -ry - rz;
+            } else if (dy > dz) {
+                ry = -rx - rz;
+            } else {
+                rz = -rx - ry;
+            }
+
+            return [rx, rz]; // matches shader's ivec2(rx, rz)
+        }
+
         }
 
         class Canvas2DRenderer {
@@ -1137,8 +1299,10 @@
                     console.error('Shader program failed to link:', gl.getProgramInfoLog(this.program));
                 }
 
+                // Get attribute locations - they might not exist for all grids
                 this.attribLocations = {
-                    position: gl.getAttribLocation(this.program, 'aPosition')
+                    position: gl.getAttribLocation(this.program, 'aPosition'),
+                    triIndex: gl.getAttribLocation(this.program, 'aTriIndex') // Will be -1 if not used
                 };
             }
 
@@ -1161,8 +1325,13 @@
                 const buffers = this.shapeGrid.setupGeometryBuffers(this.gl);
                 this.vertexBuffer = buffers.vertexBuffer;
                 this.indexBuffer = buffers.indexBuffer;
-                this.vertexCount = buffers.vertexCount;
                 this.indexCount = buffers.indexCount;
+                
+                // Store geometry metadata for flexible attribute setup
+                this.usesTriIndex = buffers.usesTriIndex || false;
+                this.stride = buffers.stride || 8; // Default to 8 bytes (2 floats) if not specified
+                this.positionOffset = buffers.positionOffset || 0;
+                this.triIndexOffset = buffers.triIndexOffset || 0;
             }
 
             updateCanvasSize() {
@@ -1196,8 +1365,16 @@
                 gl.useProgram(this.program);
                 
                 gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                
+                // Always set up position attribute
                 gl.enableVertexAttribArray(this.attribLocations.position);
-                gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, 0, 0);
+                gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, this.stride, this.positionOffset);
+                
+                // Only set up triIndex attribute if the grid uses it and the attribute exists
+                if (this.attribLocations.triIndex >= 0 && this.usesTriIndex) {
+                    gl.enableVertexAttribArray(this.attribLocations.triIndex);
+                    gl.vertexAttribPointer(this.attribLocations.triIndex, 1, gl.FLOAT, false, this.stride, this.triIndexOffset);
+                }
                 
                 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
                 
@@ -1216,7 +1393,7 @@
         class GridManager {
             adj_neighbors = [[0, -1], [0, 1], [1, 0], [-1, 0]];
 
-            constructor(shape, canvas, init_cells = new Map(), useWebGL = false) {
+            constructor(shape, canvas, init_cells = new Map(), useWebGL = true) {
                 this.shape = shape.value || shape;
                 this.canvas = canvas;
                 this.useWebGL = useWebGL;
@@ -1883,7 +2060,7 @@
                     }
                     if (draggingCam) {
                         this.gridManager.cameraView.camX += pointer.x - lastX;
-                        this.gridManager.cameraView.camY += pointer.y - lastY;
+                        this.gridManager.cameraView.camY -= pointer.y - lastY;
                         lastX = pointer.x;
                         lastY = pointer.y;
                         this.gridManager.drawGrid();
