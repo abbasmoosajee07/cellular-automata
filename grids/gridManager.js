@@ -9,11 +9,11 @@ class GridManager {
     adj_neighbors = [[0, -1], [0, 1], [1, 0], [-1, 0]];
 
     constructor(shape, canvas, init_cells = new Map(), useWebGL = true) {
-        this.shape = shape.value || shape;  // handle passing element or string
+        this.shape = shape || "square";
         this.canvas = canvas;
         this.useWebGL = useWebGL;
         this.cells = init_cells;
-        this.neighborsMap = new Map(),
+        this.neighborsMap = new Map();
 
         // Grid defaults
         this.gridRows = 20;
@@ -22,31 +22,46 @@ class GridManager {
         this.boundaryType = "wrap";
         this.neighborType = "adjacent";
 
-        // Performance settings
-        this.detail = 2000;
-        this.simple = 10000;
-
         // Camera & colors
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
         this.colorSchema = {
             line: this.hexToRgb("#555555"),
             1: this.hexToRgb("#32cd32"),
         };
+        this.drawColor = this.colorSchema[1];
+        this.bgColor = [0.5,0.5,0.5,0];//this.hexToRgb("");
+        // console.log(this.bgColor);
 
         // Initialize shape-specific grid
         this.shapeGrid = this.createShapeGrid(this.shape);
-
-        // Initialize rendering pipeline
+        
+        // Initialize renderer (WebGL or Canvas2D)
         this.initializeRenderer(this.useWebGL);
+        
+        // Initialize grid - only call initGridTexture if we have a valid WebGL context
+        if (this.useWebGL && this.renderer.gl) {
+            this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols);
+        } else {
+            // For Canvas2D, manually set the grid size without calling initGridTexture
+            this.shapeGrid.gridSize = this.gridCols;
+            this.shapeGrid.useWebGL = false;
+        }
+        
+        // Sync existing cells
+        this.syncCellsToTexture();
+        
         this.updateCanvasSize();
+        
+        // Start continuous rendering
+        this.startRendering();
     }
 
     createShapeGrid(shape) {
-        const { colorSchema, detail, simple } = this;
+        const { colorSchema } = this;
         switch (shape) {
-            case "square":   return new SquareGrid(colorSchema, detail, simple);
-            case "hex":      return new HexagonGrid(colorSchema, detail, simple);
-            case "triangle": return new TriangleGrid(colorSchema, detail, simple);
+            case "square":   return new SquareGrid(colorSchema);
+            case "hex":  return new HexagonGrid(colorSchema);
+            case "triangle":  return new TriangleGrid(colorSchema);
             default:
                 throw new Error(`Unknown grid shape: ${shape}`);
         }
@@ -55,17 +70,58 @@ class GridManager {
     initializeRenderer(useWebGL) {
         try {
             if (useWebGL) {
-                this.renderer = new WebGLRenderer(this.canvas);
-                console.log("Using WebGL renderer");
+                this.renderer = new WebGLRenderer(this.canvas, this.shapeGrid);
+                console.log("Using WebGL texture-based renderer");
+                this.useWebGL = true;
             } else {
-                this.renderer = new Canvas2DRenderer(this.canvas);
+                this.renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid);
                 console.log("Using Canvas2D renderer");
+                this.useWebGL = false;
             }
         } catch (error) {
             console.warn("WebGL not supported, falling back to Canvas2D:", error);
-            this.renderer = new Canvas2DRenderer(this.canvas);
+            this.renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid);
             this.useWebGL = false;
         }
+    }
+
+    startRendering() {
+        const renderLoop = () => {
+            // this.drawGrid();
+            requestAnimationFrame(renderLoop);
+        };
+        renderLoop();
+    }
+
+    getVisibleBounds() {
+        const halfW = this.width / (2 * this.cameraView.zoom);
+        const halfH = this.height / (2 * this.cameraView.zoom);
+
+        const minWorldX = -this.cameraView.camX / this.cameraView.zoom - halfW;
+        const maxWorldX = -this.cameraView.camX / this.cameraView.zoom + halfW;
+        const minWorldY = -this.cameraView.camY / this.cameraView.zoom - halfH;
+        const maxWorldY = -this.cameraView.camY / this.cameraView.zoom + halfH;
+
+        return [minWorldX, maxWorldX, minWorldY, maxWorldY];
+    }
+
+    syncCellsToTexture() {
+        // Sync existing cells data
+        for (const [col, colMap] of this.cells) {
+            for (const [row, state] of colMap) {
+                if (state && col < this.gridCols && row < this.gridRows) {
+                    // Only update texture if in WebGL mode
+                    if (this.useWebGL && this.renderer.gl) {
+                        this.shapeGrid.setCellState(this.renderer.gl, col, row, state);
+                    }
+                }
+            }
+        }
+    }
+
+    screenToCell(px, py) {
+        const world = this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
+        return this.shapeGrid.worldToCell(world);
     }
 
     setBoundaryType(boundaryType) {
@@ -74,11 +130,8 @@ class GridManager {
     }
 
     getNeighbors(x, y) {
-        const touch_neighbors = [[0, -1], [0, 1], [1, 0], [-1, 0], [-1, 1], [-1, -1], [1, 1], [1, -1]];
-        const adj_neighbors = [[0, -1], [0, 1], [1, 0], [-1, 0]];
-
         const neighbors = [];
-        for (const [dx, dy] of adj_neighbors) {
+        for (const [dx, dy] of this.adj_neighbors) {
             const nx = dx + x;
             const ny = dy + y;
             neighbors.push([nx, ny]);
@@ -95,21 +148,20 @@ class GridManager {
                 neighborsMap.set([c, r], cellNeighbors);
             }
         }
-        console.log("Neighbors dict", neighborsMap);
+        // console.log("Neighbors dict", neighborsMap);
     }
 
     addNeighbors(x, y) {
         const valid_neighbors = this.getNeighbors(x, y);
-        // console.log("", valid_neighbors);
         this.neighborsMap.set([x, y], valid_neighbors)
-        // console.log("", this.neighborsMap);
     }
 
     randomCells() {
         const [minCol, maxCol, minRow, maxRow] = this.getBounds();
+        // console.log(minCol, maxCol, minRow, maxRow);
         for (let c = minCol; c <= maxCol; c++) {
             for (let r = minRow; r <= maxRow; r++) {
-                const status = Math.random() < 0.5 ? 0 : 1; // 50/50 chance
+                const status = Math.random() < 0.5 ? 0 : 1;
                 this.changeCell(c, r, status);
             }
         }
@@ -141,22 +193,6 @@ class GridManager {
         return [minWorldX, maxWorldX, minWorldY, maxWorldY];
     }
 
-    drawGrid() {
-        const bounds = this.getVisibleBounds();
-        const geometry = this.shapeGrid.getGridGeometry(
-            bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid
-        );
-
-        if (this.useWebGL) {
-            // WebGL renderer uses geometry data
-            this.renderer.uploadGeometry(geometry);
-            this.renderer.draw(this.cameraView);
-        } else {
-            // Canvas2D renderer can use geometry or direct drawing
-            this.renderer.draw(this.cameraView, geometry);
-        }
-    }
-
     hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? [
@@ -167,21 +203,15 @@ class GridManager {
         ] : [0.5, 0.5, 0.5, 1.0];
     }
 
-    // Keep all other methods the same...
-    screenToWorld(px, py) {
-        return {
-            x: (px - this.width/2 - this.cameraView.camX) / this.cameraView.zoom,
-            y: (py - this.height/2 - this.cameraView.camY) / this.cameraView.zoom
-        };
-    }
-
-    worldToCell(world) {
-        return this.shapeGrid.worldToCell(world);
-    }
-
     changeCell(x, y, state) {
         if (!this.cells.has(x)) this.cells.set(x, new Map());
         this.cells.get(x).set(y, state);
+        
+        // Update texture only if in WebGL mode
+        if (this.useWebGL && this.renderer.gl) {
+            this.shapeGrid.setCellState(this.renderer.gl, x, y, state);
+        }
+        
         this.addNeighbors(x, y);
     }
 
@@ -189,10 +219,10 @@ class GridManager {
         const cols = Number(this.gridCols) || 0;
         const rows = Number(this.gridRows) || 0;
 
-        const minCol = -Math.floor(cols / 2);
-        const maxCol = minCol + cols;
-        const minRow = -Math.floor(rows / 2);
-        const maxRow = minRow + rows;
+        const minCol = 0;
+        const maxCol = cols - 1;
+        const minRow = 0;
+        const maxRow = rows - 1;
 
         return [minCol, maxCol, minRow, maxRow];
     }
@@ -207,16 +237,134 @@ class GridManager {
         return true;
     }
 
-    toggleAt(px, py) {
-        const world = this.screenToWorld(px, py);
-        const [x, y] = this.worldToCell(world);
+    toggleAt(px, py, drawMode, eraseMode) {
+        // Use direct screen to cell conversion for better accuracy
+        const cell = this.screenToCell(px, py);
+        // console.log(px, py, cell);
+        if (!cell) return false;
 
-        if (!this.checkBounds(x, y)) return;
+        const [x, y] = cell;
 
-        if (window.drawTiles && window.drawTiles.checked) {
-            this.changeCell(x, y, 1);  // Add Cell
-        } else if (window.eraseTiles && window.eraseTiles.checked) {
-            this.changeCell(x, y, 0); // Delete Cell
+        if (!this.checkBounds(x, y)) return false;
+
+        let newState;
+        if (drawMode) {
+            newState = 1;
+        } else if (eraseMode) {
+            newState = 0;
+        } else {
+            // safer check: ensure y exists in nested Map
+            const currentState = (this.cells.has(x) && this.cells.get(x).has(y)) ? this.cells.get(x).get(y) : 0;
+            newState = currentState ? 0 : 1;
+        }
+
+        this.changeCell(x, y, newState);
+        return true;
+    }
+
+    clearAll() {
+        // Update texture only if in WebGL mode
+        if (this.useWebGL && this.renderer.gl) {
+            this.shapeGrid.clearGrid(this.renderer.gl);
+        }
+        this.cells.clear();
+    }
+
+    drawLineBetweenPoints(startWorld, endWorld, mode) {
+        const startCell = this.shapeGrid.worldToCell(startWorld);
+        const endCell = this.shapeGrid.worldToCell(endWorld);
+
+        if (!startCell || !endCell) return;
+
+        const [x1, y1] = startCell;
+        const [x2, y2] = endCell;
+
+        // Simple line drawing algorithm
+        const dx = Math.abs(x2 - x1);
+        const dy = Math.abs(y2 - y1);
+        const sx = (x1 < x2) ? 1 : -1;
+        const sy = (y1 < y2) ? 1 : -1;
+        let err = dx - dy;
+
+        let x = x1;
+        let y = y1;
+
+        while (true) {
+            if (this.checkBounds(x, y)) {
+                const state = (mode === 'draw') ? 1 : 0;
+                this.changeCell(x, y, state);
+            }
+
+            if (x === x2 && y === y2) break;
+
+            const e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y += sy;
+            }
+        }
+    }
+
+    resizeGrid(newCols, newRows) {
+
+        this.gridCols = newCols;
+        this.gridRows = newRows;
+
+        // Save current cells data
+        const oldCells = new Map();
+        for (const [col, colMap] of this.cells) {
+            if (col < newCols) {
+                const newColMap = new Map();
+                for (const [row, state] of colMap) {
+                    if (row < newRows && state) {
+                        newColMap.set(row, state);
+                    }
+                }
+                if (newColMap.size > 0) {
+                    oldCells.set(col, newColMap);
+                }
+            }
+        }
+
+        // Resize the texture (only in WebGL mode)
+        if (this.useWebGL && this.renderer.gl) {
+            this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, oldCells);
+        } else {
+            // For Canvas2D, just update the grid size
+            this.shapeGrid.gridSize = newCols;
+        }
+        
+        // Update cells with the resized data
+        this.cells = oldCells;
+        
+        // Re-center the view
+        this.centerView();
+    }
+
+    centerView() {
+        this.cameraView.camX = 0;
+        this.cameraView.camY = 0;
+        this.cameraView.zoom = 1;
+    }
+
+    drawGrid() {
+        const bounds = this.getVisibleBounds();
+
+        const geometry = this.shapeGrid.getGridGeometry(
+            bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, null
+        );
+
+        if (this.useWebGL) {
+            // WebGL path
+            this.renderer.uploadGeometry(geometry);
+            this.renderer.draw(this.cameraView, geometry, this.drawColor, this.bgColor);
+        } else {
+            // Canvas2D path - pass cells for rendering
+            this.renderer.drawCanvas(this.cameraView, this.drawColor, this.bgColor, this.cells);
         }
     }
 }

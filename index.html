@@ -143,6 +143,10 @@
                     <label for="rowInput">Rows:</label>
                     <input type="number" class="grid-size-in" id="rowInput" min="1" value="20" step="1">
                 </div>
+                <button id="reMap" class="btn btn-remap action-btn">
+                    <i class="bi bi-arrow-repeat me-2"></i> Re-Map World
+                </button>
+
             </div>
 
             <!-- Draw Panel -->
@@ -150,23 +154,26 @@
                 <div class="panel-header">
                     <h3><i class="bi bi-pencil-fill me-2"></i> Drawing Tools</h3>
                 </div>
-                
+
                 <div class="form-row">
                     <label for="drawTiles">Draw Tiles</label>
                     <input type="checkbox" id="drawTiles">
                 </div>
-                
+
                 <div class="form-row">
                     <label for="eraseTiles">Erase Tiles</label>
                     <input type="checkbox" id="eraseTiles">
                 </div>
-                
+
                 <button id="clearGrid" class="action-btn" title="Clear">
                     <i class="bi bi-trash-fill"></i> Clear
                 </button>
-                
+
                 <button id="randomFill" class="action-btn" title="Random">
                     <i class="bi bi-shuffle"></i> Random
+                </button>
+                <button id="neighborTiles" class="action-btn" title="Add Neighbors">
+                    <i class="bi bi-bounding-box"></i> Neighbor Tiles
                 </button>
             </div>
 

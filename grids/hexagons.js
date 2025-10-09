@@ -1,299 +1,223 @@
-class HexagonGrid {
-    constructor(colorSchema, detailed, simple) {
-        this.colorSchema = colorSchema;
-        this.DETAILED_GRID_SIZE = detailed; // Show detailed grid up to this many cells
-        this.SIMPLIFIED_GRID_SIZE = simple; // Show simplified grid up to this many cells
+import { BaseGrid } from './base.js';
+
+class HexagonGrid extends BaseGrid {
+    constructor(colorSchema) {
+        super(colorSchema, "hexagon");
         this.radius = 30;
-        this.zoom = 1;
+    }
 
-        // Geometry functions that can be swapped
-        this.geometryStrategies = {
-            detailed: this.getDetailedGeometry.bind(this),
-            simplified: this.getSimplifiedGeometry.bind(this),
-            minimal: this.getMinimalGeometry.bind(this)
+    setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
+        const uniformLocations = {
+            resolution: gl.getUniformLocation(program, "uResolution"),
+            offset: gl.getUniformLocation(program, "uOffset"),
+            scale: gl.getUniformLocation(program, "uScale"),
+            gridSize: gl.getUniformLocation(program, "uGridSize"),
+            radius: gl.getUniformLocation(program, "uRadius"),
+            drawColor: gl.getUniformLocation(program, "uDrawColor"),
+            bgColor: gl.getUniformLocation(program, "uBgColor"),
+            gridTexture: gl.getUniformLocation(program, "uGridTexture")
         };
+
+        gl.uniform2f(uniformLocations.resolution, width, height);
+        gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
+        gl.uniform1f(uniformLocations.scale, cameraView.zoom);
+        gl.uniform1f(uniformLocations.gridSize, geometry.gridSize);
+        gl.uniform1f(uniformLocations.radius, this.radius);
+        gl.uniform4fv(uniformLocations.drawColor, drawColor);
+        gl.uniform4fv(uniformLocations.bgColor, bgColor);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, geometry.texture);
+        gl.uniform1i(uniformLocations.gridTexture, 0);
+
+        return uniformLocations;
     }
 
-    // Geometry calculation functions
-    getCellVertices(x, y, status) {
-        const vertices = [];
-        const indices = [];
-
-        // Create hexagon by connecting 6 points in a circle
-        for (let i = 0; i < 6; i++) {
-            const a = Math.PI/3 * i;  // Angle for each vertex (60° increments)
-            const px = x + this.radius * Math.cos(a);
-            const py = y + this.radius * Math.sin(a);
-            vertices.push(px, py);
+    getVertexShaderSource(isWebGL2 = false) {
+        if (isWebGL2) {
+            return `#version 300 es
+            in vec2 aPosition;
+            out vec2 vTexCoord;
+            void main() {
+                gl_Position = vec4(aPosition, 0.0, 1.0);
+                vTexCoord = aPosition * 0.5 + 0.5;
+            }`;
+        } else {
+            return `
+            attribute vec2 aPosition;
+            varying vec2 vTexCoord;
+            void main() {
+                gl_Position = vec4(aPosition, 0.0, 1.0);
+                vTexCoord = aPosition * 0.5 + 0.5;
+            }`;
         }
-
-        // Create triangles for the hexagon (fan triangulation from center)
-        // First add center point
-        vertices.push(x, y);
-        const centerIndex = 6;
-
-        // Create 6 triangles from center to each edge
-        for (let i = 0; i < 6; i++) {
-            indices.push(centerIndex, i, (i + 1) % 6);
-        }
-
-        return {
-            vertices,
-            indices,
-            color: status ? this.colorSchema[status] : this.colorSchema.line,
-            isFill: !!status
-        };
     }
 
-    getGridMarkerGeometry(col, row, horiz, vert, markerSize) {
-        const x = col * horiz;
-        const y = row * vert + (col % 2 ? vert / 2 : 0);
-        
-        // Simple dot marker - much clearer than complex hexagon outlines
-        return [
-            x - markerSize, y - markerSize,
-            x + markerSize, y - markerSize,
-            x - markerSize, y + markerSize,
-            x + markerSize, y + markerSize
-        ];
-    }
+    getFragmentShaderSource(isWebGL2 = false) {
+        if (isWebGL2) {
+            return `#version 300 es
+            precision mediump float;
+            in vec2 vTexCoord;
+            out vec4 outColor;
 
-    getHexagonOutlineGeometry(col, row, horiz, vert, lineWidth) {
-        const x = col * horiz;
-        const y = row * vert + (col % 2 ? vert / 2 : 0);
-        
-        const vertices = [];
-        // Create a thin outline around the hexagon
-        const innerRadius = this.radius - lineWidth/2;
-        const outerRadius = this.radius + lineWidth/2;
-        
-        for (let i = 0; i < 6; i++) {
-            const a1 = Math.PI/3 * i;
-            const a2 = Math.PI/3 * ((i + 1) % 6);
-            
-            // Inner points
-            const ix1 = x + innerRadius * Math.cos(a1);
-            const iy1 = y + innerRadius * Math.sin(a1);
-            const ix2 = x + innerRadius * Math.cos(a2);
-            const iy2 = y + innerRadius * Math.sin(a2);
-            
-            // Outer points
-            const ox1 = x + outerRadius * Math.cos(a1);
-            const oy1 = y + outerRadius * Math.sin(a1);
-            const ox2 = x + outerRadius * Math.cos(a2);
-            const oy2 = y + outerRadius * Math.sin(a2);
-            
-            // Create two triangles for the line segment
-            vertices.push(
-                ix1, iy1, ix2, iy2, ox1, oy1,  // First triangle
-                ix2, iy2, ox2, oy2, ox1, oy1   // Second triangle
-            );
-        }
-        
-        return vertices;
-    }
+            uniform vec2 uResolution;
+            uniform vec2 uOffset;
+            uniform float uScale;
+            uniform float uGridSize;
+            uniform float uRadius;
+            uniform vec4 uDrawColor;
+            uniform vec4 uBgColor;
+            uniform sampler2D uGridTexture;
 
-    getMajorGridStep(totalCells) {
-        // Dynamic grid step based on cell density
-        if (totalCells > 5000) return 10;
-        if (totalCells > 2000) return 5;
-        return 3;
-    }
+            // Flat-topped axial conversion
+            vec2 worldToHex(vec2 pos, float r) {
+                float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                float s = (2.0/3.0 * pos.y) / r;
+                return vec2(q, s);
+            }
 
-    getDetailedGeometry(minCol, maxCol, minRow, maxRow, horiz, vert, cells) {
-        const allVertices = [];
-        const allIndices = [];
-        const allColors = [];
-        let indexOffset = 0;
+            ivec2 hexRound(vec2 h) {
+                float x = h.x;
+                float z = h.y;
+                float y = -x - z;
+                float rx = floor(x + 0.5);
+                float ry = floor(y + 0.5);
+                float rz = floor(z + 0.5);
+                float dx = abs(rx - x);
+                float dy = abs(ry - y);
+                float dz = abs(rz - z);
+                if (dx > dy && dx > dz) rx = -ry - rz;
+                else if (dy > dz) ry = -rx - rz;
+                else rz = -rx - ry;
+                return ivec2(int(rx), int(rz));
+            }
 
-        const lineWidth = Math.max(0.5, this.radius * 0.02);
+            void main() {
+                vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                vec2 axial = worldToHex(worldPos, uRadius);
+                ivec2 cell = hexRound(axial);
 
-        // Add filled cells (will be drawn first, underneath)
-        indexOffset = this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, horiz, vert, cells);
+                vec2 texCoord = (vec2(float(cell.x) + uGridSize * 0.5, float(cell.y) + uGridSize * 0.5)) / uGridSize;
 
-        // Draw all hexagon outlines (will be drawn on top)
-        for (let col = minCol; col <= maxCol; col++) {
-            for (let row = minRow; row <= maxRow; row++) {
-                const outlineVertices = this.getHexagonOutlineGeometry(col, row, horiz, vert, lineWidth);
-                if (outlineVertices.length > 0) {
-                    // Each hexagon outline has 6 segments, each with 6 vertices
-                    for (let i = 0; i < 6; i++) {
-                        const segmentVertices = outlineVertices.slice(i * 12, (i + 1) * 12);
-                        this.addGeometryAsTriangles(allVertices, allIndices, allColors, indexOffset, segmentVertices);
-                        indexOffset += 6; // 6 vertices per segment (2 triangles)
-                    }
+                if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
+                    outColor = uBgColor;
+                    return;
                 }
+
+                vec4 cellValue = texture(uGridTexture, texCoord);
+                outColor = (cellValue.a > 0.5) ? uDrawColor : uBgColor;
+            }`;
+        } else {
+            return `
+            precision mediump float;
+            uniform vec2 uResolution;
+            uniform vec2 uOffset;
+            uniform float uScale;
+            uniform float uGridSize;
+            uniform float uRadius;
+            uniform vec4 uDrawColor;
+            uniform vec4 uBgColor;
+            uniform sampler2D uGridTexture;
+            varying vec2 vTexCoord;
+
+            vec2 worldToHex(vec2 pos, float r) {
+                float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                float s = (2.0/3.0 * pos.y) / r;
+                return vec2(q, s);
             }
-        }
 
-        return this.createGeometryBuffer(allVertices, allIndices, allColors);
-    }
-
-    getSimplifiedGeometry(minCol, maxCol, minRow, maxRow, horiz, vert, cells) {
-        const allVertices = [];
-        const allIndices = [];
-        const allColors = [];
-        let indexOffset = 0;
-
-        const gridStep = this.getMajorGridStep((maxCol - minCol + 1) * (maxRow - minRow + 1));
-        const markerSize = this.radius * 0.1; // Small clear dots
-
-        // Add filled cells (will be drawn first, underneath)
-        indexOffset = this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, horiz, vert, cells);
-
-        // Draw simple grid markers (will be drawn on top)
-        for (let col = minCol; col <= maxCol; col += gridStep) {
-            for (let row = minRow; row <= maxRow; row += gridStep) {
-                const markerVertices = this.getGridMarkerGeometry(col, row, horiz, vert, markerSize);
-                this.addGeometryAsQuad(allVertices, allIndices, allColors, indexOffset, markerVertices);
-                indexOffset += 4;
+            ivec2 hexRound(vec2 h) {
+                float x = h.x;
+                float z = h.y;
+                float y = -x - z;
+                float rx = floor(x + 0.5);
+                float ry = floor(y + 0.5);
+                float rz = floor(z + 0.5);
+                float dx = abs(rx - x);
+                float dy = abs(ry - y);
+                float dz = abs(rz - z);
+                if (dx > dy && dx > dz) rx = -ry - rz;
+                else if (dy > dz) ry = -rx - rz;
+                else rz = -rx - ry;
+                return ivec2(int(rx), int(rz));
             }
-        }
 
-        return this.createGeometryBuffer(allVertices, allIndices, allColors);
-    }
+            void main() {
+                vec2 worldPos = (vTexCoord * uResolution - uResolution*0.5 - uOffset) / uScale;
+                vec2 axial = worldToHex(worldPos, uRadius);
+                ivec2 cell = hexRound(axial);
 
-    getMinimalGeometry(minCol, maxCol, minRow, maxRow, horiz, vert, cells) {
-        const allVertices = [];
-        const allIndices = [];
-        const allColors = [];
-        let indexOffset = 0;
+                vec2 texCoord = (vec2(float(cell.x) + uGridSize*0.5, float(cell.y) + uGridSize*0.5)) / uGridSize;
 
-        // Only draw filled cells, no grid markers
-        this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, horiz, vert, cells);
-
-        return this.createGeometryBuffer(allVertices, allIndices, allColors);
-    }
-
-    // Helper functions
-    addGeometryAsQuad(vertices, indices, colors, offset, newVertices) {
-        if (newVertices.length !== 8) return; // Should have 4 vertices (x,y pairs)
-
-        vertices.push(...newVertices);
-
-        // Create indices for a quad (two triangles)
-        indices.push(
-            offset, offset + 1, offset + 2,    // First triangle
-            offset + 2, offset + 1, offset + 3  // Second triangle
-        );
-
-        // Add colors for each vertex
-        for (let i = 0; i < 4; i++) {
-            colors.push(...this.colorSchema.line);
-        }
-    }
-
-    addGeometryAsTriangles(vertices, indices, colors, offset, newVertices, color) {
-        if (newVertices.length === 0) return;
-
-        vertices.push(...newVertices);
-
-        // Create indices for triangles (each 3 vertices form a triangle)
-        const vertexCount = newVertices.length / 2;
-        const triangleCount = vertexCount / 3;
-
-        for (let i = 0; i < triangleCount; i++) {
-            indices.push(
-                offset + i * 3,
-                offset + i * 3 + 1,
-                offset + i * 3 + 2
-            );
-        }
-
-        // Add colors for each vertex
-        for (let i = 0; i < vertexCount; i++) {
-            colors.push(...this.colorSchema.line);
-        }
-    }
-
-    addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, horiz, vert, cells) {
-
-        for (let col = minCol; col <= maxCol; col++) {
-            for (let row = minRow; row <= maxRow; row++) {
-                const status = cells.get(col)?.get(row);
-                if (status) {
-                    const x = col * horiz;
-                    const y = row * vert + (col % 2 ? vert / 2 : 0);
-                    const cellData = this.getCellVertices(x, y, status);
-                    const fillColor = this.colorSchema[status];
-
-                    allVertices.push(...cellData.vertices);
-                    allIndices.push(...cellData.indices.map(idx => idx + indexOffset));
-
-                    // Add colors for each vertex (7 vertices per hexagon: 6 perimeter + 1 center)
-                    for (let i = 0; i < 7; i++) {
-                        allColors.push(...fillColor);
-                    }
-
-                    indexOffset += 7; // 7 vertices per hexagon
+                if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
+                    gl_FragColor = uBgColor;
+                    return;
                 }
-            }
+
+                vec4 cellValue = texture2D(uGridTexture, texCoord);
+                gl_FragColor = (cellValue.a > 0.5) ? uDrawColor : uBgColor;
+            }`;
         }
-        return indexOffset;
     }
 
-    createGeometryBuffer(vertices, indices, colors) {
-        return {
-            vertices: new Float32Array(vertices),
-            indices: new Uint16Array(indices),
-            colors: new Float32Array(colors),
-            vertexCount: vertices.length / 2,
-            indexCount: indices.length
-        };
-    }
+    worldToCell(worldPos) {
+        const q = (Math.sqrt(3)/3 * worldPos.x - 1/3 * worldPos.y) / this.radius;
+        const s = (2/3 * worldPos.y) / this.radius;
 
-    worldToCell(world) {
-        const q = Math.round(world.x / (1.5 * this.radius));
-        const r = Math.round((world.y - (q % 2 ? Math.sqrt(3) * this.radius / 2 : 0)) / (Math.sqrt(3) * this.radius));
-        return [q, r];
+        const x = q;
+        const z = s;
+        const y = -x - z;
+
+        let rx = Math.floor(x + 0.5);
+        let ry = Math.floor(y + 0.5);
+        let rz = Math.floor(z + 0.5);
+
+        const dx = Math.abs(rx - x);
+        const dy = Math.abs(ry - y);
+        const dz = Math.abs(rz - z);
+
+        if (dx > dy && dx > dz) rx = -ry - rz;
+        else if (dy > dz) ry = -rx - rz;
+        else rz = -rx - ry;
+
+        return [rx, rz];
     }
 
     calculateBounds(bounds) {
         const [minX, maxX, minY, maxY] = bounds;
-        const horiz = 1.5 * this.radius;
-        const vert = Math.sqrt(3) * this.radius;
-
-        const minCol = Math.floor(minX / horiz) - 1;
-        const maxCol = Math.ceil(maxX / horiz) + 1;
-        const minRow = Math.floor(minY / vert) - 1;
-        const maxRow = Math.ceil(maxY / vert) + 1;
-        
+        const size = this.radius * 2;
+        const minCol = Math.floor(minX / size) - 1;
+        const maxCol = Math.ceil(maxX / size) + 1;
+        const minRow = Math.floor(minY / size) - 1;
+        const maxRow = Math.ceil(maxY / size) + 1;
         return [minCol, maxCol, minRow, maxRow];
     }
 
-    getGridGeometry(bounds, cells, maxCols, maxRows, infinite) {
-        let [minCol, maxCol, minRow, maxRow] = this.calculateBounds(bounds);
-        const horiz = 1.5 * this.radius;
-        const vert = Math.sqrt(3) * this.radius;
-
-        if (!infinite) {
-            const halfCols = Math.floor(maxCols / 2);
-            const halfRows = Math.floor(maxRows / 2);
-
-            minCol = Math.max(minCol, -halfCols);
-            maxCol = Math.min(maxCol, halfCols);
-            minRow = Math.max(minRow, -halfRows);
-            maxRow = Math.min(maxRow, halfRows);
+    drawCanvasCells(ctx, cells) {
+        const radius = this.radius || 30;
+        for (const [q, colMap] of cells) {
+            for (const [r, state] of colMap) {
+                if (state) {
+                    const x = radius * Math.sqrt(3) * (q + r * 0.5);
+                    const y = radius * r * -1.5;
+                    this.drawFlatTopHexagon(ctx, x, y, radius);
+                }
+            }
         }
-
-        const totalCells = (maxCol - minCol + 1) * (maxRow - minRow + 1);
-
-        let strategy;
-        if (totalCells > this.SIMPLIFIED_GRID_SIZE) {
-            strategy = 'minimal';
-        } else if (totalCells > this.DETAILED_GRID_SIZE) {
-            strategy = 'simplified';
-        } else {
-            strategy = 'detailed';
-        }
-
-        return this.geometryStrategies[strategy](minCol, maxCol, minRow, maxRow, horiz, vert, cells);
     }
 
-    setGeometryStrategy(strategyName, strategyFunction) {
-        this.geometryStrategies[strategyName] = strategyFunction.bind(this);
+    drawFlatTopHexagon(ctx, centerX, centerY, radius) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 3 * i - Math.PI / 6; // -30° offset for flat-topped
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
     }
-
 }
 
 export { HexagonGrid };

@@ -2,19 +2,22 @@ import {  GridManager  } from '../grids/gridManager.js';
 
 class AutomataSimulator{
     docIDs = [
-        "gridCanvas", "menuPanel", "menuToggle", "drawTiles", "eraseTiles",
-        "rowInput", "colInput", "resetView", "pinLoc", "clearGrid", "randomFill",
+        "gridCanvas", "menuPanel", "menuToggle", "reMap",
+        "drawTiles", "eraseTiles", "clearGrid", "randomFill",
+        "rowInput", "colInput", "resetView", "pinLoc",
+        "neighborTiles",
     ]
 
     constructor(){
+        this.gridSize = [20, 20]
         this.initElements();
         this.initGrid();
         this.setupGridControls()
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
+        this.gridManager.randomCells()
         this.gridManager.drawGrid();
-        this.gridManager.buildNeighborsMap();
     }
 
     initElements() {
@@ -57,57 +60,57 @@ class AutomataSimulator{
         this.savedView = { ...this.gridManager.cameraView };
         this.gridManager.gridRows = parseInt(this.rowInput.value);
         this.gridManager.gridCols = parseInt(this.colInput.value);
-        this.gridManager.changeCell(0, 0, 1);
     }
 
     setupGridControls() {
-        // Store references to all shape radio buttons
-        this.shapeRadios = document.querySelectorAll('input[name="shape"]');
-        this.shapeRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.checked) {
-                    const selectedShape = radio.value;
-                    const old_grid = this.gridManager
-
-                    this.gridManager = new GridManager(selectedShape, this.gridCanvas, old_grid.cells);
-                    this.gridManager.cameraView = { ...old_grid.cameraView };
-                    this.gridManager.gridRows = old_grid.gridRows;
-                    this.gridManager.gridCols = old_grid.gridCols;
-                    this.gridManager.infiniteGrid = old_grid.infiniteGrid;
-                    this.gridManager.drawGrid();
-                }
-            });
-        });
-
+        // --- Grid size controls ---
         this.rowInput.addEventListener('input', () => {
-            this.gridManager.gridRows = parseInt(this.rowInput.value);
-            this.gridManager.drawGrid();
+            this.gridSize[1] = parseInt(this.rowInput.value) || 20; // rows
         });
 
         this.colInput.addEventListener('input', () => {
-            this.gridManager.gridCols = parseInt(this.colInput.value);
+            this.gridSize[0] = parseInt(this.colInput.value) || 20; // cols
+        });
+
+        // --- Shape selection ---
+        document.querySelectorAll('input[name="shape"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) { this.selectedShape = radio.value; }
+            });
+        });
+
+        // --- Neighbor rules ---
+        document.querySelectorAll('input[name="neighbors"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) { this.neighborsType = radio.value; }
+            });
+        });
+
+        // --- Boundary behavior ---
+        document.querySelectorAll('input[name="bounds"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) { this.boundsType = radio.value; }
+            });
+        });
+
+        // --- Rebuild / Remap Grid Button ---
+        this.reMap.addEventListener('click', () => {
+            const oldGrid = this.gridManager;
+
+            // Create a new grid with same state and camera
+            this.gridManager = new GridManager(
+                this.selectedShape,
+                this.gridCanvas,
+                oldGrid.cells
+            );
+
+            Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
+
+            this.gridManager.setBoundaryType(this.boundsType);
+            this.gridManager.neighborType = this.neighborsType;
+            this.gridManager.resizeGrid(this.gridSize[0], this.gridSize[1]);
+            this.gridManager.cells = oldGrid.cells;
             this.gridManager.drawGrid();
-        });
-
-        // Store references to all neighbors radio buttons
-        this.neighborsRadio = document.querySelectorAll('input[name="neighbors"]');
-        // Add event listener to each radio button
-        this.neighborsRadio.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.checked) {
-                };
-            });
-        });
-
-        // Store references to all boundary radio buttons
-        this.boundsRadio = document.querySelectorAll('input[name="bounds"]');
-        this.boundsRadio.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.checked) {
-                    this.gridManager.setBoundaryType(radio.value);
-                    this.gridManager.drawGrid();
-                }
-            });
         });
     }
 
@@ -122,7 +125,8 @@ class AutomataSimulator{
         });
 
         this.clearGrid.addEventListener('click', () => {
-            this.gridManager.cells = new Map();
+            // use existing API so texture and internal state both cleared
+            this.gridManager.clearAll();
             this.gridManager.drawGrid();
         });
 
@@ -132,6 +136,29 @@ class AutomataSimulator{
             this.gridManager.updateCanvasSize();
             this.gridManager.drawGrid();
         });
+
+        this.neighborTiles.addEventListener('click', () => {
+            const availCells = this.gridManager.cells;
+            const neighborsToActivate = [];
+
+            // Collect neighbors of all active cells
+            for (const [col, colMap] of availCells) {
+                for (const [row, cellData] of colMap) {
+                    if (cellData === 1) { // expand only from alive cells
+                        const neighborCells = this.gridManager.getNeighbors(col, row);
+                        neighborsToActivate.push(...neighborCells); // just dump them in
+                    }
+                }
+            }
+
+            // Apply neighbor activation
+            for (const [nc, nr] of neighborsToActivate) {
+                this.gridManager.changeCell(nc, nr, 1);
+            }
+
+            this.gridManager.drawGrid();
+        });
+
     }
 
     setupCanvasControls() {
@@ -139,6 +166,8 @@ class AutomataSimulator{
         let draggingCam = false;
         let lastX = 0, lastY = 0;
         let lastTouchDistance = null;
+        const MIN_ZOOM = 10;
+        const MAX_ZOOM = 0.001;
 
         const getPointer = (e) => {
             if (e.touches && e.touches.length > 0) {
@@ -172,7 +201,7 @@ class AutomataSimulator{
                 if (lastTouchDistance) {
                     const zoomFactor = dist / lastTouchDistance;
                     const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
-                    this.gridManager.cameraView.zoom = Math.max(0.01, Math.min(10, newZoom));
+                    this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
                     this.gridManager.drawGrid();
                 }
                 lastTouchDistance = dist;
@@ -218,7 +247,7 @@ class AutomataSimulator{
             e.preventDefault();
             const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
             const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
-            this.gridManager.cameraView.zoom = Math.max(0.01, Math.min(10, newZoom));
+            this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
             this.gridManager.drawGrid();
         }, { passive: false });
 

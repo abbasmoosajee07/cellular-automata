@@ -1,317 +1,337 @@
-class TriangleGrid {
-    constructor(colorSchema, detailed, simple) {
-        this.colorSchema = colorSchema;
-        this.DETAILED_GRID_SIZE = detailed; // Show detailed grid up to this many cells
-        this.SIMPLIFIED_GRID_SIZE = simple; // Show simplified grid up to this many cells
-        this.radius = 30;
-        this.zoom = 1;
+import { BaseGrid } from './base.js';
 
-        // Geometry functions that can be swapped
-        this.geometryStrategies = {
-            detailed: this.getDetailedGeometry.bind(this),
-            simplified: this.getSimplifiedGeometry.bind(this),
-            minimal: this.getMinimalGeometry.bind(this)
-        };
+class TriangleGrid extends BaseGrid {
+    constructor(colorSchema) {
+        super(colorSchema, "triangle");
+        this.sideLength = 60;
+        this.height = this.sideLength * Math.sqrt(3) / 2;
+        this.baseCellSize = this.sideLength;
+        this.usesTriIndex = false;
+
+        this.bindMethods();
     }
 
-    // Geometry calculation functions
-    getCellVertices(x, y, upsideDown, status) {
-        const side = this.radius * 2;
-        const h = Math.sqrt(3) / 2 * side; // Triangle height
-
-        let vertices;
-
-        if (!upsideDown) {
-            // Point-up triangle
-            vertices = [
-                x, y,           // top vertex
-                x + side/2, y + h, // bottom-right vertex
-                x - side/2, y + h  // bottom-left vertex
-            ];
-        } else {
-            // Point-down triangle
-            vertices = [
-                x, y + h,       // bottom vertex
-                x + side/2, y,  // top-right vertex
-                x - side/2, y   // top-left vertex
-            ];
-        }
-
-        // Single triangle indices
-        const indices = [0, 1, 2];
-
-        return {
-            vertices,
-            indices,
-            color: status ? this.colorSchema[status] : this.colorSchema.line,
-            isFill: !!status
-        };
+    bindMethods() {
+        const methods = ['pickTriangle'];
+        methods.forEach(method => {
+            if (this[method]) this[method] = this[method].bind(this);
+        });
     }
 
-    getGridMarkerGeometry(col, row, side, h, markerSize) {
-        const x = col * (side / 2);
-        const y = row * h;
+    getVertexShaderSource(isWebGL2 = false) {
+        if (isWebGL2) {
+            return `#version 300 es
+                precision highp float;
+                in vec2 aPosition;
+                out vec2 vTexCoord;
 
-        // Simple dot marker
-        return [
-            x - markerSize, y - markerSize,
-            x + markerSize, y - markerSize,
-            x - markerSize, y + markerSize,
-            x + markerSize, y + markerSize
-        ];
-    }
-
-    getTriangleOutlineGeometry(col, row, side, h, lineWidth) {
-        const x = col * (side / 2);
-        const y = row * h;
-        const upsideDown = (col + row) % 2 === 0;
-
-        const vertices = [];
-
-        if (!upsideDown) {
-            // Point-up triangle outline
-            const top = [x, y];
-            const right = [x + side/2, y + h];
-            const left = [x - side/2, y + h];
-
-            this.addTriangleOutline(vertices, top, right, left, lineWidth);
-        } else {
-            // Point-down triangle outline
-            const bottom = [x, y + h];
-            const right = [x + side/2, y];
-            const left = [x - side/2, y];
-
-            this.addTriangleOutline(vertices, bottom, right, left, lineWidth);
-        }
-        
-        return vertices;
-    }
-
-    addTriangleOutline(vertices, p1, p2, p3, lineWidth) {
-        // Create outlines for each edge of the triangle
-        this.addLineSegment(vertices, p1, p2, lineWidth);
-        this.addLineSegment(vertices, p2, p3, lineWidth);
-        this.addLineSegment(vertices, p3, p1, lineWidth);
-    }
-
-    addLineSegment(vertices, start, end, lineWidth) {
-        const dx = end[0] - start[0];
-        const dy = end[1] - start[1];
-        const length = Math.sqrt(dx * dx + dy * dy);
-        
-        if (length === 0) return;
-        
-        const perpX = -dy / length * lineWidth / 2;
-        const perpY = dx / length * lineWidth / 2;
-        
-        // Create a quad for the line segment
-        vertices.push(
-            start[0] + perpX, start[1] + perpY,
-            end[0] + perpX, end[1] + perpY,
-            start[0] - perpX, start[1] - perpY,
-            end[0] + perpX, end[1] + perpY,
-            end[0] - perpX, end[1] - perpY,
-            start[0] - perpX, start[1] - perpY
-        );
-    }
-
-    getMajorGridStep(totalCells) {
-        // Dynamic grid step based on cell density
-        if (totalCells > 5000) return 10;
-        if (totalCells > 2000) return 5;
-        return 3;
-    }
-
-    // Geometry strategies
-    getDetailedGeometry(minCol, maxCol, minRow, maxRow, side, h, cells) {
-        const allVertices = [];
-        const allIndices = [];
-        const allColors = [];
-        let indexOffset = 0;
-
-        const lineWidth = Math.max(0.5, this.radius * 0.02);
-
-        // Add filled cells (will be drawn first, underneath)
-        indexOffset = this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, side, h, cells);
-
-        // Draw all triangle outlines
-        for (let col = minCol; col <= maxCol; col++) {
-            for (let row = minRow; row <= maxRow; row++) {
-                const outlineVertices = this.getTriangleOutlineGeometry(col, row, side, h, lineWidth);
-                if (outlineVertices.length > 0) {
-                    // Each triangle outline has 3 segments, each with 6 vertices (2 triangles per segment)
-                    for (let i = 0; i < 3; i++) {
-                        const segmentVertices = outlineVertices.slice(i * 12, (i + 1) * 12);
-                        this.addGeometryAsTriangles(allVertices, allIndices, allColors, indexOffset, segmentVertices);
-                        indexOffset += 6; // 6 vertices per segment (2 triangles)
-                    }
+                void main() {
+                    gl_Position = vec4(aPosition, 0.0, 1.0);
+                    vTexCoord = aPosition * 0.5 + 0.5;
                 }
-            }
-        }
+            `;
+        } else {
+            return `
+                attribute vec2 aPosition;
+                varying vec2 vTexCoord;
 
-
-        return this.createGeometryBuffer(allVertices, allIndices, allColors);
-    }
-
-    getSimplifiedGeometry(minCol, maxCol, minRow, maxRow, side, h, cells) {
-        const allVertices = [];
-        const allIndices = [];
-        const allColors = [];
-        let indexOffset = 0;
-
-        const gridStep = this.getMajorGridStep((maxCol - minCol + 1) * (maxRow - minRow + 1));
-        const markerSize = this.radius * 0.1;
-        // Add filled cells
-        indexOffset = this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, side, h, cells);
-        
-        // Draw simple grid markers at major intersections
-        for (let col = minCol; col <= maxCol; col += gridStep) {
-            for (let row = minRow; row <= maxRow; row += gridStep) {
-                const markerVertices = this.getGridMarkerGeometry(col, row, side, h, markerSize);
-                this.addGeometryAsQuad(allVertices, allIndices, allColors, indexOffset, markerVertices);
-                indexOffset += 4;
-            }
-        }
-
-
-        return this.createGeometryBuffer(allVertices, allIndices, allColors);
-    }
-
-    getMinimalGeometry(minCol, maxCol, minRow, maxRow, side, h, cells) {
-        const allVertices = [];
-        const allIndices = [];
-        const allColors = [];
-        let indexOffset = 0;
-
-        // Only draw filled cells, no grid markers
-        this.addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, side, h, cells);
-        
-        return this.createGeometryBuffer(allVertices, allIndices, allColors);
-    }
-
-    // Helper functions (same as HexagonGrid)
-    addGeometryAsQuad(vertices, indices, colors, offset, newVertices, color) {
-        if (newVertices.length !== 8) return;
-
-        vertices.push(...newVertices);
-        indices.push(
-            offset, offset + 1, offset + 2,
-            offset + 2, offset + 1, offset + 3
-        );
-
-        for (let i = 0; i < 4; i++) {
-            colors.push(...this.colorSchema.line);
+                void main() {
+                    gl_Position = vec4(aPosition, 0.0, 1.0);
+                    vTexCoord = aPosition * 0.5 + 0.5;
+                }
+            `;
         }
     }
 
-    addGeometryAsTriangles(vertices, indices, colors, offset, newVertices, color) {
-        if (newVertices.length === 0) return;
+    getFragmentShaderSource(isWebGL2 = false) {
+        if (isWebGL2) {
+            return `#version 300 es
+                precision mediump float;
 
-        vertices.push(...newVertices);
-        const vertexCount = newVertices.length / 2;
-        const triangleCount = vertexCount / 3;
+                uniform vec2 uResolution;
+                uniform vec2 uOffset;
+                uniform float uScale;
+                uniform float uGridSize;
+                uniform float uSideLength;
+                uniform float uHeight;
+                uniform vec4 uDrawColor;
+                uniform vec4 uBgColor;
+                uniform sampler2D uGridTexture;
 
-        for (let i = 0; i < triangleCount; i++) {
-            indices.push(
-                offset + i * 3,
-                offset + i * 3 + 1,
-                offset + i * 3 + 2
-            );
-        }
+                in vec2 vTexCoord;
+                out vec4 outColor;
 
-        for (let i = 0; i < vertexCount; i++) {
-            colors.push(...this.colorSchema.line);
-        }
-    }
+                bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
+                    vec2 v0 = b - a;
+                    vec2 v1 = c - a;
+                    vec2 v2 = p - a;
 
-    addFilledCells(allVertices, allIndices, allColors, indexOffset, minCol, maxCol, minRow, maxRow, side, h, cells) {
+                    float d00 = dot(v0, v0);
+                    float d01 = dot(v0, v1);
+                    float d11 = dot(v1, v1);
+                    float d20 = dot(v2, v0);
+                    float d21 = dot(v2, v1);
 
-        for (let col = minCol; col <= maxCol; col++) {
-            for (let row = minRow; row <= maxRow; row++) {
-                const status = cells.get(col)?.get(row);
-                if (status) {
-                    const x = col * (side / 2);
-                    const y = row * h;
-                    const upsideDown = (col + row) % 2 === 0;
-                    const cellData = this.getCellVertices(x, y, upsideDown, status);
-                    const fillColor = this.colorSchema[status];
+                    float denom = d00 * d11 - d01 * d01;
+                    float v = (d11 * d20 - d01 * d21) / denom;
+                    float w = (d00 * d21 - d01 * d20) / denom;
+                    float u = 1.0 - v - w;
 
-                    allVertices.push(...cellData.vertices);
-                    allIndices.push(...cellData.indices.map(idx => idx + indexOffset));
+                    return (u >= -0.001 && v >= -0.001 && w >= -0.001);
+                }
 
-                    for (let i = 0; i < 3; i++) {
-                        allColors.push(...fillColor);
+                void main() {
+                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                    worldPos += vec2(0.0001, 0.0001);
+
+                    float s = uSideLength;
+                    float h = uHeight;
+
+                    float row = floor(worldPos.y / h);
+                    float col = floor((worldPos.x - mod(row, 2.0) * s * 0.5) / s);
+
+                    float localX = worldPos.x - col * s - mod(row, 2.0) * s * 0.5;
+                    float localY = worldPos.y - row * h;
+
+                    bool isUpTriangle = mod(row + col, 2.0) == 0.0;
+                    vec2 p = vec2(localX, localY);
+                    bool inTriangle;
+
+                    if (isUpTriangle) {
+                        vec2 a = vec2(0.0, 0.0);
+                        vec2 b = vec2(s, 0.0);
+                        vec2 c = vec2(s * 0.5, h);
+                        inTriangle = pointInTriangle(p, a, b, c);
+                    } else {
+                        vec2 a = vec2(0.0, h);
+                        vec2 b = vec2(s, h);
+                        vec2 c = vec2(s * 0.5, 0.0);
+                        inTriangle = pointInTriangle(p, a, b, c);
                     }
 
-                    indexOffset += 3; // 3 vertices per triangle
-                }
-            }
-        }
-        return indexOffset;
-    }
+                    if (!inTriangle || row < 0.0 || row >= uGridSize || col < 0.0 || col >= uGridSize) {
+                        outColor = uBgColor;
+                        return;
+                    }
 
-    createGeometryBuffer(vertices, indices, colors) {
-        return {
-            vertices: new Float32Array(vertices),
-            indices: new Uint16Array(indices),
-            colors: new Float32Array(colors),
-            vertexCount: vertices.length / 2,
-            indexCount: indices.length
-        };
+                    vec2 texCoord = vec2((col + 0.5) / uGridSize, (row + 0.5) / uGridSize);
+                    vec4 cellValue = texture(uGridTexture, texCoord);
+                    outColor = (cellValue.a > 0.1) ? uDrawColor : uBgColor;
+                }
+            `;
+        } else {
+            return `
+                precision mediump float;
+
+                uniform vec2 uResolution;
+                uniform vec2 uOffset;
+                uniform float uScale;
+                uniform float uGridSize;
+                uniform float uSideLength;
+                uniform float uHeight;
+                uniform vec4 uDrawColor;
+                uniform vec4 uBgColor;
+                uniform sampler2D uGridTexture;
+
+                varying vec2 vTexCoord;
+
+                bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
+                    vec2 v0 = b - a;
+                    vec2 v1 = c - a;
+                    vec2 v2 = p - a;
+
+                    float d00 = dot(v0, v0);
+                    float d01 = dot(v0, v1);
+                    float d11 = dot(v1, v1);
+                    float d20 = dot(v2, v0);
+                    float d21 = dot(v2, v1);
+
+                    float denom = d00 * d11 - d01 * d01;
+                    float v = (d11 * d20 - d01 * d21) / denom;
+                    float w = (d00 * d21 - d01 * d20) / denom;
+                    float u = 1.0 - v - w;
+
+                    return (u >= -0.001 && v >= -0.001 && w >= -0.001);
+                }
+
+                void main() {
+                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                    worldPos += vec2(0.0001, 0.0001);
+
+                    float s = uSideLength;
+                    float h = uHeight;
+
+                    float row = floor(worldPos.y / h);
+                    float col = floor((worldPos.x - mod(row, 2.0) * s * 0.5) / s);
+
+                    float localX = worldPos.x - col * s - mod(row, 2.0) * s * 0.5;
+                    float localY = worldPos.y - row * h;
+
+                    bool isUpTriangle = mod(row + col, 2.0) == 0.0;
+                    vec2 p = vec2(localX, localY);
+                    bool inTriangle;
+
+                    if (isUpTriangle) {
+                        vec2 a = vec2(0.0, 0.0);
+                        vec2 b = vec2(s, 0.0);
+                        vec2 c = vec2(s * 0.5, h);
+                        inTriangle = pointInTriangle(p, a, b, c);
+                    } else {
+                        vec2 a = vec2(0.0, h);
+                        vec2 b = vec2(s, h);
+                        vec2 c = vec2(s * 0.5, 0.0);
+                        inTriangle = pointInTriangle(p, a, b, c);
+                    }
+
+                    if (!inTriangle || row < 0.0 || row >= uGridSize || col < 0.0 || col >= uGridSize) {
+                        gl_FragColor = uBgColor;
+                        return;
+                    }
+
+                    vec2 texCoord = vec2((col + 0.5) / uGridSize, (row + 0.5) / uGridSize);
+                    vec4 cellValue = texture2D(uGridTexture, texCoord);
+                    gl_FragColor = (cellValue.a > 0.1) ? uDrawColor : uBgColor;
+                }
+            `;
+        }
     }
 
     worldToCell(world) {
-        const side = this.radius * 2;
-        const h = Math.sqrt(3) / 2 * side;
-        const gridX = Math.floor(world.x / (side / 2));
-        const gridY = Math.floor(world.y / h);
-        return [gridX, gridY];
+        const s = this.sideLength;
+        const h = this.height;
+
+        const row = Math.floor(world.y / h);
+        const col = Math.floor((world.x - (row % 2) * s * 0.5) / s);
+
+        const localX = world.x - col * s - (row % 2) * s * 0.5;
+        const localY = world.y - row * h;
+
+        const isUpTriangle = (row + col) % 2 === 0;
+        let inTriangle = false;
+
+        if (isUpTriangle) {
+            inTriangle = this.pointInTriangle(
+                { x: localX, y: localY },
+                { x: 0, y: 0 },
+                { x: s, y: 0 },
+                { x: s * 0.5, y: h }
+            );
+        } else {
+            inTriangle = this.pointInTriangle(
+                { x: localX, y: localY },
+                { x: 0, y: h },
+                { x: s, y: h },
+                { x: s * 0.5, y: 0 }
+            );
+        }
+
+        if (!inTriangle || row < 0 || row >= this.gridSize || col < 0 || col >= this.gridSize) {
+            return [-1, -1];
+        }
+
+        return [col, row];
+    }
+
+    pointInTriangle(p, a, b, c) {
+        const v0 = { x: b.x - a.x, y: b.y - a.y };
+        const v1 = { x: c.x - a.x, y: c.y - a.y };
+        const v2 = { x: p.x - a.x, y: p.y - a.y };
+
+        const d00 = v0.x * v0.x + v0.y * v0.y;
+        const d01 = v0.x * v1.x + v0.y * v1.y;
+        const d11 = v1.x * v1.x + v1.y * v1.y;
+        const d20 = v2.x * v0.x + v2.y * v0.y;
+        const d21 = v2.x * v1.x + v2.y * v1.y;
+
+        const denom = d00 * d11 - d01 * d01;
+        const v = (d11 * d20 - d01 * d21) / denom;
+        const w = (d00 * d21 - d01 * d20) / denom;
+        const u = 1 - v - w;
+
+        return (u >= -0.001 && v >= -0.001 && w >= -0.001);
+    }
+
+    setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
+        const uniformLocations = {
+            resolution: gl.getUniformLocation(program, 'uResolution'),
+            offset: gl.getUniformLocation(program, 'uOffset'),
+            scale: gl.getUniformLocation(program, 'uScale'),
+            gridSize: gl.getUniformLocation(program, 'uGridSize'),
+            sideLength: gl.getUniformLocation(program, 'uSideLength'),
+            height: gl.getUniformLocation(program, 'uHeight'),
+            drawColor: gl.getUniformLocation(program, 'uDrawColor'),
+            bgColor: gl.getUniformLocation(program, 'uBgColor'),
+            gridTexture: gl.getUniformLocation(program, 'uGridTexture')
+        };
+
+        gl.uniform2f(uniformLocations.resolution, width, height);
+        gl.uniform2f(uniformLocations.offset, cameraView.camX, -cameraView.camY);
+        gl.uniform1f(uniformLocations.scale, cameraView.zoom);
+        gl.uniform1f(uniformLocations.gridSize, geometry.gridSize);
+        gl.uniform1f(uniformLocations.sideLength, geometry.baseCellSize);
+        gl.uniform1f(uniformLocations.height, geometry.baseCellSize * Math.sqrt(3) / 2);
+        gl.uniform4fv(uniformLocations.drawColor, drawColor);
+        gl.uniform4fv(uniformLocations.bgColor, bgColor);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+        gl.uniform1i(uniformLocations.gridTexture, 0);
+
+        return uniformLocations;
     }
 
     calculateBounds(bounds) {
         const [minX, maxX, minY, maxY] = bounds;
-        const side = this.radius * 2;
-        const h = Math.sqrt(3) / 2 * side;
+        const s = this.sideLength;
+        const h = this.height;
 
-        const minCol = Math.floor(minX / (side / 2)) - 2;
-        const maxCol = Math.ceil(maxX / (side / 2)) + 2;
-        const minRow = Math.floor(minY / h) - 2;
-        const maxRow = Math.ceil(maxY / h) + 2;
+        const minCol = Math.floor(minX / s) - 1;
+        const maxCol = Math.ceil(maxX / s) + 1;
+        const minRow = Math.floor(minY / h) - 1;
+        const maxRow = Math.ceil(maxY / h) + 1;
 
         return [minCol, maxCol, minRow, maxRow];
     }
 
-    getGridGeometry(bounds, cells, maxCols, maxRows, infinite) {
-        let [minCol, maxCol, minRow, maxRow] = this.calculateBounds(bounds);
-        const side = this.radius * 2;
-        const h = Math.sqrt(3) / 2 * side;
-
-        if (!infinite) {
-            const halfCols = Math.floor(maxCols / 2);
-            const halfRows = Math.floor(maxRows / 2);
-
-            minCol = Math.max(minCol, -halfCols);
-            maxCol = Math.min(maxCol, halfCols);
-            minRow = Math.max(minRow, -halfRows);
-            maxRow = Math.min(maxRow, halfRows);
+    pickTriangle(x, y) {
+        const world = this.screenToWorld(x, y, window.innerWidth, window.innerHeight, { camX: 0, camY: 0, zoom: 1 });
+        const cell = this.worldToCell(world);
+        if (cell[0] !== -1 && cell[1] !== -1) {
+            return { col: cell[0], row: cell[1] };
         }
-
-        const totalCells = (maxCol - minCol + 1) * (maxRow - minRow + 1);
-
-        let strategy;
-        if (totalCells > this.SIMPLIFIED_GRID_SIZE) {
-            strategy = 'minimal';
-        } else if (totalCells > this.DETAILED_GRID_SIZE) {
-            strategy = 'simplified';
-        } else {
-            strategy = 'detailed';
-        }
-
-        return this.geometryStrategies[strategy](minCol, maxCol, minRow, maxRow, side, h, cells);
+        return null;
     }
 
-    setGeometryStrategy(strategyName, strategyFunction) {
-        this.geometryStrategies[strategyName] = strategyFunction.bind(this);
+    drawCanvasCells(ctx, cells) {
+        const cellSize = this.baseCellSize || 60;
+        const height = cellSize * Math.sqrt(3) / 2;
+
+        for (const [col, colMap] of cells) {
+            for (const [row, state] of colMap) {
+                if (state) {
+                    const x = col * (cellSize / 2);
+                    const y = row * height;
+                    const orientation = (col + row) % 2;
+                    this.drawEquilateralTriangle(ctx, x, y, cellSize, orientation);
+                }
+            }
+        }
+    }
+
+    drawEquilateralTriangle(ctx, x, y, size, orientation) {
+        const height = size * Math.sqrt(3) / 2;
+        ctx.beginPath();
+        if (orientation === 0) {
+            ctx.moveTo(x, y + height);
+            ctx.lineTo(x + size / 2, y);
+            ctx.lineTo(x + size, y + height);
+        } else {
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + size / 2, y + height);
+            ctx.lineTo(x + size, y);
+        }
+        ctx.closePath();
+        ctx.fill();
     }
 }
 

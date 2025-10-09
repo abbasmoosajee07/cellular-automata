@@ -1,54 +1,45 @@
+
 class WebGLRenderer {
-    constructor(canvas) {
+    constructor(canvas, shapeGrid) {
         this.canvas = canvas;
+        this.shapeGrid = shapeGrid;
         this.gl = this.initWebGL();
-        if (!this.gl) {
-            throw new Error("WebGL not supported");
-        }
+        if (!this.gl) throw new Error("WebGL not supported");
+
+        this.isWebGL2 = this.gl instanceof WebGL2RenderingContext;
 
         this.initShaders();
         this.initBuffers();
         this.updateCanvasSize();
+
+        this.cachedGeometry = null;
     }
 
     initWebGL() {
-        const gl = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
+        let gl = this.canvas.getContext('webgl2');
+        if (!gl) {
+            gl = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
+            if (gl) console.warn("Falling back to WebGL1");
+        }
+
         if (!gl) {
             console.error('WebGL not supported');
             return null;
         }
-        
+
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.clearColor(0, 0, 0, 0);
-        
+
         return gl;
     }
 
     initShaders() {
         const gl = this.gl;
 
-        const vsSource = `
-            attribute vec2 aPosition;
-            attribute vec4 aColor;
-            uniform mat3 uTransform;
-            varying vec4 vColor;
-            
-            void main() {
-                vec2 position = (uTransform * vec3(aPosition, 1.0)).xy;
-                gl_Position = vec4(position, 0.0, 1.0);
-                vColor = aColor;
-            }
-        `;
-
-        const fsSource = `
-            precision mediump float;
-            varying vec4 vColor;
-            
-            void main() {
-                gl_FragColor = vColor;
-            }
-        `;
+        // Ask grid for appropriate shader sources
+        const vsSource = this.shapeGrid.getVertexShaderSource(this.isWebGL2);
+        const fsSource = this.shapeGrid.getFragmentShaderSource(this.isWebGL2);
 
         const vertexShader = this.compileShader(gl.VERTEX_SHADER, vsSource);
         const fragmentShader = this.compileShader(gl.FRAGMENT_SHADER, fsSource);
@@ -64,11 +55,7 @@ class WebGLRenderer {
 
         this.attribLocations = {
             position: gl.getAttribLocation(this.program, 'aPosition'),
-            color: gl.getAttribLocation(this.program, 'aColor')
-        };
-
-        this.uniformLocations = {
-            transform: gl.getUniformLocation(this.program, 'uTransform')
+            triIndex: gl.getAttribLocation(this.program, 'aTriIndex')
         };
     }
 
@@ -83,94 +70,99 @@ class WebGLRenderer {
             gl.deleteShader(shader);
             return null;
         }
-
         return shader;
     }
 
     initBuffers() {
         const gl = this.gl;
-        
-        this.vertexBuffer = gl.createBuffer();
-        this.colorBuffer = gl.createBuffer();
-        this.indexBuffer = gl.createBuffer();
-        
-        this.geometry = null;
+        const buffers = this.shapeGrid.setupGeometryBuffers(gl);
+
+        this.vertexBuffer = buffers.vertexBuffer;
+        this.indexBuffer = buffers.indexBuffer;
+        this.indexCount = buffers.indexCount;
+        this.usesTriIndex = buffers.usesTriIndex || false;
+        this.stride = buffers.stride || 8;
+        this.positionOffset = buffers.positionOffset || 0;
+        this.triIndexOffset = buffers.triIndexOffset || 0;
+
+        // Optional: use VAO if available
+        if (this.isWebGL2 && gl.createVertexArray) {
+            this.vao = gl.createVertexArray();
+            gl.bindVertexArray(this.vao);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+            gl.enableVertexAttribArray(this.attribLocations.position);
+            gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, this.stride, this.positionOffset);
+
+            if (this.attribLocations.triIndex >= 0 && this.usesTriIndex) {
+                gl.enableVertexAttribArray(this.attribLocations.triIndex);
+                gl.vertexAttribPointer(this.attribLocations.triIndex, 1, gl.FLOAT, false, this.stride, this.triIndexOffset);
+            }
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+            gl.bindVertexArray(null);
+        }
     }
 
     updateCanvasSize() {
         const width = window.innerWidth;
         const height = window.innerHeight;
-        
+
         this.canvas.width = width;
         this.canvas.height = height;
         this.width = width;
         this.height = height;
-        
+
         const gl = this.gl;
         gl.viewport(0, 0, width, height);
     }
 
     uploadGeometry(geometry) {
-        const gl = this.gl;
-
-        if (!geometry || geometry.vertexCount === 0) return;
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, geometry.vertices, gl.STATIC_DRAW);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, geometry.colors, gl.STATIC_DRAW);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, geometry.indices, gl.STATIC_DRAW);
-
-        this.geometry = geometry;
+        this.cachedGeometry = geometry;
     }
 
-    draw(cameraView) {
+    draw(cameraView, gridGeometry, drawColor, bgColor) {
         const gl = this.gl;
-        
-        if (!this.geometry || this.geometry.indexCount === 0) {
+
+        if (!gridGeometry || !gridGeometry.texture) {
             gl.clear(gl.COLOR_BUFFER_BIT);
             return;
         }
 
         gl.clear(gl.COLOR_BUFFER_BIT);
+
         gl.useProgram(this.program);
 
-        const transform = this.calculateTransform(cameraView);
-        gl.uniformMatrix3fv(this.uniformLocations.transform, false, transform);
+        if (this.vao) {
+            gl.bindVertexArray(this.vao);
+        } else {
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+            gl.enableVertexAttribArray(this.attribLocations.position);
+            gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, this.stride, this.positionOffset);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.attribLocations.position);
+            if (this.attribLocations.triIndex >= 0 && this.usesTriIndex) {
+                gl.enableVertexAttribArray(this.attribLocations.triIndex);
+                gl.vertexAttribPointer(this.attribLocations.triIndex, 1, gl.FLOAT, false, this.stride, this.triIndexOffset);
+            }
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
-        gl.vertexAttribPointer(this.attribLocations.color, 4, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.attribLocations.color);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        }
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.drawElements(gl.TRIANGLES, this.geometry.indexCount, gl.UNSIGNED_SHORT, 0);
-    }
+        const uniformLocations = this.shapeGrid.setupUniforms(
+            gl, this.program, cameraView, gridGeometry, drawColor, bgColor, this.width, this.height
+        );
 
-    calculateTransform(cameraView) {
-        const zoom = cameraView.zoom;
-        const camX = cameraView.camX;
-        const camY = cameraView.camY;
-        
-        // FIXED: Proper coordinate transformation that matches mouse calculations
-        const scaleX = (2 * zoom) / this.width;
-        const scaleY = (-2 * zoom) / this.height; // Keep negative for proper Y direction
-        
-        const translateX = (2 * camX) / this.width;
-        const translateY = (-2 * camY) / this.height;
-        
-        return new Float32Array([
-            scaleX, 0, 0,
-            0, scaleY, 0,
-            translateX, translateY, 1
-        ]);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, gridGeometry.texture);
+        gl.uniform1i(uniformLocations.gridTexture, 0);
+
+        gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
+
+        if (this.vao) {
+            gl.bindVertexArray(null);
+        }
     }
 }
+
 
 export { WebGLRenderer };

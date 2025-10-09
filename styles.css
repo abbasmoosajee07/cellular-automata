@@ -11,6 +11,9 @@
   --card-bg: #1a1a1a;
   --card-border: #333;
   --card-shadow: rgba(0, 0, 0, 0.2);
+
+  --remap-bg: #ff4e3a;           /* Vivid red */
+
 }
 
 body.light {
@@ -117,8 +120,8 @@ input[type="checkbox"] { width: auto; }
   margin: 0.4rem 0;
   background: #333;
   border: none;
-  padding: 0.5rem;
-  border-radius: 4px;
+  padding: 10px 18px;
+  border-radius: 8px;
   color: #fff;
   cursor: pointer;
   width: 100%;
@@ -126,9 +129,17 @@ input[type="checkbox"] { width: auto; }
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
   transition: background 0.2s;
+  cursor: pointer;
+  width: 90%;
+  max-width: 220px;
 }
+
 .action-btn:hover { background: #555; }
+
+.btn-remap { background-color: var(--remap-bg) !important; }
 
 /* ==============================
    Floating Control Buttons
