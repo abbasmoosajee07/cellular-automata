@@ -3,7 +3,6 @@
 ============================== */
 :root {
   --feature-color: #32cd32;
-  --line-color: #555555;
   --dark-color: #063706;
   --text-color: #eee;
   --muted: #aaa;
@@ -141,41 +140,6 @@ input[type="checkbox"] { width: auto; }
 
 .btn-remap { background-color: var(--remap-bg) !important; }
 
-/* ==============================
-   Floating Control Buttons
-============================== */
-.control-panel {
-  position: fixed;
-  bottom: 1vmin;
-  left: 1vmin;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  background: transparent !important;
-  border-radius: 10px;
-  padding: 0.5rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-}
-
-.control-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  background-color: var(--feature-color);
-  border: 1px solid var(--dark-color);
-  border-radius: 8px;
-  font-size: 1rem;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.control-btn:hover {
-  background-color: var(--dark-color);
-  color: #fff;
-  transform: scale(1.05);
-}
 
 /* ==============================
     Side Navigation Drawer
@@ -217,6 +181,7 @@ input[type="checkbox"] { width: auto; }
   align-items: center;
   transition: background 0.2s;
 }
+
 .toggle-panel-btn:hover {
   background-color: var(--dark-color);
   color: #fff;
@@ -384,4 +349,112 @@ input[type="checkbox"] { width: auto; }
   color: var(--text-color);
   border-color: var(--feature-color);
   box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+}
+
+
+/* 🔹 Shared floating panel style (used by control + status) */
+.ui-panel {
+  position: fixed;
+  backdrop-filter: blur(10px);
+  background: var(--card-border);
+  border: 1px solid var(--dark-color);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px var(--card-shadow);
+  color: var(--text-color);
+  padding: 0.5rem;
+  z-index: 20;
+  transition: all 0.25s ease;
+}
+
+/* 🧭 Control Panel */
+.control-panel {
+  bottom: 1vmin;
+  left: 1vmin;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* 📊 Status Bar */
+#statusBar {
+  top: 10px;
+  left: 1vmin;
+  /* transform: translateX(-50%); */
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  min-width: 260px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#statusBar span {
+  padding: 0 10px;
+  color: var(--muted);
+}
+
+/* 🎛 Control Buttons */
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background-color: var(--feature-color);
+  border: 1px solid var(--dark-color);
+  border-radius: 8px;
+  font-size: 1.1rem;
+  color: #111;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.control-btn:hover {
+  background-color: var(--dark-color);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+/* ☀️ Light Mode (optional) */
+body.light-mode {
+  background: #f5f5f5;
+  color: #222;
+}
+
+body.light-mode .ui-panel {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: #ccc;
+  color: #222;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .control-btn {
+  background-color: var(--feature-color);
+  color: #fff;
+}
+
+/* 📱 Responsive Layout for Mobile */
+@media (max-width: 600px) {
+  .control-panel {
+    flex-direction: row;
+    bottom: 1vmin;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  #statusBar {
+    bottom: calc(1vmin + 55px);
+    font-size: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+}
+
+/* 🪄 Optional hover highlight for panels */
+.ui-panel:hover {
+  background: rgba(26, 26, 26, 0.85);
+  transform: translateY(-1px);
 }

@@ -87,7 +87,7 @@ class GridManager {
 
     startRendering() {
         const renderLoop = () => {
-            // this.drawGrid();
+            this.drawGrid();
             requestAnimationFrame(renderLoop);
         };
         renderLoop();

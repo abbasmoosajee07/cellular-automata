@@ -29,6 +29,7 @@
 
     <!-- Collapsible Side Panel -->
     <div class="sidenav" id="menuPanel">
+
         <!-- Vertical Tabs on the left -->
         <div class="sidenav-tabs">
             <button class="tab-btn active" data-panel="aboutPanel">
@@ -198,18 +199,27 @@
     <!-- Main Canvas -->
     <canvas id="gridCanvas"></canvas>
 
-    <div class="control-panel">
+    <!-- 🧭 Control Panel -->
+    <div class="ui-panel control-panel">
         <button id="resetView" class="control-btn" title="Reset View">
-            <i class="bi bi-camera-video-fill"></i>
+        <i class="bi bi-camera-video-fill"></i>
         </button>
 
         <button id="pinLoc" class="control-btn" title="Pin Location">
-            <i class="bi bi-pin-map-fill"></i>
+        <i class="bi bi-pin-map-fill"></i>
         </button>
 
-        <button id="simCtrl" class="control-btn" title="Pin Location">
-            <i class="bi bi-play-fill"></i>
+        <button id="simCtrl" class="control-btn" title="Start Simulation">
+        <i class="bi bi-play-fill"></i>
         </button>
+    </div>
+
+    <!-- 📊 Status Bar -->
+    <div id="statusBar" class="ui-panel">
+        <span id="status-gen">Generation: 0</span>
+        <span id="status-popl">Population: 0</span>
+        <span id="status-zoom">Zoom: 1.00x</span>
+        <span id="status-camera">Camera: (0, 0)</span>
     </div>
 
     <script src="./scripts/utils.js"></script>
