@@ -245,7 +245,7 @@ class GridManager {
 
         const [x, y] = cell;
 
-        if (!this.checkBounds(x, y)) return false;
+        // if (!this.checkBounds(x, y)) return false;
 
         let newState;
         if (drawMode) {

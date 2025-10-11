@@ -19,7 +19,7 @@ class HexagonGrid extends BaseGrid {
         };
 
         gl.uniform2f(uniformLocations.resolution, width, height);
-        gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
+        gl.uniform2f(uniformLocations.offset, cameraView.camX, -cameraView.camY);
         gl.uniform1f(uniformLocations.scale, cameraView.zoom);
         gl.uniform1f(uniformLocations.gridSize, geometry.gridSize);
         gl.uniform1f(uniformLocations.radius, this.radius);
@@ -55,6 +55,7 @@ class HexagonGrid extends BaseGrid {
 
     getFragmentShaderSource(isWebGL2 = false) {
         if (isWebGL2) {
+            // ===== WebGL2 / GLSL ES 3.0 =====
             return `#version 300 es
             precision mediump float;
             in vec2 vTexCoord;
@@ -97,7 +98,9 @@ class HexagonGrid extends BaseGrid {
                 vec2 axial = worldToHex(worldPos, uRadius);
                 ivec2 cell = hexRound(axial);
 
-                vec2 texCoord = (vec2(float(cell.x) + uGridSize * 0.5, float(cell.y) + uGridSize * 0.5)) / uGridSize;
+                // ✅ Fixed integer–float mismatch with explicit casts
+                vec2 texCoord = (vec2(float(cell.x) + float(cell.y) * 0.5 + uGridSize * 0.5,
+                                    float(cell.y) + uGridSize * 0.5)) / uGridSize;
 
                 if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
                     outColor = uBgColor;
@@ -108,6 +111,7 @@ class HexagonGrid extends BaseGrid {
                 outColor = (cellValue.a > 0.5) ? uDrawColor : uBgColor;
             }`;
         } else {
+            // ===== WebGL1 / GLSL ES 1.0 =====
             return `
             precision mediump float;
             uniform vec2 uResolution;
@@ -143,11 +147,13 @@ class HexagonGrid extends BaseGrid {
             }
 
             void main() {
-                vec2 worldPos = (vTexCoord * uResolution - uResolution*0.5 - uOffset) / uScale;
+                vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
                 vec2 axial = worldToHex(worldPos, uRadius);
                 ivec2 cell = hexRound(axial);
 
-                vec2 texCoord = (vec2(float(cell.x) + uGridSize*0.5, float(cell.y) + uGridSize*0.5)) / uGridSize;
+                // ✅ Fixed type mismatch here too
+                vec2 texCoord = (vec2(float(cell.x) + float(cell.y) * 0.5 + uGridSize * 0.5,
+                                    float(cell.y) + uGridSize * 0.5)) / uGridSize;
 
                 if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
                     gl_FragColor = uBgColor;
@@ -160,10 +166,21 @@ class HexagonGrid extends BaseGrid {
         }
     }
 
-    worldToCell(worldPos) {
-        const q = (Math.sqrt(3)/3 * worldPos.x - 1/3 * worldPos.y) / this.radius;
-        const s = (2/3 * worldPos.y) / this.radius;
+    calculateBounds(bounds) {
+        const [minX, maxX, minY, maxY] = bounds;
+        const size = this.radius * 2;
+        const minCol = Math.floor(minX / size) - 1;
+        const maxCol = Math.ceil(maxX / size) + 1;
+        const minRow = Math.floor(minY / size) - 1;
+        const maxRow = Math.ceil(maxY / size) + 1;
+        return [minCol, maxCol, minRow, maxRow];
+    }
 
+    worldToCell(worldPos) {
+        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * worldPos.y) / this.radius;
+        const s = (2 / 3 * worldPos.y) / this.radius;
+
+        // Cube coordinates for rounding
         const x = q;
         const z = s;
         const y = -x - z;
@@ -180,20 +197,20 @@ class HexagonGrid extends BaseGrid {
         else if (dy > dz) ry = -rx - rz;
         else rz = -rx - ry;
 
-        return [rx, rz];
-    }
+        // === Match fragment shader layout ===
+        const gridX = rx + rz * 0.5 + this.gridSize / 2;
+        const gridY = rz + this.gridSize / 2;
 
-    calculateBounds(bounds) {
-        const [minX, maxX, minY, maxY] = bounds;
-        const size = this.radius * 2;
-        const minCol = Math.floor(minX / size) - 1;
-        const maxCol = Math.ceil(maxX / size) + 1;
-        const minRow = Math.floor(minY / size) - 1;
-        const maxRow = Math.ceil(maxY / size) + 1;
-        return [minCol, maxCol, minRow, maxRow];
+        if (this.rendererUsed === "canvas2d") {
+            return [rx, rz];
+        } else {
+            return [Math.floor(gridX), Math.floor(gridY)];
+        }
+
     }
 
     drawCanvasCells(ctx, cells) {
+        this.rendererUsed = "canvas2d";
         const radius = this.radius || 30;
         for (const [q, colMap] of cells) {
             for (const [r, state] of colMap) {
@@ -218,6 +235,7 @@ class HexagonGrid extends BaseGrid {
         ctx.closePath();
         ctx.fill();
     }
+
 }
 
 export { HexagonGrid };

@@ -147,6 +147,7 @@ class SquareGrid extends BaseGrid {
     }
 
     drawCanvasCells(ctx, cells) {
+        this.rendererUsed = "canvas2d";
         const cellSize = this.baseCellSize || 60;
         const halfGridSize = (this.gridSize * cellSize) / 2;
 
@@ -155,7 +156,7 @@ class SquareGrid extends BaseGrid {
                 if (state) {
                     const worldX = col * cellSize - halfGridSize;
                     const worldY = row * cellSize - halfGridSize;
-                    ctx.fillRect(worldX, worldY, cellSize, cellSize);
+                    ctx.fillRect(worldX, -worldY, cellSize, -cellSize);
                 }
             }
         }

@@ -2,6 +2,7 @@ class BaseGrid {
     constructor(colorSchema, shape) {
         this.colorSchema = colorSchema;
         this.shape = shape;
+        this.rendererUsed = "webgl";
 
         // Common properties
         this.zoom = 1;
