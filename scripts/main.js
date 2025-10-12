@@ -8,7 +8,8 @@ class AutomataSimulator{
         "neighborTiles",
     ]
 
-    constructor(){
+    constructor(useWebgl = true){
+        this.useWebgl = useWebgl;
         this.gridSize = [20, 20]
         this.initElements();
         this.initGrid();
@@ -56,7 +57,7 @@ class AutomataSimulator{
     }
 
     initGrid() {
-        this.gridManager = new GridManager("square", this.gridCanvas);
+        this.gridManager = new GridManager("square", this.gridCanvas, new Map(), this.useWebgl);
         this.savedView = { ...this.gridManager.cameraView };
         this.gridManager.gridRows = parseInt(this.rowInput.value);
         this.gridManager.gridCols = parseInt(this.colInput.value);
@@ -101,7 +102,8 @@ class AutomataSimulator{
             this.gridManager = new GridManager(
                 this.selectedShape,
                 this.gridCanvas,
-                oldGrid.cells
+                oldGrid.cells,
+                this.useWebgl
             );
 
             Object.assign(this.gridManager.cameraView, oldGrid.cameraView);

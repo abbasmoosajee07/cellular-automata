@@ -1,6 +1,7 @@
-import { SquareGrid } from './squares.js';
-import { HexagonGrid } from './hexagons.js';
-import { TriangleGrid } from './triangles.js';
+import { SquareGrid } from './tiles/square.js';
+import { HexagonGrid } from './tiles/hexagon.js';
+import { TriangleGrid } from './tiles/triangle.js';
+import { RhomboidalGrid } from './tiles/rhomboid.js';
 
 import { WebGLRenderer } from '../renderer/WebGL.js';
 import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
@@ -8,7 +9,7 @@ import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 class GridManager {
     adj_neighbors = [[0, -1], [0, 1], [1, 0], [-1, 0]];
 
-    constructor(shape, canvas, init_cells = new Map(), useWebGL = true) {
+    constructor(shape, canvas, init_cells = new Map(), useWebGL = false) {
         this.shape = shape || "square";
         this.canvas = canvas;
         this.useWebGL = useWebGL;
@@ -61,6 +62,7 @@ class GridManager {
         switch (shape) {
             case "square":   return new SquareGrid(colorSchema);
             case "hex":  return new HexagonGrid(colorSchema);
+            case "rhombus":  return new RhomboidalGrid(colorSchema);
             case "triangle":  return new TriangleGrid(colorSchema);
             default:
                 throw new Error(`Unknown grid shape: ${shape}`);

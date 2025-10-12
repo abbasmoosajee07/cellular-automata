@@ -96,6 +96,10 @@
                             <input type="radio" id="shape-square" name="shape" value="square" checked>
                             <label for="shape-square">Square</label>
                         </div>
+                        <div class="config-option">
+                            <input type="radio" id="shape-rhombus" name="shape" value="rhombus">
+                            <label for="shape-rhombus">Rhombus</label>
+                        </div>
                     </div>
                 </div>
 
@@ -143,6 +147,10 @@
                 <div class="form-row">
                     <label for="rowInput">Rows:</label>
                     <input type="number" class="grid-size-in" id="rowInput" min="1" value="20" step="1">
+                </div>
+                <div class="form-row">
+                    <label for="useWebgl">Use Webgl</label>
+                    <input type="checkbox" id="useWebgl"  onclick="switchRenderers()" checked>
                 </div>
                 <button id="reMap" class="btn btn-remap action-btn">
                     <i class="bi bi-arrow-repeat me-2"></i> Re-Map World
@@ -225,10 +233,39 @@
     <script src="./scripts/utils.js"></script>
     <script type = "module">
         import { AutomataSimulator } from './scripts/main.js';
-        // Initialize the simulator when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new AutomataSimulator();
-        });
+
+        // ===== SIMULATOR INITIALIZATION =====
+        let simulator = new AutomataSimulator(true); // default: WebGL ON
+
+        window.switchRenderers = function () {
+            const checkbox = document.getElementById("useWebgl");
+            const useWebgl = checkbox.checked;
+
+            const confirmed = confirm("Switch rendering mode? This will restart the simulator.");
+            if (!confirmed) {
+                // Revert checkbox state if user cancels
+                checkbox.checked = !useWebgl;
+                return;
+            }
+
+            // --- Safely clean up old simulator ---
+            try {
+                if (simulator && typeof simulator.delElements === "function") {
+                    simulator.delElements();
+                }
+                if (simulator && typeof simulator.destroy === "function") {
+                    simulator.destroy();
+                }
+            } catch (err) {
+                console.warn("Simulator cleanup error:", err);
+            }
+
+            // --- Create a fresh simulator with chosen rendering mode ---
+            simulator = new AutomataSimulator(useWebgl);
+
+            console.log(`Renderer switched to: ${useWebgl ? "WebGL" : "Canvas2D"}`);
+        };
+
     </script>
 
 </body>

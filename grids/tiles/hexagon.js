@@ -1,4 +1,4 @@
-import { BaseGrid } from './base.js';
+import { BaseGrid } from '../base.js';
 
 class HexagonGrid extends BaseGrid {
     constructor(colorSchema) {
