@@ -239,31 +239,6 @@ class GridManager {
         return true;
     }
 
-    toggleAt(px, py, drawMode, eraseMode) {
-        // Use direct screen to cell conversion for better accuracy
-        const cell = this.screenToCell(px, py);
-        // console.log(px, py, cell);
-        if (!cell) return false;
-
-        const [x, y] = cell;
-
-        // if (!this.checkBounds(x, y)) return false;
-
-        let newState;
-        if (drawMode) {
-            newState = 1;
-        } else if (eraseMode) {
-            newState = 0;
-        } else {
-            // safer check: ensure y exists in nested Map
-            const currentState = (this.cells.has(x) && this.cells.get(x).has(y)) ? this.cells.get(x).get(y) : 0;
-            newState = currentState ? 0 : 1;
-        }
-
-        this.changeCell(x, y, newState);
-        return true;
-    }
-
     clearAll() {
         // Update texture only if in WebGL mode
         if (this.useWebGL && this.renderer.gl) {
@@ -369,6 +344,55 @@ class GridManager {
             this.renderer.drawCanvas(this.cameraView, this.drawColor, this.bgColor, this.cells);
         }
     }
+
+    toggleAt(px, py, drawMode, eraseMode) {
+        const cell = this.screenToCell(px, py);
+        if (!cell) return false;
+
+        const [x, y] = cell;
+
+        let newState;
+        if (drawMode) {
+            newState = 1;
+        } else if (eraseMode) {
+            newState = 0;
+        } else {
+            const currentState = (this.cells.has(x) && this.cells.get(x).has(y))
+                ? this.cells.get(x).get(y)
+                : 0;
+            newState = currentState ? 0 : 1;
+        }
+
+        this.changeCell(x, y, newState);
+
+        // 🎵 play sound when toggled
+        // this.playToggleSound(newState === 1);
+
+        return true;
+    }
+
+    playToggleSound(isActive) {
+        const audioCtx = this.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        this.audioCtx = audioCtx;
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        // Set frequency based on on/off
+        osc.frequency.value = isActive ? 600 : 200;
+
+        // Volume envelope (quick click)
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+        // Connect and play
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
 }
 
 export { GridManager };

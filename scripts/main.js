@@ -175,6 +175,7 @@ class AutomataSimulator{
             if (e.touches && e.touches.length > 0) {
                 return { x: e.touches[0].clientX, y: e.touches[0].clientY, touches: e.touches.length };
             }
+            // this.updateStatusBar();
             return { x: e.clientX, y: e.clientY, touches: 1 };
         };
 
@@ -193,6 +194,7 @@ class AutomataSimulator{
                 draggingCam = false;
                 lastTouchDistance = null;
             }
+            this.updateStatusBar();
         };
 
         const handleMove = (e) => {
@@ -221,6 +223,7 @@ class AutomataSimulator{
                 lastY = pointer.y;
                 this.gridManager.drawGrid();
             }
+            this.updateStatusBar();
         };
 
         const handleUp = () => {
@@ -250,6 +253,7 @@ class AutomataSimulator{
             const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
             const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
             this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
+            this.updateStatusBar();
             this.gridManager.drawGrid();
         }, { passive: false });
 
@@ -268,6 +272,15 @@ class AutomataSimulator{
         // console.log(this.gridManager.cells);
     }
 
+    updateStatusBar() {
+        document.getElementById("status-gen").textContent = 0;
+
+        document.getElementById("status-popl").textContent = 0;
+
+        document.getElementById("status-zoom").textContent = this.gridManager.cameraView.zoom.toFixed(2) + "x";
+
+        document.getElementById("status-camera").textContent = `(${this.gridManager.cameraView.camX}, ${this.gridManager.cameraView.camY})`;
+    }
 }
 
 export { AutomataSimulator };

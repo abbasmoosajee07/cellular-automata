@@ -393,6 +393,16 @@ input[type="checkbox"] { width: auto; }
   color: var(--muted);
 }
 
+.status-item {
+  display: flex;
+  gap: 4px;
+}
+
+.status-label {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
 /* 🎛 Control Buttons */
 .control-btn {
   display: flex;

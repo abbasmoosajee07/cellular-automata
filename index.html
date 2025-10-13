@@ -85,16 +85,16 @@
                     <h3>Cell Shapes:</h3>
                     <div class="config-row">
                         <div class="config-option">
+                            <input type="radio" id="shape-square" name="shape" value="square" checked>
+                            <label for="shape-square">Square</label>
+                        </div>
+                        <div class="config-option">
                             <input type="radio" id="shape-hex" name="shape" value="hex">
                             <label for="shape-hex">Hexagons</label>
                         </div>
                         <div class="config-option">
                             <input type="radio" id="shape-triangle" name="shape" value="triangle">
                             <label for="shape-triangle">Triangle</label>
-                        </div>
-                        <div class="config-option">
-                            <input type="radio" id="shape-square" name="shape" value="square" checked>
-                            <label for="shape-square">Square</label>
                         </div>
                         <div class="config-option">
                             <input type="radio" id="shape-rhombus" name="shape" value="rhombus">
@@ -224,10 +224,22 @@
 
     <!-- 📊 Status Bar -->
     <div id="statusBar" class="ui-panel">
-        <span id="status-gen">Generation: 0</span>
-        <span id="status-popl">Population: 0</span>
-        <span id="status-zoom">Zoom: 1.00x</span>
-        <span id="status-camera">Camera: (0, 0)</span>
+    <div class="status-item">
+        <span class="status-label">Generation:</span>
+        <span id="status-gen">011</span>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Population:</span>
+        <span id="status-popl">0</span>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Zoom:</span>
+        <span id="status-zoom">1.00x</span>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Camera:</span>
+        <span id="status-camera">(0, 0)</span>
+    </div>
     </div>
 
     <script src="./scripts/utils.js"></script>

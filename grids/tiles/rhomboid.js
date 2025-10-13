@@ -149,7 +149,7 @@ class RhomboidalGrid extends BaseGrid {
         const gridX = rx + rz * 0.5 + this.gridSize / 2;
         const gridY = rz + this.gridSize / 2;
 
-        if (this.rendererUsed === "canvas2d1") {
+        if (this.rendererUsed === "canvas2d") {
             return [rx, rz];
         } else {
             return [Math.floor(gridX), Math.floor(gridY)];
