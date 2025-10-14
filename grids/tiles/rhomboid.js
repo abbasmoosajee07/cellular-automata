@@ -3,13 +3,11 @@ import { BaseGrid } from '../base.js';
 class RhomboidalGrid extends BaseGrid {
     /**
      * @param {Array} colorSchema - same shape as BaseGrid.colorSchema (indexed states -> rgba)
-     * @param {number} logicalGridSize - number of hex columns/rows (logical). The actual GPU texture will be logicalGridSize*3 in width.
      * @param {number} radius - hex radius in world units (matches HexagonGrid usage)
      */
-    constructor(colorSchema, logicalGridSize = 20, radius = 30) {
+    constructor(colorSchema) {
         super(colorSchema, "rhomboidal");
-        this.logicalGridSize = logicalGridSize; // number of hex columns/rows logically
-        this.radius = radius;
+        this.radius = 30;
 
         // cells: Map<q, Map<r, [s0, s1, s2]>>
         // where sN is 0/false or a state index or boolean
@@ -30,13 +28,10 @@ class RhomboidalGrid extends BaseGrid {
      * Call once you have a GL context to initialize underlying BaseGrid texture at 3x width.
      * This will create the underlying this.gridTexture and this.textureData via BaseGrid.initGridTexture.
      */
-    initForGL(gl, logicalGridSize = this.logicalGridSize) {
-        this.logicalGridSize = logicalGridSize;
-        // Create a square texture with width = logicalGridSize * 3 (so we have three texels per hex horizontally)
-        const texSize = this.logicalGridSize * 9;
-        // BaseGrid.initGridTexture expects a single gridSize and creates a gridSize x gridSize texture
-        super.initGridTexture(gl, texSize);
-        // After calling initGridTexture, this.gridSize === texSize and this.textureData exists (Uint8Array)
+    initForGL(gl) {
+        const texWidth = this.gridCols * 3;
+        const texHeight = this.gridRows;
+        super.initGridTexture(gl, texWidth, texHeight);
         this.gl = gl;
     }
 
@@ -58,21 +53,20 @@ class RhomboidalGrid extends BaseGrid {
         arr[rhombusIndex] = state ? 1 : 0;
 
         // compute texture pixel coords
-        const gx = Math.floor(q + this.logicalGridSize / 2);
-        const gy = Math.floor(r + this.logicalGridSize / 2);
+        const gx = Math.floor(q + this.gridCols / 2);
+        const gy = Math.floor(r + this.gridRows / 2);
 
         // actual texture width (BaseGrid stored it in this.gridSize)
-        const texWidth = this.gridSize;
         const texX = gx * 3 + rhombusIndex; // three texels per hex horizontally
         const texY = gy;
 
         // bounds check
-        if (texX < 0 || texX >= texWidth || texY < 0 || texY >= texWidth) {
+        if (texX < 0 || texX >= this.gridCols || texY < 0 || texY >= this.gridRows) {
             return false;
         }
 
         // write into this.textureData (Uint8Array of length gridSize*gridSize*4)
-        const index = (texY * texWidth + texX) * 4;
+        const index = (texY * this.gridCols + texX) * 4;
 
         if (state) {
             // we will store "on" as the color from colorSchema[1] if present, else white
@@ -146,8 +140,8 @@ class RhomboidalGrid extends BaseGrid {
         else if (dy > dz) ry = -rx - rz;
         else rz = -rx - ry;
 
-        const gridX = rx + rz * 0.5 + this.gridSize / 2;
-        const gridY = rz + this.gridSize / 2;
+        const gridX = rx + rz * 0.5 + this.gridCols / 2;
+        const gridY = rz + this.gridRows / 2;
 
         if (this.rendererUsed === "canvas2d") {
             return [rx, rz];
@@ -195,20 +189,20 @@ class RhomboidalGrid extends BaseGrid {
     getVertexShaderSource(isWebGL2 = false) {
         if (isWebGL2) {
             return `#version 300 es
-in vec2 aPosition;
-out vec2 vTexCoord;
-void main() {
-    gl_Position = vec4(aPosition, 0.0, 1.0);
-    vTexCoord = aPosition * 0.5 + 0.5;
-}`;
-        } else {
-            return `
-attribute vec2 aPosition;
-varying vec2 vTexCoord;
-void main() {
-    gl_Position = vec4(aPosition, 0.0, 1.0);
-    vTexCoord = aPosition * 0.5 + 0.5;
-}`;
+                in vec2 aPosition;
+                out vec2 vTexCoord;
+                void main() {
+                    gl_Position = vec4(aPosition, 0.0, 1.0);
+                    vTexCoord = aPosition * 0.5 + 0.5;
+                }`;
+                        } else {
+                            return `
+                attribute vec2 aPosition;
+                varying vec2 vTexCoord;
+                void main() {
+                    gl_Position = vec4(aPosition, 0.0, 1.0);
+                    vTexCoord = aPosition * 0.5 + 0.5;
+                }`;
         }
     }
 
@@ -216,122 +210,122 @@ void main() {
         // Use the cross-compatible fragment from earlier — it computes rhombusIndex and samples the widened texture
         const header = isWebGL2
             ? `#version 300 es
-precision mediump float;
-in vec2 vTexCoord;
-out vec4 outColor;`
-            : `precision mediump float;
-varying vec2 vTexCoord;`;
+            precision mediump float;
+            in vec2 vTexCoord;
+            out vec4 outColor;`
+                        : `precision mediump float;
+            varying vec2 vTexCoord;`;
 
-        const body = `
-uniform vec2 uResolution;
-uniform vec2 uOffset;
-uniform float uScale;
-uniform float uGridSize; // THIS should be logicalGridSize (passed as logicalGridSize*3 width)
-uniform float uRadius;
-uniform vec4 uDrawColor;
-uniform vec4 uBgColor;
-uniform sampler2D uGridTexture;
-uniform vec4 uRhombusColors[3];
+                    const body = `
+            uniform vec2 uResolution;
+            uniform vec2 uOffset;
+            uniform float uScale;
+            uniform float uGridRows;
+            uniform float uGridCols;
+            uniform float uRadius;
+            uniform vec4 uDrawColor;
+            uniform vec4 uBgColor;
+            uniform sampler2D uGridTexture;
+            uniform vec4 uRhombusColors[3];
 
-vec2 worldToHex(vec2 pos, float r) {
-    float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
-    float s = (2.0/3.0 * pos.y) / r;
-    return vec2(q, s);
-}
+            vec2 worldToHex(vec2 pos, float r) {
+                float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                float s = (2.0/3.0 * pos.y) / r;
+                return vec2(q, s);
+            }
 
-ivec2 hexRound(vec2 h) {
-    float x = h.x;
-    float z = h.y;
-    float y = -x - z;
-    float rx = floor(x + 0.5);
-    float ry = floor(y + 0.5);
-    float rz = floor(z + 0.5);
-    float dx = abs(rx - x);
-    float dy = abs(ry - y);
-    float dz = abs(rz - z);
-    if (dx > dy && dx > dz) rx = -ry - rz;
-    else if (dy > dz) ry = -rx - rz;
-    else rz = -rx - ry;
-    return ivec2(int(rx), int(rz));
-}
+            ivec2 hexRound(vec2 h) {
+                float x = h.x;
+                float z = h.y;
+                float y = -x - z;
+                float rx = floor(x + 0.5);
+                float ry = floor(y + 0.5);
+                float rz = floor(z + 0.5);
+                float dx = abs(rx - x);
+                float dy = abs(ry - y);
+                float dz = abs(rz - z);
+                if (dx > dy && dx > dz) rx = -ry - rz;
+                else if (dy > dz) ry = -rx - rz;
+                else rz = -rx - ry;
+                return ivec2(int(rx), int(rz));
+            }
 
-vec2 getHexVertex(int i, float r) {
-    float angle = 3.14159265359 / 3.0 * float(i) - 3.14159265359 / 6.0;
-    return vec2(r * cos(angle), r * sin(angle));
-}
+            vec2 getHexVertex(int i, float r) {
+                float angle = 3.14159265359 / 3.0 * float(i) - 3.14159265359 / 6.0;
+                return vec2(r * cos(angle), r * sin(angle));
+            }
 
-bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
-    vec2 v0 = c - a;
-    vec2 v1 = b - a;
-    vec2 v2 = p - a;
-    float dot00 = dot(v0, v0);
-    float dot01 = dot(v0, v1);
-    float dot02 = dot(v0, v2);
-    float dot11 = dot(v1, v1);
-    float dot12 = dot(v1, v2);
-    float invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
-    float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-    return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
-}
+            bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
+                vec2 v0 = c - a;
+                vec2 v1 = b - a;
+                vec2 v2 = p - a;
+                float dot00 = dot(v0, v0);
+                float dot01 = dot(v0, v1);
+                float dot02 = dot(v0, v2);
+                float dot11 = dot(v1, v1);
+                float dot12 = dot(v1, v2);
+                float invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+                float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+                float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+                return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
+            }
 
-int getRhombusIndex(vec2 localPos, float radius) {
-    vec2 c = vec2(0.0);
-    vec2 v0 = getHexVertex(0, radius);
-    vec2 v1 = getHexVertex(1, radius);
-    vec2 v2 = getHexVertex(2, radius);
-    vec2 v3 = getHexVertex(3, radius);
-    vec2 v4 = getHexVertex(4, radius);
-    vec2 v5 = getHexVertex(5, radius);
+            int getRhombusIndex(vec2 localPos, float radius) {
+                vec2 c = vec2(0.0);
+                vec2 v0 = getHexVertex(0, radius);
+                vec2 v1 = getHexVertex(1, radius);
+                vec2 v2 = getHexVertex(2, radius);
+                vec2 v3 = getHexVertex(3, radius);
+                vec2 v4 = getHexVertex(4, radius);
+                vec2 v5 = getHexVertex(5, radius);
 
-    if (pointInTriangle(localPos, c, v0, v1)) return 0;
-    if (pointInTriangle(localPos, c, v1, v2)) return 0;
-    if (pointInTriangle(localPos, c, v2, v3)) return 1;
-    if (pointInTriangle(localPos, c, v3, v4)) return 1;
-    if (pointInTriangle(localPos, c, v4, v5)) return 2;
-    if (pointInTriangle(localPos, c, v5, v0)) return 2;
-    return 0;
-}
+                if (pointInTriangle(localPos, c, v0, v1)) return 0;
+                if (pointInTriangle(localPos, c, v1, v2)) return 0;
+                if (pointInTriangle(localPos, c, v2, v3)) return 1;
+                if (pointInTriangle(localPos, c, v3, v4)) return 1;
+                if (pointInTriangle(localPos, c, v4, v5)) return 2;
+                if (pointInTriangle(localPos, c, v5, v0)) return 2;
+                return 0;
+            }
 
-void main() {
-    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-    vec2 axial = worldToHex(worldPos, uRadius);
-    ivec2 cell = hexRound(axial);
+            void main() {
+                vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                vec2 axial = worldToHex(worldPos, uRadius);
+                ivec2 cell = hexRound(axial);
 
-    vec2 hexCenter = vec2(
-        uRadius * sqrt(3.0) * (float(cell.x) + float(cell.y) * 0.5),
-        uRadius * 1.5 * float(cell.y)
-    );
+                vec2 hexCenter = vec2(
+                    uRadius * sqrt(3.0) * (float(cell.x) + float(cell.y) * 0.5),
+                    uRadius * 1.5 * float(cell.y)
+                );
 
-    vec2 localPos = worldPos - hexCenter;
-    if (length(localPos) > uRadius * 1.05) {
-        ${isWebGL2 ? "outColor = uBgColor;" : "gl_FragColor = uBgColor;"}
-        return;
-    }
+                vec2 localPos = worldPos - hexCenter;
+                if (length(localPos) > uRadius * 1.05) {
+                    ${isWebGL2 ? "outColor = uBgColor;" : "gl_FragColor = uBgColor;"}
+                    return;
+                }
 
-    int rhombusIndex = getRhombusIndex(localPos, uRadius);
+                int rhombusIndex = getRhombusIndex(localPos, uRadius);
 
-    // Our texture width is logicalGridSize*3 (stored in uGridSize when we set uniforms)
-    float gridWidth = uGridSize;
-    // compute texel coords: (rx + rz*0.5) * 3 + rhombusIndex  -> matches JS encoding
-    float texX = (float(cell.x) + float(cell.y) * 0.5) * 3.0 + float(rhombusIndex);
-    float texY = float(cell.y);
-    vec2 texCoord = (vec2(texX + gridWidth * 0.5, texY + uGridSize * 0.5)) / gridWidth;
+                float gridWidth = uGridCols;
+                // compute texel coords: (rx + rz*0.5) * 3 + rhombusIndex  -> matches JS encoding
+                float texX = (float(cell.x) + float(cell.y) * 0.5) * 3.0 + float(rhombusIndex);
+                float texY = float(cell.y);
+                vec2 texCoord = (vec2(texX + gridWidth * 0.5, texY + uGridRows * 0.5)) / gridWidth;
 
-    if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
-        ${isWebGL2 ? "outColor = uBgColor;" : "gl_FragColor = uBgColor;"}
-        return;
-    }
+                if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
+                    ${isWebGL2 ? "outColor = uBgColor;" : "gl_FragColor = uBgColor;"}
+                    return;
+                }
 
-    vec4 cellValue = ${isWebGL2 ? "texture(uGridTexture, texCoord)" : "texture2D(uGridTexture, texCoord)"};
+                vec4 cellValue = ${isWebGL2 ? "texture(uGridTexture, texCoord)" : "texture2D(uGridTexture, texCoord)"};
 
-    if (cellValue.a > 0.5) {
-        ${isWebGL2 ? "outColor = uRhombusColors[rhombusIndex];" : "gl_FragColor = uRhombusColors[rhombusIndex];"}
-    } else {
-        ${isWebGL2 ? "outColor = uBgColor;" : "gl_FragColor = uBgColor;"}
-    }
-}
-`;
+                if (cellValue.a > 0.5) {
+                    ${isWebGL2 ? "outColor = uRhombusColors[rhombusIndex];" : "gl_FragColor = uRhombusColors[rhombusIndex];"}
+                } else {
+                    ${isWebGL2 ? "outColor = uBgColor;" : "gl_FragColor = uBgColor;"}
+                }
+            }
+            `;
         return header + '\n' + body;
     }
 
@@ -396,9 +390,8 @@ void main() {
 
     //  Build texture from entire nested Map (useful on big updates)
     rebuildTextureFromCells(gl) {
-        // texture width/height are both this.gridSize (created earlier as logicalGridSize*3)
-        const texWidth = this.gridSize;
-        const texSize = texWidth;
+        const texWidth = this.gridCols;
+        const texSize = this.gridRows;
         // reset textureData
         for (let i = 0; i < this.textureData.length; i += 4) {
             this.textureData[i] = 0;
@@ -409,9 +402,9 @@ void main() {
 
         for (const [q, colMap] of this.cells) {
             for (const [r, arrState] of colMap) {
-                const gx = Math.floor(q + this.logicalGridSize / 2);
-                const gy = Math.floor(r + this.logicalGridSize / 2);
-                if (gx < 0 || gx >= this.logicalGridSize || gy < 0 || gy >= this.logicalGridSize) continue;
+                const gx = Math.floor(q + this.gridCols / 2);
+                const gy = Math.floor(r + this.gridRows / 2);
+                if (gx < 0 || gx >= this.gridCols || gy < 0 || gy >= this.gridRows) continue;
 
                 for (let i = 0; i < 3; i++) {
                     const texX = gx * 3 + i;
@@ -447,8 +440,8 @@ void main() {
             resolution: gl.getUniformLocation(program, "uResolution"),
             offset: gl.getUniformLocation(program, "uOffset"),
             scale: gl.getUniformLocation(program, "uScale"),
-            gridSize: gl.getUniformLocation(program, "uGridSize"),
-            radius: gl.getUniformLocation(program, "uRadius"),
+            gridCols: gl.getUniformLocation(program, "uGridCols"),
+            gridRows: gl.getUniformLocation(program, "uGridRows"),            radius: gl.getUniformLocation(program, "uRadius"),
             drawColor: gl.getUniformLocation(program, "uDrawColor"),
             bgColor: gl.getUniformLocation(program, "uBgColor"),
             gridTexture: gl.getUniformLocation(program, "uGridTexture"),
@@ -457,10 +450,10 @@ void main() {
 
         gl.uniform2f(uniformLocations.resolution, width, height);
         // follow HexagonGrid: note HexagonGrid used -cameraView.camY; maintain consistent orientation for you
-        gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
+        gl.uniform2f(uniformLocations.offset, cameraView.camX, -cameraView.camY);
         gl.uniform1f(uniformLocations.scale, cameraView.zoom);
-        // pass the actual texture width (logicalGridSize*3)
-        gl.uniform1f(uniformLocations.gridSize, geometry.gridSize);
+        gl.uniform1f(uniformLocations.gridCols, geometry.gridCols);
+        gl.uniform1f(uniformLocations.gridRows, geometry.gridRows);
         gl.uniform1f(uniformLocations.radius, this.radius);
         gl.uniform4fv(uniformLocations.drawColor, drawColor);
         gl.uniform4fv(uniformLocations.bgColor, bgColor);

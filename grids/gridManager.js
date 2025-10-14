@@ -1,8 +1,8 @@
-import { SquareGrid } from './tiles/square.js';
 import { HexagonGrid } from './tiles/hexagon.js';
 import { TriangleGrid } from './tiles/triangle.js';
 import { RhomboidalGrid } from './tiles/rhomboid.js';
 
+import { SquareGrid } from './tiles/square.js';
 import { WebGLRenderer } from '../renderer/WebGL.js';
 import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 
@@ -16,7 +16,7 @@ class GridManager {
         this.cells = init_cells;
         this.neighborsMap = new Map();
 
-        // Grid defaults
+        // Grid defaults - now properly using both dimensions
         this.gridRows = 20;
         this.gridCols = 20;
         this.infiniteGrid = false;
@@ -30,8 +30,7 @@ class GridManager {
             1: this.hexToRgb("#32cd32"),
         };
         this.drawColor = this.colorSchema[1];
-        this.bgColor = [0.5,0.5,0.5,0];//this.hexToRgb("");
-        // console.log(this.bgColor);
+        this.bgColor = [0.5,0.5,0.5,0];
 
         // Initialize shape-specific grid
         this.shapeGrid = this.createShapeGrid(this.shape);
@@ -41,10 +40,11 @@ class GridManager {
         
         // Initialize grid - only call initGridTexture if we have a valid WebGL context
         if (this.useWebGL && this.renderer.gl) {
-            this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols);
+            this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols, this.gridRows);
         } else {
             // For Canvas2D, manually set the grid size without calling initGridTexture
-            this.shapeGrid.gridSize = this.gridCols;
+            this.shapeGrid.gridCols = this.gridCols;
+            this.shapeGrid.gridRows = this.gridRows;
             this.shapeGrid.useWebGL = false;
         }
         
@@ -60,8 +60,8 @@ class GridManager {
     createShapeGrid(shape) {
         const { colorSchema } = this;
         switch (shape) {
-            case "square":   return new SquareGrid(colorSchema);
             case "hex":  return new HexagonGrid(colorSchema);
+            case "square":   return new SquareGrid(colorSchema);
             case "rhombus":  return new RhomboidalGrid(colorSchema);
             case "triangle":  return new TriangleGrid(colorSchema);
             default:
@@ -287,7 +287,6 @@ class GridManager {
     }
 
     resizeGrid(newCols, newRows) {
-
         this.gridCols = newCols;
         this.gridRows = newRows;
 
@@ -309,10 +308,11 @@ class GridManager {
 
         // Resize the texture (only in WebGL mode)
         if (this.useWebGL && this.renderer.gl) {
-            this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, oldCells);
+            this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, oldCells);
         } else {
             // For Canvas2D, just update the grid size
-            this.shapeGrid.gridSize = newCols;
+            this.shapeGrid.gridCols = newCols;
+            this.shapeGrid.gridRows = newRows;
         }
         
         // Update cells with the resized data
@@ -392,7 +392,6 @@ class GridManager {
         osc.start();
         osc.stop(audioCtx.currentTime + 0.1);
     }
-
 }
 
 export { GridManager };

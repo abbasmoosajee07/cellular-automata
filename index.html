@@ -81,6 +81,7 @@
                     <i id="themeIcon" class="bi"></i>
                 </button>
 
+                <!-- Tile Shapes -->
                 <div class="config-group">
                     <h3>Cell Shapes:</h3>
                     <div class="config-row">
@@ -103,20 +104,7 @@
                     </div>
                 </div>
 
-                <div class="config-group">
-                    <h3>Neighbor Rules</h3>
-                    <div class="config-row">
-                        <div class="config-option">
-                            <input type="radio" id="neighbors-adjacent" name="neighbors" value="adjacent" checked>
-                            <label for="neighbors-adjacent">Adjacent Only</label>
-                        </div>
-                        <div class="config-option">
-                            <input type="radio" id="neighbors-touching" name="neighbors" value="touching">
-                            <label for="neighbors-touching">All Touching</label>
-                        </div>
-                    </div>
-                </div>
-
+                <!-- Boundary Behaviour -->
                 <div class="config-group">
                     <h3>Boundary Behavior</h3>
                     <div class="config-row">
@@ -135,6 +123,21 @@
                         <div class="config-option">
                             <input type="radio" id="bounds-cliff" name="bounds" value="cliff">
                             <label for="bounds-cliff">Fall off</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Neighbor Rules -->
+                <div class="config-group">
+                    <h3>Neighbor Rules</h3>
+                    <div class="config-row">
+                        <div class="config-option">
+                            <input type="radio" id="neighbors-adjacent" name="neighbors" value="adjacent" checked>
+                            <label for="neighbors-adjacent">Adjacent Only</label>
+                        </div>
+                        <div class="config-option">
+                            <input type="radio" id="neighbors-touching" name="neighbors" value="touching">
+                            <label for="neighbors-touching">All Touching</label>
                         </div>
                     </div>
                 </div>

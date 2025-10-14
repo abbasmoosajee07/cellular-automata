@@ -40,7 +40,8 @@ class SquareGrid extends BaseGrid {
                 uniform vec2 uResolution;
                 uniform vec2 uOffset;
                 uniform float uScale;
-                uniform float uGridSize;
+                uniform float uGridCols;
+                uniform float uGridRows;
                 uniform float uBaseCellSize;
                 uniform vec4 uDrawColor;
                 uniform vec4 uBgColor;
@@ -50,11 +51,12 @@ class SquareGrid extends BaseGrid {
 
                 void main() {
                     vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                    float halfGridWorld = uGridSize * uBaseCellSize * 0.5;
-                    vec2 gridPos = floor((worldPos + halfGridWorld) / uBaseCellSize);
+                    float halfGridWorldX = uGridCols * uBaseCellSize * 0.5;
+                    float halfGridWorldY = uGridRows * uBaseCellSize * 0.5;
+                    vec2 gridPos = floor((worldPos + vec2(halfGridWorldX, halfGridWorldY)) / uBaseCellSize);
 
-                    if (gridPos.x >= 0.0 && gridPos.x < uGridSize && gridPos.y >= 0.0 && gridPos.y < uGridSize) {
-                        vec2 texCoord = gridPos / uGridSize;
+                    if (gridPos.x >= 0.0 && gridPos.x < uGridCols && gridPos.y >= 0.0 && gridPos.y < uGridRows) {
+                        vec2 texCoord = vec2(gridPos.x / uGridCols, gridPos.y / uGridRows);
                         vec4 cellValue = texture(uGridTexture, texCoord);
 
                         if (cellValue.a > 0.5) {
@@ -74,7 +76,8 @@ class SquareGrid extends BaseGrid {
                 uniform vec2 uResolution;
                 uniform vec2 uOffset;
                 uniform float uScale;
-                uniform float uGridSize;
+                uniform float uGridCols;
+                uniform float uGridRows;
                 uniform float uBaseCellSize;
                 uniform vec4 uDrawColor;
                 uniform vec4 uBgColor;
@@ -83,11 +86,12 @@ class SquareGrid extends BaseGrid {
 
                 void main() {
                     vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                    float halfGridWorld = uGridSize * uBaseCellSize * 0.5;
-                    vec2 gridPos = floor((worldPos + halfGridWorld) / uBaseCellSize);
+                    float halfGridWorldX = uGridCols * uBaseCellSize * 0.5;
+                    float halfGridWorldY = uGridRows * uBaseCellSize * 0.5;
+                    vec2 gridPos = floor((worldPos + vec2(halfGridWorldX, halfGridWorldY)) / uBaseCellSize);
 
-                    if (gridPos.x >= 0.0 && gridPos.x < uGridSize && gridPos.y >= 0.0 && gridPos.y < uGridSize) {
-                        vec2 texCoord = gridPos / uGridSize;
+                    if (gridPos.x >= 0.0 && gridPos.x < uGridCols && gridPos.y >= 0.0 && gridPos.y < uGridRows) {
+                        vec2 texCoord = vec2(gridPos.x / uGridCols, gridPos.y / uGridRows);
                         vec4 cellValue = texture2D(uGridTexture, texCoord);
 
                         if (cellValue.a > 0.5) {
@@ -105,9 +109,10 @@ class SquareGrid extends BaseGrid {
 
     worldToCell(world) {
         const size = this.baseCellSize;
-        const halfGridSize = (this.gridSize * size) / 2;
-        const cellX = Math.floor((world.x + halfGridSize) / size);
-        const cellY = Math.floor((world.y + halfGridSize) / size);
+        const halfGridWidth = (this.gridCols * size) / 2;
+        const halfGridHeight = (this.gridRows * size) / 2;
+        const cellX = Math.floor((world.x + halfGridWidth) / size);
+        const cellY = Math.floor((world.y + halfGridHeight) / size);
         return [cellX, cellY];
     }
 
@@ -128,7 +133,8 @@ class SquareGrid extends BaseGrid {
             resolution: gl.getUniformLocation(program, 'uResolution'),
             offset: gl.getUniformLocation(program, 'uOffset'),
             scale: gl.getUniformLocation(program, 'uScale'),
-            gridSize: gl.getUniformLocation(program, 'uGridSize'),
+            gridCols: gl.getUniformLocation(program, 'uGridCols'),
+            gridRows: gl.getUniformLocation(program, 'uGridRows'),
             baseCellSize: gl.getUniformLocation(program, 'uBaseCellSize'),
             drawColor: gl.getUniformLocation(program, 'uDrawColor'),
             bgColor: gl.getUniformLocation(program, 'uBgColor'),
@@ -138,7 +144,8 @@ class SquareGrid extends BaseGrid {
         gl.uniform2f(uniformLocations.resolution, width, height);
         gl.uniform2f(uniformLocations.offset, cameraView.camX, -cameraView.camY);
         gl.uniform1f(uniformLocations.scale, cameraView.zoom);
-        gl.uniform1f(uniformLocations.gridSize, geometry.gridSize);
+        gl.uniform1f(uniformLocations.gridCols, geometry.gridCols);
+        gl.uniform1f(uniformLocations.gridRows, geometry.gridRows);
         gl.uniform1f(uniformLocations.baseCellSize, geometry.baseCellSize);
         gl.uniform4fv(uniformLocations.drawColor, drawColor);
         gl.uniform4fv(uniformLocations.bgColor, bgColor);
@@ -149,13 +156,14 @@ class SquareGrid extends BaseGrid {
     drawCanvasCells(ctx, cells) {
         this.rendererUsed = "canvas2d";
         const cellSize = this.baseCellSize || 60;
-        const halfGridSize = (this.gridSize * cellSize) / 2;
+        const halfGridWidth = (this.gridCols * cellSize) / 2;
+        const halfGridHeight = (this.gridRows * cellSize) / 2;
 
         for (const [col, colMap] of cells) {
             for (const [row, state] of colMap) {
                 if (state) {
-                    const worldX = col * cellSize - halfGridSize;
-                    const worldY = row * cellSize - halfGridSize;
+                    const worldX = col * cellSize - halfGridWidth;
+                    const worldY = row * cellSize - halfGridHeight;
                     ctx.fillRect(worldX, -worldY, cellSize, -cellSize);
                 }
             }
