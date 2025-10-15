@@ -39,7 +39,7 @@ class Canvas2DRenderer {
         ctx.save();
         ctx.translate(this.width / 2, this.height / 2);
         ctx.scale(cameraView.zoom, cameraView.zoom);
-        ctx.translate(cameraView.camX, cameraView.camY);
+        ctx.translate(cameraView.camX, -cameraView.camY);
 
         // --- Cell fill color ---
         ctx.fillStyle = `rgba(

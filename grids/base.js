@@ -1,4 +1,5 @@
-class BaseGrid2 {
+
+class BaseGrid {
     constructor(colorSchema, shape) {
         this.colorSchema = colorSchema;
         this.shape = shape;
@@ -6,230 +7,25 @@ class BaseGrid2 {
 
         // Common properties
         this.zoom = 1;
-        this.gridTexture = null;
-        this.textureData = null;
-        this.gridSize = 20;
-
-        // Common WebGL buffers
-        this.vertexBuffer = null;
-        this.indexBuffer = null;
-    }
-
-    // COMPLETELY IDENTICAL METHODS
-    setupGeometryBuffers(gl) {
-        this.vertexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-
-        const vertices = new Float32Array([
-            -1.0, -1.0,  // bottom left
-            1.0, -1.0,   // bottom right
-            1.0, 1.0,    // top right
-            -1.0, 1.0    // top left
-        ]);
-
-        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-        this.indexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-
-        const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-
-        return {
-            vertexBuffer: this.vertexBuffer,
-            indexBuffer: this.indexBuffer,
-            vertexCount: 4,
-            indexCount: 6
-        };
-    }
-
-    initGridTexture(gl, gridSize) {
-        this.gridSize = gridSize;
-        this.textureData = new Uint8Array(gridSize * gridSize * 4);
-
-        // Initialize texture data to empty
-        for (let i = 0; i < gridSize * gridSize * 4; i += 4) {
-            this.textureData[i] = 0;     // R
-            this.textureData[i + 1] = 0; // G
-            this.textureData[i + 2] = 0; // B
-            this.textureData[i + 3] = 0; // A (0 = transparent)
-        }
-
-        // Create WebGL texture
-        this.gridTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gridSize, gridSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-    }
-
-    updateGridTexture(gl) {
-        if (!this.gridTexture) return;
-
-        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.gridSize, this.gridSize, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-    }
-
-    resizeGridTexture(gl, newGridSize, oldCells) {
-        const oldData = this.textureData;
-        const oldSize = this.gridSize;
-
-        this.initGridTexture(gl, newGridSize);
-        if (oldCells && oldData) {
-            for (let y = 0; y < Math.min(oldSize, newGridSize); y++) {
-                for (let x = 0; x < Math.min(oldSize, newGridSize); x++) {
-                    const oldIndex = (y * oldSize + x) * 4;
-                    if (oldData[oldIndex + 3] > 0) {
-                        this.setCellState(gl, x, y, true);
-                    }
-                }
-            }
-        }
-    }
-
-    setCellState(gl, x, y, state) {
-        if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
-            const index = (y * this.gridSize + x) * 4;
-
-            if (state) {
-                const color = this.colorSchema[state] || [1, 1, 1, 1];
-                this.textureData[index] = color[0] * 255;
-                this.textureData[index + 1] = color[1] * 255;
-                this.textureData[index + 2] = color[2] * 255;
-                this.textureData[index + 3] = 255;
-            } else {
-                this.textureData[index] = 0;
-                this.textureData[index + 1] = 0;
-                this.textureData[index + 2] = 0;
-                this.textureData[index + 3] = 0;
-            }
-
-            // Update single pixel in texture
-            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-            const pixelData = new Uint8Array([
-                this.textureData[index],
-                this.textureData[index + 1],
-                this.textureData[index + 2],
-                this.textureData[index + 3]
-            ]);
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
-            
-            return true;
-        }
-        return false;
-    }
-
-    screenToWorld(px, py, width, height, cameraView) {
-        const worldX = (px - width / 2 - cameraView.camX) / cameraView.zoom;
-        const worldY = (height / 2 - py - cameraView.camY) / cameraView.zoom;
-        return { x: worldX, y: worldY };
-    }
-
-    getGridGeometry() {
-        return {
-            texture: this.gridTexture,
-            gridSize: this.gridSize,
-            baseCellSize: this.baseCellSize || this.radius || this.sideLength,
-            vertexCount: 4,
-            indexCount: 6
-        };
-    }
-
-    clearGrid(gl) {
-        for (let y = 0; y < this.gridSize; y++) {
-            for (let x = 0; x < this.gridSize; x++) {
-                this.setCellState(gl, x, y, false);
-            }
-        }
-    }
-
-    fillRandom(rgba, density = 0.3) {
-        const r = Math.floor(rgba[0] * 255);
-        const g = Math.floor(rgba[1] * 255);
-        const b = Math.floor(rgba[2] * 255);
-        const a = Math.floor(rgba[3] * 255);
-
-        this.clearGrid(this.gl);
-
-        for (let y = 0; y < this.gridSize; y++) {
-            for (let x = 0; x < this.gridSize; x++) {
-                if (Math.random() < density) {
-                    const idx = (y * this.gridSize + x) * 4;
-                    this.textureData[idx] = r;
-                    this.textureData[idx + 1] = g;
-                    this.textureData[idx + 2] = b;
-                    this.textureData[idx + 3] = a;
-                }
-            }
-        }
-        if (this.gl) this.updateGridTexture(this.gl);
-    }
-
-    clear() {
-        for (let i = 0; i < this.textureData.length; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
-        if (this.gl) this.updateGridTexture(this.gl);
-    }
-
-    // Abstract methods that must be implemented by subclasses
-    getVertexShaderSource() {
-        throw new Error("Method 'getVertexShaderSource()' must be implemented.");
-    }
-
-    getFragmentShaderSource() {
-        throw new Error("Method 'getFragmentShaderSource()' must be implemented.");
-    }
-
-    worldToCell(world) {
-        throw new Error("Method 'worldToCell()' must be implemented.");
-    }
-
-    setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
-        throw new Error("Method 'setupUniforms()' must be implemented.");
-    }
-
-    calculateBounds(bounds) {
-        throw new Error("Method 'calculateBounds()' must be implemented.");
-    }
-
-    drawCanvasCells(ctx, cells) {
-        throw new Error("Method 'drawCanvasCells()' must be implemented.(Used as back up to WebGL Renderer)");
-    }
-}
-class BaseGrid {
-    constructor(colorSchema, shape) {
-        this.colorSchema = colorSchema;
-        this.shape = shape;
-        this.rendererUsed = "webgl";
-
-        // Common properties - now separate for rows and cols
-        this.zoom = 1;
-        this.gridTexture = null;
-        this.textureData = null;
         this.gridCols = 20;
         this.gridRows = 20;
+        this.gridTexture = null;
+        this.textureData = null;
 
         // Common WebGL buffers
         this.vertexBuffer = null;
         this.indexBuffer = null;
     }
 
-    // COMPLETELY IDENTICAL METHODS
     setupGeometryBuffers(gl) {
         this.vertexBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
 
         const vertices = new Float32Array([
-            -1.0, -1.0,  // bottom left
-            1.0, -1.0,   // bottom right
-            1.0, 1.0,    // top right
-            -1.0, 1.0    // top left
+            -1.0, -1.0,
+            1.0, -1.0,
+            1.0, 1.0,
+            -1.0, 1.0
         ]);
 
         gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
@@ -248,58 +44,40 @@ class BaseGrid {
         };
     }
 
-    initGridTexture(gl, gridCols, gridRows) {
-        this.gridCols = gridCols;
-        this.gridRows = gridRows;
-        this.textureData = new Uint8Array(gridCols * gridRows * 4);
+    initGridTexture(gl, width, height) {
+        this.textureWidth = width;
+        this.textureHeight = height;
+        this.textureData = new Uint8Array(width * height * 4);
 
-        // Initialize texture data to empty
-        for (let i = 0; i < gridCols * gridRows * 4; i += 4) {
-            this.textureData[i] = 0;     // R
-            this.textureData[i + 1] = 0; // G
-            this.textureData[i + 2] = 0; // B
-            this.textureData[i + 3] = 0; // A (0 = transparent)
+        for (let i = 0; i < width * height * 4; i += 4) {
+            this.textureData[i] = 0;
+            this.textureData[i + 1] = 0;
+            this.textureData[i + 2] = 0;
+            this.textureData[i + 3] = 0;
         }
 
-        // Create WebGL texture
         this.gridTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gridCols, gridRows, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
     }
 
-    updateGridTexture(gl) {
-        if (!this.gridTexture) return;
-
-        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.gridCols, this.gridRows, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+    cubeToTextureCoords(q, r, s) {
+        // Convert cube coordinates to texture coordinates
+        // Center (0,0,0) maps to center of texture
+        const x = q + this.textureWidth / 2;
+        const y = r + this.textureHeight / 2;
+        return [Math.floor(x), Math.floor(y)];
     }
 
-    resizeGridTexture(gl, newCols, newRows, oldCells) {
-        const oldData = this.textureData;
-        const oldCols = this.gridCols;
-        const oldRows = this.gridRows;
+    setCellState(gl, q, r, s, state) {
+        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
 
-        this.initGridTexture(gl, newCols, newRows);
-        
-        // Copy old cell data
-        if (oldCells && oldData) {
-            for (const [col, colMap] of oldCells) {
-                for (const [row, state] of colMap) {
-                    if (col < newCols && row < newRows && state) {
-                        this.setCellState(gl, col, row, state);
-                    }
-                }
-            }
-        }
-    }
-
-    setCellState(gl, x, y, state) {
-        if (x >= 0 && x < this.gridCols && y >= 0 && y < this.gridRows) {
-            const index = (y * this.gridCols + x) * 4;
+        if (texX >= 0 && texX < this.textureWidth && texY >= 0 && texY < this.textureHeight) {
+            const index = (texY * this.textureWidth + texX) * 4;
 
             if (state) {
                 const color = this.colorSchema[state] || [1, 1, 1, 1];
@@ -314,7 +92,6 @@ class BaseGrid {
                 this.textureData[index + 3] = 0;
             }
 
-            // Update single pixel in texture
             gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
             const pixelData = new Uint8Array([
                 this.textureData[index],
@@ -322,7 +99,7 @@ class BaseGrid {
                 this.textureData[index + 2],
                 this.textureData[index + 3]
             ]);
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
             
             return true;
         }
@@ -335,68 +112,55 @@ class BaseGrid {
         return { x: worldX, y: worldY };
     }
 
-    getGridGeometry() {
+    getGridGeometry(bounds, cells, gridCols, gridRows, infiniteGrid, gl) {
         return {
             texture: this.gridTexture,
-            gridCols: this.gridCols,
-            gridRows: this.gridRows,
-            baseCellSize: this.baseCellSize || this.radius || this.sideLength,
+            textureWidth: this.textureWidth,
+            textureHeight: this.textureHeight,
+            gridCols: gridCols,
+            gridRows: gridRows,
+            baseCellSize: this.baseCellSize || this.radius || 50,
             vertexCount: 4,
             indexCount: 6
         };
     }
 
     clearGrid(gl) {
-        for (let y = 0; y < this.gridRows; y++) {
-            for (let x = 0; x < this.gridCols; x++) {
-                this.setCellState(gl, x, y, false);
+        for (let y = 0; y < this.textureHeight; y++) {
+            for (let x = 0; x < this.textureWidth; x++) {
+                const index = (y * this.textureWidth + x) * 4;
+                this.textureData[index] = 0;
+                this.textureData[index + 1] = 0;
+                this.textureData[index + 2] = 0;
+                this.textureData[index + 3] = 0;
             }
         }
-    }
-
-    fillRandom(rgba, density = 0.3) {
-        const r = Math.floor(rgba[0] * 255);
-        const g = Math.floor(rgba[1] * 255);
-        const b = Math.floor(rgba[2] * 255);
-        const a = Math.floor(rgba[3] * 255);
-
-        this.clearGrid(this.gl);
-
-        for (let y = 0; y < this.gridRows; y++) {
-            for (let x = 0; x < this.gridCols; x++) {
-                if (Math.random() < density) {
-                    const idx = (y * this.gridCols + x) * 4;
-                    this.textureData[idx] = r;
-                    this.textureData[idx + 1] = g;
-                    this.textureData[idx + 2] = b;
-                    this.textureData[idx + 3] = a;
-                }
-            }
+        if (gl && this.gridTexture) {
+            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.textureWidth, this.textureHeight, 
+                            gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
         }
-        if (this.gl) this.updateGridTexture(this.gl);
     }
 
-    clear() {
-        for (let i = 0; i < this.textureData.length; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
-        if (this.gl) this.updateGridTexture(this.gl);
+    // Default implementations
+    worldToCell(world) {
+        // Default implementation for square grid
+        const col = Math.round(world.x / (this.baseCellSize || 50));
+        const row = Math.round(world.y / (this.baseCellSize || 50));
+        return [col, row, 0];
     }
 
-    // Abstract methods that must be implemented by subclasses
+    getCellIndexFromWorld(world, q, r, s) {
+        return 1;
+    }
+
+    // Abstract methods
     getVertexShaderSource() {
         throw new Error("Method 'getVertexShaderSource()' must be implemented.");
     }
 
     getFragmentShaderSource() {
         throw new Error("Method 'getFragmentShaderSource()' must be implemented.");
-    }
-
-    worldToCell(world) {
-        throw new Error("Method 'worldToCell()' must be implemented.");
     }
 
     setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
@@ -408,7 +172,7 @@ class BaseGrid {
     }
 
     drawCanvasCells(ctx, cells) {
-        throw new Error("Method 'drawCanvasCells()' must be implemented.(Used as back up to WebGL Renderer)");
+        throw new Error("Method 'drawCanvasCells()' must be implemented.");
     }
 }
 

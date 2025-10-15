@@ -1,13 +1,13 @@
+import { SquareGrid } from './tiles/square.js';
 import { HexagonGrid } from './tiles/hexagon.js';
 import { TriangleGrid } from './tiles/triangle.js';
 import { RhomboidalGrid } from './tiles/rhomboid.js';
 
-import { SquareGrid } from './tiles/square.js';
 import { WebGLRenderer } from '../renderer/WebGL.js';
 import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 
 class GridManager {
-    adj_neighbors = [[0, -1], [0, 1], [1, 0], [-1, 0]];
+    adj_neighbors = [[0, -1, 0], [0, 1, 0], [1, 0, 0], [-1, 0, 0]];
 
     constructor(shape, canvas, init_cells = new Map(), useWebGL = false) {
         this.shape = shape || "square";
@@ -16,9 +16,9 @@ class GridManager {
         this.cells = init_cells;
         this.neighborsMap = new Map();
 
-        // Grid defaults - now properly using both dimensions
-        this.gridRows = 20;
+        // Grid defaults
         this.gridCols = 20;
+        this.gridRows = 20;
         this.infiniteGrid = false;
         this.boundaryType = "wrap";
         this.neighborType = "adjacent";
@@ -30,19 +30,27 @@ class GridManager {
             1: this.hexToRgb("#32cd32"),
         };
         this.drawColor = this.colorSchema[1];
-        this.bgColor = [0.5,0.5,0.5,0];
+        this.bgColor = [0.5, 0.5, 0.5, 0];
 
         // Initialize shape-specific grid
         this.shapeGrid = this.createShapeGrid(this.shape);
         
-        // Initialize renderer (WebGL or Canvas2D)
+        // Sync grid dimensions to shape grid
+        this.shapeGrid.gridCols = this.gridCols;
+        this.shapeGrid.gridRows = this.gridRows;
+        
+        // Initialize renderer
         this.initializeRenderer(this.useWebGL);
         
-        // Initialize grid - only call initGridTexture if we have a valid WebGL context
+        // Initialize grid
         if (this.useWebGL && this.renderer.gl) {
-            this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols, this.gridRows);
+            if (this.shapeGrid.initGridTexture) {
+                this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols, this.gridRows);
+            } else if (this.shapeGrid.initForGL) {
+                this.shapeGrid.initForGL(this.renderer.gl);
+            }
         } else {
-            // For Canvas2D, manually set the grid size without calling initGridTexture
+            // For Canvas2D, manually set the grid size
             this.shapeGrid.gridCols = this.gridCols;
             this.shapeGrid.gridRows = this.gridRows;
             this.shapeGrid.useWebGL = false;
@@ -60,10 +68,10 @@ class GridManager {
     createShapeGrid(shape) {
         const { colorSchema } = this;
         switch (shape) {
-            case "hex":  return new HexagonGrid(colorSchema);
-            case "square":   return new SquareGrid(colorSchema);
-            case "rhombus":  return new RhomboidalGrid(colorSchema);
-            case "triangle":  return new TriangleGrid(colorSchema);
+            case "hex": return new HexagonGrid(colorSchema);
+            case "square": return new SquareGrid(colorSchema);
+            case "rhombus": return new RhomboidalGrid(colorSchema);
+            case "triangle": return new TriangleGrid(colorSchema);
             default:
                 throw new Error(`Unknown grid shape: ${shape}`);
         }
@@ -108,14 +116,11 @@ class GridManager {
     }
 
     syncCellsToTexture() {
-        // Sync existing cells data
-        for (const [col, colMap] of this.cells) {
-            for (const [row, state] of colMap) {
-                if (state && col < this.gridCols && row < this.gridRows) {
-                    // Only update texture if in WebGL mode
-                    if (this.useWebGL && this.renderer.gl) {
-                        this.shapeGrid.setCellState(this.renderer.gl, col, row, state);
-                    }
+        for (const [key, state] of this.cells) {
+            const [q, r, s] = this.parseCubeKey(key);
+            if (state && this.checkBounds(q, r, s)) {
+                if (this.useWebGL && this.renderer.gl) {
+                    this.shapeGrid.setCellState(this.renderer.gl, q, r, s, state);
                 }
             }
         }
@@ -131,43 +136,34 @@ class GridManager {
         this.infiniteGrid = (boundaryType === "infinite");
     }
 
-    getNeighbors(x, y) {
+    getNeighbors(q, r, s) {
         const neighbors = [];
-        for (const [dx, dy] of this.adj_neighbors) {
-            const nx = dx + x;
-            const ny = dy + y;
-            neighbors.push([nx, ny]);
+        for (const [dq, dr, ds] of this.adj_neighbors) {
+            const nq = dq + q;
+            const nr = dr + r;
+            const ns = ds + s;
+            neighbors.push([nq, nr, ns]);
         }
         return neighbors;
     }
 
     buildNeighborsMap() {
         const neighborsMap = new Map();
-        const [minCol, maxCol, minRow, maxRow] = this.getBounds();
-        for (let c = minCol; c <= maxCol; c++) {
-            for (let r = minRow; r <= maxRow; r++) {
-                const cellNeighbors = this.getNeighbors(c, r)
-                neighborsMap.set([c, r], cellNeighbors);
+        const [minQ, maxQ, minR, maxR] = this.getBounds();
+        
+        for (let q = minQ; q <= maxQ; q++) {
+            for (let r = minR; r <= maxR; r++) {
+                const s = 0; // Square grid uses s = 0
+                const cellNeighbors = this.getNeighbors(q, r, s);
+                neighborsMap.set(this.createCubeKey(q, r, s), cellNeighbors);
             }
         }
-        // console.log("Neighbors dict", neighborsMap);
+        return neighborsMap;
     }
 
-    addNeighbors(x, y) {
-        const valid_neighbors = this.getNeighbors(x, y);
-        this.neighborsMap.set([x, y], valid_neighbors)
-    }
-
-    randomCells() {
-        const [minCol, maxCol, minRow, maxRow] = this.getBounds();
-        // console.log(minCol, maxCol, minRow, maxRow);
-        for (let c = minCol; c <= maxCol; c++) {
-            for (let r = minRow; r <= maxRow; r++) {
-                const status = Math.random() < 0.5 ? 0 : 1;
-                this.changeCell(c, r, status);
-            }
-        }
-        this.drawGrid();
+    addNeighbors(q, r, s) {
+        const valid_neighbors = this.getNeighbors(q, r, s);
+        this.neighborsMap.set(this.createCubeKey(q, r, s), valid_neighbors);
     }
 
     updateCanvasSize() {
@@ -183,18 +179,6 @@ class GridManager {
         }
     }
 
-    getVisibleBounds() {
-        const halfW = this.width / (2 * this.cameraView.zoom);
-        const halfH = this.height / (2 * this.cameraView.zoom);
-
-        const minWorldX = -this.cameraView.camX / this.cameraView.zoom - halfW;
-        const maxWorldX = -this.cameraView.camX / this.cameraView.zoom + halfW;
-        const minWorldY = -this.cameraView.camY / this.cameraView.zoom - halfH;
-        const maxWorldY = -this.cameraView.camY / this.cameraView.zoom + halfH;
-
-        return [minWorldX, maxWorldX, minWorldY, maxWorldY];
-    }
-
     hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? [
@@ -205,34 +189,50 @@ class GridManager {
         ] : [0.5, 0.5, 0.5, 1.0];
     }
 
-    changeCell(x, y, state) {
-        if (!this.cells.has(x)) this.cells.set(x, new Map());
-        this.cells.get(x).set(y, state);
+    // Cube coordinate utilities
+    createCubeKey(q, r, s) {
+        return `${q},${r},${s}`;
+    }
+
+    parseCubeKey(key) {
+        const [q, r, s] = key.split(',').map(Number);
+        return [q, r, s];
+    }
+
+    changeCell(q, r, s, state) {
+        const key = this.createCubeKey(q, r, s);
         
-        // Update texture only if in WebGL mode
-        if (this.useWebGL && this.renderer.gl) {
-            this.shapeGrid.setCellState(this.renderer.gl, x, y, state);
+        if (state === 0) {
+            this.cells.delete(key);
+        } else {
+            this.cells.set(key, state);
         }
-        
-        this.addNeighbors(x, y);
+
+        if (this.useWebGL && this.renderer.gl) {
+            this.shapeGrid.setCellState(this.renderer.gl, q, r, s, state);
+        }
+
+        this.addNeighbors(q, r, s);
     }
 
     getBounds() {
-        const cols = Number(this.gridCols) || 0;
-        const rows = Number(this.gridRows) || 0;
+        // Use the actual grid dimensions with centered coordinates
+        const cols = this.gridCols;
+        const rows = this.gridRows;
 
-        const minCol = 0;
-        const maxCol = cols - 1;
-        const minRow = 0;
-        const maxRow = rows - 1;
+        // Center the grid around (0,0)
+        const minQ = -Math.floor(cols / 2);
+        const maxQ = Math.floor((cols - 1) / 2);
+        const minR = -Math.floor(rows / 2);
+        const maxR = Math.floor((rows - 1) / 2);
 
-        return [minCol, maxCol, minRow, maxRow];
+        return [minQ, maxQ, minR, maxR];
     }
 
-    checkBounds(x, y) {
+    checkBounds(q, r, s) {
         if (!this.infiniteGrid) {
-            const [minCol, maxCol, minRow, maxRow] = this.getBounds();
-            if (x < minCol || x > maxCol || y < minRow || y > maxRow) {
+            const [minQ, maxQ, minR, maxR] = this.getBounds();
+            if (q < minQ || q > maxQ || r < minR || r > maxR) {
                 return false;
             }
         }
@@ -240,7 +240,6 @@ class GridManager {
     }
 
     clearAll() {
-        // Update texture only if in WebGL mode
         if (this.useWebGL && this.renderer.gl) {
             this.shapeGrid.clearGrid(this.renderer.gl);
         }
@@ -251,75 +250,25 @@ class GridManager {
         const startCell = this.shapeGrid.worldToCell(startWorld);
         const endCell = this.shapeGrid.worldToCell(endWorld);
 
-        if (!startCell || !endCell) return;
+        if (!startCell || !endCell || startCell[0] === -1 || endCell[0] === -1) return;
 
-        const [x1, y1] = startCell;
-        const [x2, y2] = endCell;
+        const [q1, r1, s1] = startCell;
+        const [q2, r2, s2] = endCell;
 
-        // Simple line drawing algorithm
-        const dx = Math.abs(x2 - x1);
-        const dy = Math.abs(y2 - y1);
-        const sx = (x1 < x2) ? 1 : -1;
-        const sy = (y1 < y2) ? 1 : -1;
-        let err = dx - dy;
-
-        let x = x1;
-        let y = y1;
-
-        while (true) {
-            if (this.checkBounds(x, y)) {
+        // Cube coordinate line drawing
+        const N = Math.max(Math.abs(q2 - q1), Math.abs(r2 - r1), Math.abs(s2 - s1));
+        
+        for (let i = 0; i <= N; i++) {
+            const t = i / N;
+            const q = Math.round(q1 + (q2 - q1) * t);
+            const r = Math.round(r1 + (r2 - r1) * t);
+            const s = -q - r;
+            
+            if (this.checkBounds(q, r, s)) {
                 const state = (mode === 'draw') ? 1 : 0;
-                this.changeCell(x, y, state);
-            }
-
-            if (x === x2 && y === y2) break;
-
-            const e2 = 2 * err;
-            if (e2 > -dy) {
-                err -= dy;
-                x += sx;
-            }
-            if (e2 < dx) {
-                err += dx;
-                y += sy;
+                this.changeCell(q, r, s, state);
             }
         }
-    }
-
-    resizeGrid(newCols, newRows) {
-        this.gridCols = newCols;
-        this.gridRows = newRows;
-
-        // Save current cells data
-        const oldCells = new Map();
-        for (const [col, colMap] of this.cells) {
-            if (col < newCols) {
-                const newColMap = new Map();
-                for (const [row, state] of colMap) {
-                    if (row < newRows && state) {
-                        newColMap.set(row, state);
-                    }
-                }
-                if (newColMap.size > 0) {
-                    oldCells.set(col, newColMap);
-                }
-            }
-        }
-
-        // Resize the texture (only in WebGL mode)
-        if (this.useWebGL && this.renderer.gl) {
-            this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, oldCells);
-        } else {
-            // For Canvas2D, just update the grid size
-            this.shapeGrid.gridCols = newCols;
-            this.shapeGrid.gridRows = newRows;
-        }
-        
-        // Update cells with the resized data
-        this.cells = oldCells;
-        
-        // Re-center the view
-        this.centerView();
     }
 
     centerView() {
@@ -331,68 +280,121 @@ class GridManager {
     drawGrid() {
         const bounds = this.getVisibleBounds();
 
-        const geometry = this.shapeGrid.getGridGeometry(
-            bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, null
-        );
-
         if (this.useWebGL) {
             // WebGL path
+            const geometry = this.shapeGrid.getGridGeometry(
+                bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, null
+            );
             this.renderer.uploadGeometry(geometry);
             this.renderer.draw(this.cameraView, geometry, this.drawColor, this.bgColor);
         } else {
-            // Canvas2D path - pass cells for rendering
+            // Canvas2D path
             this.renderer.drawCanvas(this.cameraView, this.drawColor, this.bgColor, this.cells);
         }
     }
 
     toggleAt(px, py, drawMode, eraseMode) {
-        const cell = this.screenToCell(px, py);
-        if (!cell) return false;
+        const world = this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
+        const cell = this.shapeGrid.worldToCell(world);
+        
+        if (!cell || cell[0] === -1) return false;
 
-        const [x, y] = cell;
-
+        const [q, r, s] = cell;
+        
+        // Get cell index (triangle index for TriangleGrid, 1 for others)
+        const cellIndex = this.shapeGrid.getCellIndexFromWorld ? 
+            this.shapeGrid.getCellIndexFromWorld(world, q, r, s) : 1;
+        
         let newState;
         if (drawMode) {
-            newState = 1;
+            newState = cellIndex;
         } else if (eraseMode) {
             newState = 0;
-        } else {
-            const currentState = (this.cells.has(x) && this.cells.get(x).has(y))
-                ? this.cells.get(x).get(y)
-                : 0;
-            newState = currentState ? 0 : 1;
         }
 
-        this.changeCell(x, y, newState);
-
-        // 🎵 play sound when toggled
-        // this.playToggleSound(newState === 1);
-
+        this.changeCell(q, r, s, newState);
         return true;
     }
 
     playToggleSound(isActive) {
+        if (!window.AudioContext && !window.webkitAudioContext) return;
+
         const audioCtx = this.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
         this.audioCtx = audioCtx;
 
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
 
-        // Set frequency based on on/off
         osc.frequency.value = isActive ? 600 : 200;
-
-        // Volume envelope (quick click)
         gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
 
-        // Connect and play
         osc.connect(gain);
         gain.connect(audioCtx.destination);
 
         osc.start();
         osc.stop(audioCtx.currentTime + 0.1);
     }
+
+    randomCells() {
+        const [minQ, maxQ, minR, maxR] = this.getBounds();
+        console.log(`Grid dimensions: ${this.gridCols}x${this.gridRows}`);
+        console.log(`Generating cells from (${minQ},${minR}) to (${maxQ},${maxR})`);
+        console.log(`Total cells: ${(maxQ - minQ + 1) * (maxR - minR + 1)}`);
+        
+        let cellsGenerated = 0;
+        for (let q = minQ; q <= maxQ; q++) {
+            for (let r = minR; r <= maxR; r++) {
+                const s = 0; // Square grid uses s = 0
+                const status = Math.random() < 0.5 ? 0 : 1;
+                if (status === 1) {
+                    this.changeCell(q, r, s, status);
+                    cellsGenerated++;
+                }
+            }
+        }
+        console.log(`Cells activated: ${cellsGenerated}`);
+        this.drawGrid();
+    }
+
+    resizeGrid(newCols, newRows) {
+        this.gridCols = newCols;
+        this.gridRows = newRows;
+        
+        // Update shape grid dimensions
+        this.shapeGrid.gridCols = newCols;
+        this.shapeGrid.gridRows = newRows;
+
+        // Save current cells data
+        const oldCells = new Map();
+        for (const [key, state] of this.cells) {
+            const [q, r, s] = this.parseCubeKey(key);
+            if (this.checkBounds(q, r, s) && state) {
+                oldCells.set(key, state);
+            }
+        }
+
+        // Resize the texture
+        if (this.useWebGL && this.renderer.gl) {
+            if (this.shapeGrid.resizeGridTexture) {
+                this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, oldCells);
+            } else if (this.shapeGrid.initGridTexture) {
+                this.shapeGrid.initGridTexture(this.renderer.gl, newCols, newRows);
+                // Re-sync cells after texture resize
+                for (const [key, state] of oldCells) {
+                    const [q, r, s] = this.parseCubeKey(key);
+                    this.shapeGrid.setCellState(this.renderer.gl, q, r, s, state);
+                }
+            }
+        }
+        
+        // Update cells with the resized data
+        this.cells = oldCells;
+        
+        // Re-center the view
+        this.centerView();
+    }
 }
 
-export { GridManager };
 
+export { GridManager };

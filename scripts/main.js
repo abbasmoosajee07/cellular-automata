@@ -144,23 +144,22 @@ class AutomataSimulator{
             const neighborsToActivate = [];
 
             // Collect neighbors of all active cells
-            for (const [col, colMap] of availCells) {
-                for (const [row, cellData] of colMap) {
-                    if (cellData === 1) { // expand only from alive cells
-                        const neighborCells = this.gridManager.getNeighbors(col, row);
-                        neighborsToActivate.push(...neighborCells); // just dump them in
-                    }
+            for (const [key, cellData] of availCells) {
+                if (cellData === 1) { // expand only from alive cells
+                    const [q, r, s] = this.gridManager.parseCubeKey(key);
+                    const neighborCells = this.gridManager.getNeighbors(q, r, s);
+                    neighborsToActivate.push(...neighborCells); // just dump them in
                 }
             }
 
             // Apply neighbor activation
-            for (const [nc, nr] of neighborsToActivate) {
-                this.gridManager.changeCell(nc, nr, 1);
+            for (const [nq, nr, ns] of neighborsToActivate) {
+                this.gridManager.changeCell(nq, nr, ns, 1);
             }
 
             this.gridManager.drawGrid();
+            console.log(this.gridManager.cells);
         });
-
     }
 
     setupCanvasControls() {
@@ -218,7 +217,7 @@ class AutomataSimulator{
             }
             if (draggingCam) {
                 this.gridManager.cameraView.camX += pointer.x - lastX;
-                this.gridManager.cameraView.camY += pointer.y - lastY;
+                this.gridManager.cameraView.camY -= pointer.y - lastY;
                 lastX = pointer.x;
                 lastY = pointer.y;
                 this.gridManager.drawGrid();
@@ -281,6 +280,7 @@ class AutomataSimulator{
 
         document.getElementById("status-camera").textContent = `(${this.gridManager.cameraView.camX}, ${this.gridManager.cameraView.camY})`;
     }
+
 }
 
 export { AutomataSimulator };
