@@ -16,12 +16,13 @@ class Canvas2DRenderer {
         this.height = height;
     }
 
-    drawCanvas(cameraView, drawColor, bgColor, cells) {
+    drawCanvas(cameraView, colorSchema, cells) {
         const ctx = this.ctx;
 
         // --- Full reset before drawing ---
         ctx.setTransform(1, 0, 0, 1, 0, 0);  // reset any previous transforms
         ctx.clearRect(0, 0, this.width, this.height); // clear the buffer
+        const bgColor = colorSchema.bg || [0.5, 0.5, 0.5, 1];
 
         // --- Background fill ---
         ctx.fillStyle = `rgba(
@@ -40,14 +41,6 @@ class Canvas2DRenderer {
         ctx.translate(this.width / 2, this.height / 2);
         ctx.scale(cameraView.zoom, cameraView.zoom);
         ctx.translate(cameraView.camX, -cameraView.camY);
-
-        // --- Cell fill color ---
-        ctx.fillStyle = `rgba(
-            ${Math.round(drawColor[0] * 255)},
-            ${Math.round(drawColor[1] * 255)},
-            ${Math.round(drawColor[2] * 255)},
-            ${drawColor[3]}
-        )`;
 
         // --- Draw cells via shape-specific logic ---
         this.shapeGrid.drawCanvasCells(ctx, cells);

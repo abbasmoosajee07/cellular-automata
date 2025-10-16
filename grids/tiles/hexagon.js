@@ -6,7 +6,7 @@ class HexagonGrid extends BaseGrid {
         this.radius = 30;
     }
 
-    setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
+    setupUniforms(gl, program, cameraView, geometry, width, height) {
         const uniformLocations = {
             resolution: gl.getUniformLocation(program, "uResolution"),
             offset: gl.getUniformLocation(program, "uOffset"),
@@ -14,8 +14,6 @@ class HexagonGrid extends BaseGrid {
             gridCols: gl.getUniformLocation(program, "uGridCols"),
             gridRows: gl.getUniformLocation(program, "uGridRows"),
             radius: gl.getUniformLocation(program, "uRadius"),
-            drawColor: gl.getUniformLocation(program, "uDrawColor"),
-            bgColor: gl.getUniformLocation(program, "uBgColor"),
             gridTexture: gl.getUniformLocation(program, "uGridTexture")
         };
 
@@ -25,8 +23,6 @@ class HexagonGrid extends BaseGrid {
         gl.uniform1f(uniformLocations.gridCols, this.gridCols);
         gl.uniform1f(uniformLocations.gridRows, this.gridRows);
         gl.uniform1f(uniformLocations.radius, this.radius);
-        gl.uniform4fv(uniformLocations.drawColor, drawColor);
-        gl.uniform4fv(uniformLocations.bgColor, bgColor);
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, geometry.texture);
@@ -35,145 +31,123 @@ class HexagonGrid extends BaseGrid {
         return uniformLocations;
     }
 
-    getVertexShaderSource(isWebGL2 = false) {
-        if (isWebGL2) {
-            return `#version 300 es
-            in vec2 aPosition;
-            out vec2 vTexCoord;
-            void main() {
-                gl_Position = vec4(aPosition, 0.0, 1.0);
-                vTexCoord = aPosition * 0.5 + 0.5;
-            }`;
-        } else {
-            return `
-            attribute vec2 aPosition;
-            varying vec2 vTexCoord;
-            void main() {
-                gl_Position = vec4(aPosition, 0.0, 1.0);
-                vTexCoord = aPosition * 0.5 + 0.5;
-            }`;
-        }
-    }
-
     getFragmentShaderSource(isWebGL2 = false) {
         if (isWebGL2) {
             return `#version 300 es
-            precision mediump float;
-            in vec2 vTexCoord;
-            out vec4 outColor;
+                precision mediump float;
+                in vec2 vTexCoord;
+                out vec4 outColor;
 
-            uniform vec2 uResolution;
-            uniform vec2 uOffset;
-            uniform float uScale;
-            uniform float uGridCols;
-            uniform float uGridRows;
-            uniform float uRadius;
-            uniform vec4 uDrawColor;
-            uniform vec4 uBgColor;
-            uniform sampler2D uGridTexture;
+                uniform vec2 uResolution;
+                uniform vec2 uOffset;
+                uniform float uScale;
+                uniform float uGridCols;
+                uniform float uGridRows;
+                uniform float uRadius;
+                uniform sampler2D uGridTexture;
 
-            // Flat-topped axial conversion
-            vec2 worldToHex(vec2 pos, float r) {
-                float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
-                float s = (2.0/3.0 * pos.y) / r;
-                return vec2(q, s);
-            }
-
-            ivec3 hexRound(vec2 h) {
-                float x = h.x;
-                float z = h.y;
-                float y = -x - z;
-                float rx = floor(x + 0.5);
-                float ry = floor(y + 0.5);
-                float rz = floor(z + 0.5);
-                float dx = abs(rx - x);
-                float dy = abs(ry - y);
-                float dz = abs(rz - z);
-                if (dx > dy && dx > dz) rx = -ry - rz;
-                else if (dy > dz) ry = -rx - rz;
-                else rz = -rx - ry;
-                return ivec3(int(rx), int(rz), int(-rx - rz));
-            }
-
-            void main() {
-                vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                vec2 axial = worldToHex(worldPos, uRadius);
-                ivec3 cell = hexRound(axial);
-
-                // Use rectangular grid mapping with proper bounds
-                float minQ = -float(uGridCols) * 0.5;
-                float minR = -float(uGridRows) * 0.5;
-                
-                vec2 texCoord = vec2(
-                    (float(cell.x) + float(cell.y) * 0.5 - minQ) / uGridCols,
-                    (float(cell.y) - minR) / uGridRows
-                );
-
-                if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
-                    outColor = uBgColor;
-                    return;
+                // Flat-topped axial conversion
+                vec2 worldToHex(vec2 pos, float r) {
+                    float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                    float s = (2.0/3.0 * pos.y) / r;
+                    return vec2(q, s);
                 }
 
-                vec4 cellValue = texture(uGridTexture, texCoord);
-                outColor = (cellValue.a > 0.5) ? uDrawColor : uBgColor;
-            }`;
+                ivec3 hexRound(vec2 h) {
+                    float x = h.x;
+                    float z = h.y;
+                    float y = -x - z;
+                    float rx = floor(x + 0.5);
+                    float ry = floor(y + 0.5);
+                    float rz = floor(z + 0.5);
+                    float dx = abs(rx - x);
+                    float dy = abs(ry - y);
+                    float dz = abs(rz - z);
+                    if (dx > dy && dx > dz) rx = -ry - rz;
+                    else if (dy > dz) ry = -rx - rz;
+                    else rz = -rx - ry;
+                    return ivec3(int(rx), int(rz), int(-rx - rz));
+                }
+
+                void main() {
+                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                    vec2 axial = worldToHex(worldPos, uRadius);
+                    ivec3 cell = hexRound(axial);
+
+                    // Use rectangular grid mapping with proper bounds
+                    float minQ = -float(uGridCols) * 0.5;
+                    float minR = -float(uGridRows) * 0.5;
+                    
+                    vec2 texCoord = vec2(
+                        (float(cell.x) + float(cell.y) * 0.5 - minQ) / uGridCols,
+                        (float(cell.y) - minR) / uGridRows
+                    );
+
+                    if (texCoord.x >= 0.0 && texCoord.x <= 1.0 && texCoord.y >= 0.0 && texCoord.y <= 1.0) {
+                        vec4 cellColor = texture(uGridTexture, texCoord);
+                        // Always use the color from texture, regardless of alpha - like square grid
+                        outColor = cellColor;
+                    } else {
+                        // Outside grid bounds - use transparent
+                        outColor = vec4(0.0);
+                    }
+                }`;
         } else {
             return `
-            precision mediump float;
-            uniform vec2 uResolution;
-            uniform vec2 uOffset;
-            uniform float uScale;
-            uniform float uGridCols;
-            uniform float uGridRows;
-            uniform float uRadius;
-            uniform vec4 uDrawColor;
-            uniform vec4 uBgColor;
-            uniform sampler2D uGridTexture;
-            varying vec2 vTexCoord;
+                precision mediump float;
+                uniform vec2 uResolution;
+                uniform vec2 uOffset;
+                uniform float uScale;
+                uniform float uGridCols;
+                uniform float uGridRows;
+                uniform float uRadius;
+                uniform sampler2D uGridTexture;
+                varying vec2 vTexCoord;
 
-            vec2 worldToHex(vec2 pos, float r) {
-                float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
-                float s = (2.0/3.0 * pos.y) / r;
-                return vec2(q, s);
-            }
-
-            vec3 hexRound(vec2 h) {
-                float x = h.x;
-                float z = h.y;
-                float y = -x - z;
-                float rx = floor(x + 0.5);
-                float ry = floor(y + 0.5);
-                float rz = floor(z + 0.5);
-                float dx = abs(rx - x);
-                float dy = abs(ry - y);
-                float dz = abs(rz - z);
-                if (dx > dy && dx > dz) rx = -ry - rz;
-                else if (dy > dz) ry = -rx - rz;
-                else rz = -rx - ry;
-                return vec3(rx, rz, -rx - rz);
-            }
-
-            void main() {
-                vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                vec2 axial = worldToHex(worldPos, uRadius);
-                vec3 cell = hexRound(axial);
-
-                float minQ = -float(uGridCols) * 0.5;
-                float minR = -float(uGridRows) * 0.5;
-                
-                vec2 texCoord = vec2(
-                    (cell.x + cell.y * 0.5 - minQ) / uGridCols,
-                    (cell.y - minR) / uGridRows
-                );
-
-                if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
-                    gl_FragColor = uBgColor;
-                    return;
+                vec2 worldToHex(vec2 pos, float r) {
+                    float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                    float s = (2.0/3.0 * pos.y) / r;
+                    return vec2(q, s);
                 }
 
-                vec4 cellValue = texture2D(uGridTexture, texCoord);
-                gl_FragColor = (cellValue.a > 0.5) ? uDrawColor : uBgColor;
-            }`;
+                vec3 hexRound(vec2 h) {
+                    float x = h.x;
+                    float z = h.y;
+                    float y = -x - z;
+                    float rx = floor(x + 0.5);
+                    float ry = floor(y + 0.5);
+                    float rz = floor(z + 0.5);
+                    float dx = abs(rx - x);
+                    float dy = abs(ry - y);
+                    float dz = abs(rz - z);
+                    if (dx > dy && dx > dz) rx = -ry - rz;
+                    else if (dy > dz) ry = -rx - rz;
+                    else rz = -rx - ry;
+                    return vec3(rx, rz, -rx - rz);
+                }
+
+                void main() {
+                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                    vec2 axial = worldToHex(worldPos, uRadius);
+                    vec3 cell = hexRound(axial);
+
+                    float minQ = -float(uGridCols) * 0.5;
+                    float minR = -float(uGridRows) * 0.5;
+                    
+                    vec2 texCoord = vec2(
+                        (cell.x + cell.y * 0.5 - minQ) / uGridCols,
+                        (cell.y - minR) / uGridRows
+                    );
+
+                    if (texCoord.x >= 0.0 && texCoord.x <= 1.0 && texCoord.y >= 0.0 && texCoord.y <= 1.0) {
+                        vec4 cellColor = texture2D(uGridTexture, texCoord);
+                        // Always use the color from texture - like square grid
+                        gl_FragColor = cellColor;
+                    } else {
+                        // Outside grid bounds - use transparent
+                        gl_FragColor = vec4(0.0);
+                    }
+                }`;
         }
     }
 
@@ -215,7 +189,7 @@ class HexagonGrid extends BaseGrid {
     drawCanvasCells(ctx, cells) {
         this.rendererUsed = "canvas2d";
         const radius = this.radius || 30;
-        
+
         for (const [key, state] of cells) {
             if (state) {
                 const [q, r, s] = key.split(',').map(Number);
@@ -224,7 +198,15 @@ class HexagonGrid extends BaseGrid {
                     // console.warn(`Invalid cube coordinates: (${q}, ${r}, ${s}), sum = ${q + r + s}`);
                     continue;
                 }
-                
+                // Use color schema based on state value
+                const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
+                ctx.fillStyle = `rgba(
+                    ${Math.round(drawColor[0] * 255)},
+                    ${Math.round(drawColor[1] * 255)},
+                    ${Math.round(drawColor[2] * 255)},
+                    ${drawColor[3]}
+                )`;
+
                 const x = radius * Math.sqrt(3) * (q + r * 0.5);
                 const y = radius * r * -1.5; // Keep original negative for rectangular layout
                 this.drawFlatTopHexagon(ctx, x, y, radius);
@@ -245,7 +227,6 @@ class HexagonGrid extends BaseGrid {
         ctx.fill();
     }
 
-    // Cube coordinate to texture coordinate conversion
     cubeToTextureCoords(q, r, s) {
         // Verify cube coordinate constraint
         if (Math.abs(q + r + s) > 0.001) {
@@ -270,7 +251,7 @@ class HexagonGrid extends BaseGrid {
         }
 
         const [texX, texY] = this.cubeToTextureCoords(q, r, s);
-        
+
         if (texX >= 0 && texX < this.gridCols && texY >= 0 && texY < this.gridRows) {
             const index = (texY * this.gridCols + texX) * 4;
 
@@ -301,32 +282,6 @@ class HexagonGrid extends BaseGrid {
             return true;
         }
         return false;
-    }
-
-    initGridTexture(gl, gridCols, gridRows) {
-        this.gridCols = gridCols;
-        this.gridRows = gridRows;
-        this.textureData = new Uint8Array(gridCols * gridRows * 4);
-
-        // Initialize texture with all cells empty
-        for (let i = 0; i < gridCols * gridRows * 4; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
-
-        this.gridTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gridCols, gridRows, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-    }
-
-    getCellIndexFromWorld(world, q, r, s) {
-        return 1;
     }
 }
 

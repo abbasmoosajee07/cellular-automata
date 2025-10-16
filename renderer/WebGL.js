@@ -121,7 +121,7 @@ class WebGLRenderer {
         this.cachedGeometry = geometry;
     }
 
-    draw(cameraView, gridGeometry, drawColor, bgColor) {
+    draw(cameraView, gridGeometry) {
         const gl = this.gl;
 
         if (!gridGeometry || !gridGeometry.texture) {
@@ -149,7 +149,7 @@ class WebGLRenderer {
         }
 
         const uniformLocations = this.shapeGrid.setupUniforms(
-            gl, this.program, cameraView, gridGeometry, drawColor, bgColor, this.width, this.height
+            gl, this.program, cameraView, gridGeometry, this.width, this.height
         );
 
         gl.activeTexture(gl.TEXTURE0);

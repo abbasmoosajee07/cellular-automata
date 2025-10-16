@@ -5,33 +5,8 @@ class TriangleGrid extends BaseGrid {
         super(colorSchema, "triangle");
         this.baseCellSize = 60;
         this.height = this.baseCellSize * Math.sqrt(3) / 2;
-        this.gridCols = 20;
-        this.gridRows = 20;
-    }
-
-    getVertexShaderSource(isWebGL2 = false) {
-        if (isWebGL2) {
-            return `#version 300 es
-                precision highp float;
-                in vec2 aPosition;
-                out vec2 vTexCoord;
-
-                void main() {
-                    gl_Position = vec4(aPosition, 0.0, 1.0);
-                    vTexCoord = aPosition * 0.5 + 0.5;
-                }
-            `;
-        } else {
-            return `
-                attribute vec2 aPosition;
-                varying vec2 vTexCoord;
-
-                void main() {
-                    gl_Position = vec4(aPosition, 0.0, 1.0);
-                    vTexCoord = aPosition * 0.5 + 0.5;
-                }
-            `;
-        }
+        this.rowMult = 2;
+        this.colMult = 1;
     }
 
     getFragmentShaderSource(isWebGL2 = false) {
@@ -44,8 +19,6 @@ class TriangleGrid extends BaseGrid {
                 uniform float uGridCols;
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
-                uniform vec4 uDrawColor;
-                uniform vec4 uBgColor;
                 uniform sampler2D uGridTexture;
                 in vec2 vTexCoord;
                 out vec4 outColor;
@@ -77,15 +50,13 @@ class TriangleGrid extends BaseGrid {
                         float texX = (q - minQ) / uGridCols;
                         float texY = ((r - minR) + (s * uGridRows)) / (uGridRows * 2.0);
                         
-                        vec4 cellValue = texture(uGridTexture, vec2(texX, texY));
+                        vec4 cellColor = texture(uGridTexture, vec2(texX, texY));
                         
-                        if (cellValue.a > 0.5) {
-                            outColor = uDrawColor;
-                        } else {
-                            outColor = uBgColor;
-                        }
+                        // Always use the color from texture, regardless of alpha
+                        outColor = cellColor;
                     } else {
-                        outColor = uBgColor;
+                        // Outside grid bounds - use transparent
+                        outColor = vec4(0.0);
                     }
                 }
             `;
@@ -98,8 +69,6 @@ class TriangleGrid extends BaseGrid {
                 uniform float uGridCols;
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
-                uniform vec4 uDrawColor;
-                uniform vec4 uBgColor;
                 uniform sampler2D uGridTexture;
                 varying vec2 vTexCoord;
 
@@ -124,15 +93,13 @@ class TriangleGrid extends BaseGrid {
                         float texX = (q - minQ) / uGridCols;
                         float texY = ((r - minR) + (s * uGridRows)) / (uGridRows * 2.0);
                         
-                        vec4 cellValue = texture2D(uGridTexture, vec2(texX, texY));
+                        vec4 cellColor = texture2D(uGridTexture, vec2(texX, texY));
                         
-                        if (cellValue.a > 0.5) {
-                            gl_FragColor = uDrawColor;
-                        } else {
-                            gl_FragColor = uBgColor;
-                        }
+                        // Always use the color from texture
+                        gl_FragColor = cellColor;
                     } else {
-                        gl_FragColor = uBgColor;
+                        // Outside grid bounds - use transparent
+                        gl_FragColor = vec4(0.0);
                     }
                 }
             `;
@@ -157,12 +124,6 @@ class TriangleGrid extends BaseGrid {
         return [q, r, s];
     }
 
-    getCellIndexFromWorld(world, q, r, s) {
-        // For triangle grid, the cell index is determined by the s coordinate
-        // s = 0: left triangle, s = 1: right triangle
-        return s + 1; // Convert to 1-based: 1 for left, 2 for right
-    }
-
     calculateBounds(bounds) {
         const [minX, maxX, minY, maxY] = bounds;
         const size = this.baseCellSize;
@@ -176,7 +137,7 @@ class TriangleGrid extends BaseGrid {
         return [minQ, maxQ, minR, maxR];
     }
 
-    setupUniforms(gl, program, cameraView, geometry, drawColor, bgColor, width, height) {
+    setupUniforms(gl, program, cameraView, geometry, width, height) {
         const uniformLocations = {
             resolution: gl.getUniformLocation(program, 'uResolution'),
             offset: gl.getUniformLocation(program, 'uOffset'),
@@ -184,8 +145,6 @@ class TriangleGrid extends BaseGrid {
             gridCols: gl.getUniformLocation(program, 'uGridCols'),
             gridRows: gl.getUniformLocation(program, 'uGridRows'),
             baseCellSize: gl.getUniformLocation(program, 'uBaseCellSize'),
-            drawColor: gl.getUniformLocation(program, 'uDrawColor'),
-            bgColor: gl.getUniformLocation(program, 'uBgColor'),
             gridTexture: gl.getUniformLocation(program, 'uGridTexture')
         };
 
@@ -195,8 +154,6 @@ class TriangleGrid extends BaseGrid {
         gl.uniform1f(uniformLocations.gridCols, this.gridCols);
         gl.uniform1f(uniformLocations.gridRows, this.gridRows);
         gl.uniform1f(uniformLocations.baseCellSize, this.baseCellSize);
-        gl.uniform4fv(uniformLocations.drawColor, drawColor);
-        gl.uniform4fv(uniformLocations.bgColor, bgColor);
 
         return uniformLocations;
     }
@@ -210,7 +167,16 @@ class TriangleGrid extends BaseGrid {
                 const [q, r, s] = key.split(',').map(Number);
                 const worldX = q * cellSize;
                 const worldY = -r * cellSize;
-                
+
+                // Use color schema based on state value
+                const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
+                ctx.fillStyle = `rgba(
+                    ${Math.round(drawColor[0] * 255)},
+                    ${Math.round(drawColor[1] * 255)},
+                    ${Math.round(drawColor[2] * 255)},
+                    ${drawColor[3]}
+                )`;
+
                 // Draw the appropriate triangle based on s coordinate
                 ctx.beginPath();
                 if (s === 0) {
@@ -230,7 +196,6 @@ class TriangleGrid extends BaseGrid {
         }
     }
 
-    // Cube coordinate to texture coordinate conversion
     cubeToTextureCoords(q, r, s) {
         // Convert centered coordinates to texture coordinates
         const minQ = -Math.floor(this.gridCols / 2);
@@ -279,62 +244,6 @@ class TriangleGrid extends BaseGrid {
         }
         return false;
     }
-
-    initGridTexture(gl, gridCols, gridRows) {
-        this.gridCols = gridCols;
-        this.gridRows = gridRows;
-        const textureWidth = gridCols;
-        const textureHeight = gridRows * 2; // Double height for left + right triangles
-        this.textureData = new Uint8Array(textureWidth * textureHeight * 4);
-
-        // Initialize texture with all triangles empty
-        for (let i = 0; i < textureWidth * textureHeight * 4; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
-
-        this.gridTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureWidth, textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-    }
-
-    resizeGridTexture(gl, newCols, newRows, oldCells) {
-        this.initGridTexture(gl, newCols, newRows);
-
-        if (oldCells) {
-            for (const [key, state] of oldCells) {
-                const [q, r, s] = key.split(',').map(Number);
-                this.setCellState(gl, q, r, s, state);
-            }
-        }
-    }
-
-    clearGrid(gl) {
-        const textureWidth = this.gridCols;
-        const textureHeight = this.gridRows * 2;
-        
-        // Clear texture data
-        for (let i = 0; i < textureWidth * textureHeight * 4; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
-        
-        // Update GPU texture
-        if (gl && this.gridTexture) {
-            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight, 
-                            gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-        }
-    }
-
 }
 
 export { TriangleGrid };

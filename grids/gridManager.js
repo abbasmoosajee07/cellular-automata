@@ -26,22 +26,22 @@ class GridManager {
         // Camera & colors
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
         this.colorSchema = {
+            bg: this.hexToRgb("#000000"), // Add background color to schema
             line: this.hexToRgb("#555555"),
             1: this.hexToRgb("#32cd32"),
+            11: this.hexToRgb("#ff3700"),
         };
-        this.drawColor = this.colorSchema[1];
-        this.bgColor = [0.5, 0.5, 0.5, 0];
 
         // Initialize shape-specific grid
         this.shapeGrid = this.createShapeGrid(this.shape);
-        
+
         // Sync grid dimensions to shape grid
         this.shapeGrid.gridCols = this.gridCols;
         this.shapeGrid.gridRows = this.gridRows;
-        
+
         // Initialize renderer
         this.initializeRenderer(this.useWebGL);
-        
+
         // Initialize grid
         if (this.useWebGL && this.renderer.gl) {
             if (this.shapeGrid.initGridTexture) {
@@ -51,16 +51,14 @@ class GridManager {
             }
         } else {
             // For Canvas2D, manually set the grid size
-            this.shapeGrid.gridCols = this.gridCols;
-            this.shapeGrid.gridRows = this.gridRows;
             this.shapeGrid.useWebGL = false;
         }
-        
+
         // Sync existing cells
         this.syncCellsToTexture();
-        
+
         this.updateCanvasSize();
-        
+
         // Start continuous rendering
         this.startRendering();
     }
@@ -97,7 +95,7 @@ class GridManager {
 
     startRendering() {
         const renderLoop = () => {
-            this.drawGrid();
+            // this.drawGrid();
             requestAnimationFrame(renderLoop);
         };
         renderLoop();
@@ -277,37 +275,17 @@ class GridManager {
         this.cameraView.zoom = 1;
     }
 
-    drawGrid() {
-        const bounds = this.getVisibleBounds();
-
-        if (this.useWebGL) {
-            // WebGL path
-            const geometry = this.shapeGrid.getGridGeometry(
-                bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, null
-            );
-            this.renderer.uploadGeometry(geometry);
-            this.renderer.draw(this.cameraView, geometry, this.drawColor, this.bgColor);
-        } else {
-            // Canvas2D path
-            this.renderer.drawCanvas(this.cameraView, this.drawColor, this.bgColor, this.cells);
-        }
-    }
-
     toggleAt(px, py, drawMode, eraseMode) {
         const world = this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
         const cell = this.shapeGrid.worldToCell(world);
-        
+
         if (!cell || cell[0] === -1) return false;
 
         const [q, r, s] = cell;
-        
-        // Get cell index (triangle index for TriangleGrid, 1 for others)
-        const cellIndex = this.shapeGrid.getCellIndexFromWorld ? 
-            this.shapeGrid.getCellIndexFromWorld(world, q, r, s) : 1;
-        
+
         let newState;
         if (drawMode) {
-            newState = cellIndex;
+            newState =  1;
         } else if (eraseMode) {
             newState = 0;
         }
@@ -341,7 +319,7 @@ class GridManager {
         console.log(`Grid dimensions: ${this.gridCols}x${this.gridRows}`);
         console.log(`Generating cells from (${minQ},${minR}) to (${maxQ},${maxR})`);
         console.log(`Total cells: ${(maxQ - minQ + 1) * (maxR - minR + 1)}`);
-        
+
         let cellsGenerated = 0;
         for (let q = minQ; q <= maxQ; q++) {
             for (let r = minR; r <= maxR; r++) {
@@ -360,7 +338,7 @@ class GridManager {
     resizeGrid(newCols, newRows) {
         this.gridCols = newCols;
         this.gridRows = newRows;
-        
+
         // Update shape grid dimensions
         this.shapeGrid.gridCols = newCols;
         this.shapeGrid.gridRows = newRows;
@@ -387,14 +365,43 @@ class GridManager {
                 }
             }
         }
-        
+
         // Update cells with the resized data
         this.cells = oldCells;
-        
+
         // Re-center the view
         this.centerView();
     }
-}
 
+    setColorSchema(newSchema) {
+        this.colorSchema = newSchema;
+        this.bgColor = this.colorSchema.bg || [0.5, 0.5, 0.5, 0];
+
+        // If using WebGL, we need to update all cell textures
+        if (this.useWebGL && this.renderer.gl) {
+            for (const [key, state] of this.cells) {
+                const [q, r, s] = this.parseCubeKey(key);
+                this.shapeGrid.setCellState(this.renderer.gl, q, r, s, state);
+            }
+        }
+    }
+
+    drawGrid() {
+        const bounds = this.getVisibleBounds();
+
+        if (this.useWebGL) {
+            // WebGL path
+            const geometry = this.shapeGrid.getGridGeometry(
+                bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, null
+            );
+            this.renderer.uploadGeometry(geometry);
+            this.renderer.draw(this.cameraView, geometry);
+        } else {
+            // Canvas2D path - use schema bg color
+            this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells);
+        }
+    }
+
+}
 
 export { GridManager };
