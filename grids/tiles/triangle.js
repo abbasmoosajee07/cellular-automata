@@ -9,118 +9,19 @@ class TriangleGrid extends BaseGrid {
         this.colMult = 1;
     }
 
-    getFragmentShaderSource(isWebGL2 = false) {
-        if (isWebGL2) {
-            return `#version 300 es
-                precision mediump float;
-                uniform vec2 uResolution;
-                uniform vec2 uOffset;
-                uniform float uScale;
-                uniform float uGridCols;
-                uniform float uGridRows;
-                uniform float uBaseCellSize;
-                uniform sampler2D uGridTexture;
-                in vec2 vTexCoord;
-                out vec4 outColor;
-
-                void main() {
-                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                    
-                    // Convert world to square cell coordinates
-                    vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
-                    float q = cellCoord.x;
-                    float r = cellCoord.y;
-                    
-                    // Calculate bounds (centered around 0)
-                    float minQ = -float(uGridCols) * 0.5;
-                    float maxQ = float(uGridCols) * 0.5 - 1.0;
-                    float minR = -float(uGridRows) * 0.5;
-                    float maxR = float(uGridRows) * 0.5 - 1.0;
-
-                    if (q >= minQ && q <= maxQ && r >= minR && r <= maxR) {
-                        // Determine which triangle within the square
-                        vec2 localPos = fract(worldPos / uBaseCellSize + 0.5) - 0.5;
-                        bool isRightTriangle = localPos.x > -localPos.y; // Right triangle (s=1)
-                        
-                        // s = 0 for left triangle, s = 1 for right triangle
-                        float s = isRightTriangle ? 1.0 : 0.0;
-                        
-                        // Convert to texture coordinates - pack q, r, s into 2D texture
-                        // Use different texture rows for left (s=0) vs right (s=1) triangles
-                        float texX = (q - minQ) / uGridCols;
-                        float texY = ((r - minR) + (s * uGridRows)) / (uGridRows * 2.0);
-                        
-                        vec4 cellColor = texture(uGridTexture, vec2(texX, texY));
-                        
-                        // Always use the color from texture, regardless of alpha
-                        outColor = cellColor;
-                    } else {
-                        // Outside grid bounds - use transparent
-                        outColor = vec4(0.0);
-                    }
-                }
-            `;
-        } else {
-            return `
-                precision mediump float;
-                uniform vec2 uResolution;
-                uniform vec2 uOffset;
-                uniform float uScale;
-                uniform float uGridCols;
-                uniform float uGridRows;
-                uniform float uBaseCellSize;
-                uniform sampler2D uGridTexture;
-                varying vec2 vTexCoord;
-
-                void main() {
-                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                    
-                    vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
-                    float q = cellCoord.x;
-                    float r = cellCoord.y;
-                    
-                    float minQ = -float(uGridCols) * 0.5;
-                    float maxQ = float(uGridCols) * 0.5 - 1.0;
-                    float minR = -float(uGridRows) * 0.5;
-                    float maxR = float(uGridRows) * 0.5 - 1.0;
-
-                    if (q >= minQ && q <= maxQ && r >= minR && r <= maxR) {
-                        vec2 localPos = fract(worldPos / uBaseCellSize + 0.5) - 0.5;
-                        bool isRightTriangle = localPos.x > -localPos.y;
-                        
-                        float s = isRightTriangle ? 1.0 : 0.0;
-                        
-                        float texX = (q - minQ) / uGridCols;
-                        float texY = ((r - minR) + (s * uGridRows)) / (uGridRows * 2.0);
-                        
-                        vec4 cellColor = texture2D(uGridTexture, vec2(texX, texY));
-                        
-                        // Always use the color from texture
-                        gl_FragColor = cellColor;
-                    } else {
-                        // Outside grid bounds - use transparent
-                        gl_FragColor = vec4(0.0);
-                    }
-                }
-            `;
-        }
-    }
-
     worldToCell(world) {
         const size = this.baseCellSize;
-        
-        // Convert to square cell coordinates
-        const q = Math.round(world.x / size);
-        const r = Math.round(world.y / size);
-        
-        // Determine which triangle within the square
-        const localX = (world.x / size) - q;
-        const localY = (world.y / size) - r;
-        
-        // s = 0 for left triangle, s = 1 for right triangle
-        // Using diagonal from top-left to bottom-right
-        const s = localX > -localY ? 1 : 0; // Right triangle if above the diagonal
-        
+
+        // Convert world coordinates to match the triangle drawing positions
+        const q = Math.floor(world.x / size);
+        const r = Math.floor(world.y / size);
+
+        // Get position within the current square cell
+        const localX = (world.x - q * size) / size;
+        const localY = (world.y - r * size) / size;
+
+        // Determine which triangle based on the diagonal
+        const s = localY < localX ? 1 : 0;
         return [q, r, s];
     }
 
@@ -128,7 +29,7 @@ class TriangleGrid extends BaseGrid {
         const [minX, maxX, minY, maxY] = bounds;
         const size = this.baseCellSize;
 
-        // Calculate visible square cell range in centered coordinates
+        // Calculate visible square cell range
         const minQ = Math.floor(minX / size) - 1;
         const maxQ = Math.ceil(maxX / size) + 1;
         const minR = Math.floor(minY / size) - 1;
@@ -180,15 +81,17 @@ class TriangleGrid extends BaseGrid {
                 // Draw the appropriate triangle based on s coordinate
                 ctx.beginPath();
                 if (s === 0) {
-                    // Left triangle (s=0) - bottom-left and top-right
-                    ctx.moveTo(worldX - cellSize/2, worldY + cellSize/2); // bottom-left
-                    ctx.lineTo(worldX - cellSize/2, worldY - cellSize/2); // top-left  
-                    ctx.lineTo(worldX + cellSize/2, worldY + cellSize/2); // bottom-right
+                    // s=0 → below the diagonal (left triangle)
+                    // Match worldToCell(): "below diagonal" = bottom-left region
+                    ctx.moveTo(worldX, worldY);                        // top-left
+                    ctx.lineTo(worldX, worldY - cellSize);             // bottom-left
+                    ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
                 } else {
-                    // Right triangle (s=1) - top-left and top-right
-                    ctx.moveTo(worldX - cellSize/2, worldY - cellSize/2); // top-left
-                    ctx.lineTo(worldX + cellSize/2, worldY - cellSize/2); // top-right
-                    ctx.lineTo(worldX + cellSize/2, worldY + cellSize/2); // bottom-right
+                    // s=1 → above the diagonal (right triangle)
+                    // Match worldToCell(): "above diagonal" = top-right region
+                    ctx.moveTo(worldX, worldY);                        // top-left
+                    ctx.lineTo(worldX + cellSize, worldY);             // top-right
+                    ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
                 }
                 ctx.closePath();
                 ctx.fill();
@@ -196,22 +99,131 @@ class TriangleGrid extends BaseGrid {
         }
     }
 
+    getFragmentShaderSource(isWebGL2 = false) {
+        if (isWebGL2) {
+            return `#version 300 es
+                precision mediump float;
+                uniform vec2 uResolution;
+                uniform vec2 uOffset;
+                uniform float uScale;
+                uniform float uGridCols;
+                uniform float uGridRows;
+                uniform float uBaseCellSize;
+                uniform sampler2D uGridTexture;
+                in vec2 vTexCoord;
+                out vec4 outColor;
+
+                void main() {
+                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                    
+                    // Convert world to cell coordinates - match the drawing logic
+                    float cellSize = uBaseCellSize;
+                    float col = floor(worldPos.x / cellSize);
+                    float row = floor(worldPos.y / cellSize);
+                    
+                    // Get position within cell
+                    float localX = (worldPos.x - col * cellSize) / cellSize;
+                    float localY = (worldPos.y - row * cellSize) / cellSize;
+                    
+                    // Determine triangle type - match the drawing logic
+                    float s = localY < localX ? 1.0 : 0.0;
+                    
+                    // Calculate bounds (centered around 0)
+                    float centerCol = float(uGridCols) * 0.5;
+                    float centerRow = float(uGridRows) * 0.5;
+                    float minCol = -centerCol - 1.0;
+                    float maxCol = centerCol;
+                    float minRow = -centerRow - 1.0;
+                    float maxRow = centerRow;
+
+                    if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) {
+                        // Convert to texture coordinates
+                        float texMinCol = -centerCol - 1.0;
+                        float texMinRow = -centerRow - 1.0;
+                        
+                        float texX = (col - texMinCol);
+                        float texY = (row - texMinRow) + (s * (uGridRows + 2.0));
+                        
+                        // Normalize texture coordinates
+                        float texCoordX = texX / (uGridCols + 2.0);
+                        float texCoordY = texY / ((uGridRows + 2.0) * 2.0);
+                        
+                        vec4 cellColor = texture(uGridTexture, vec2(texCoordX, texCoordY));
+                        outColor = cellColor;
+                    } else {
+                        outColor = vec4(0.0);
+                    }
+                }
+            `;
+        } else {
+            return `
+                precision mediump float;
+                uniform vec2 uResolution;
+                uniform vec2 uOffset;
+                uniform float uScale;
+                uniform float uGridCols;
+                uniform float uGridRows;
+                uniform float uBaseCellSize;
+                uniform sampler2D uGridTexture;
+                varying vec2 vTexCoord;
+
+                void main() {
+                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                    
+                    float cellSize = uBaseCellSize;
+                    float col = floor(worldPos.x / cellSize);
+                    float row = floor(worldPos.y / cellSize);
+                    
+                    float localX = (worldPos.x - col * cellSize) / cellSize;
+                    float localY = (worldPos.y - row * cellSize) / cellSize;
+                    
+                    float s = localY < localX ? 1.0 : 0.0;
+                    
+                    float centerCol = float(uGridCols) * 0.5;
+                    float centerRow = float(uGridRows) * 0.5;
+                    float minCol = -centerCol - 1.0;
+                    float maxCol = centerCol;
+                    float minRow = -centerRow - 1.0;
+                    float maxRow = centerRow;
+
+                    if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) {
+                        float texMinCol = -centerCol - 1.0;
+                        float texMinRow = -centerRow - 1.0;
+                        
+                        float texX = (col - texMinCol);
+                        float texY = (row - texMinRow) + (s * (uGridRows + 2.0));
+                        
+                        float texCoordX = texX / (uGridCols + 2.0);
+                        float texCoordY = texY / ((uGridRows + 2.0) * 2.0);
+                        
+                        vec4 cellColor = texture2D(uGridTexture, vec2(texCoordX, texCoordY));
+                        gl_FragColor = cellColor;
+                    } else {
+                        gl_FragColor = vec4(0.0);
+                    }
+                }
+            `;
+        }
+    }
+
     cubeToTextureCoords(q, r, s) {
         // Convert centered coordinates to texture coordinates
-        const minQ = -Math.floor(this.gridCols / 2);
-        const minR = -Math.floor(this.gridRows / 2);
-        
-        // Use different texture rows for left (s=0) vs right (s=1) triangles
-        const texX = q - minQ;
-        const texY = (r - minR) + (s * this.gridRows); // s=0: rows 0-gridRows-1, s=1: rows gridRows-2*gridRows-1
-        
+        const centerCol = Math.floor(this.gridCols / 2);
+        const centerRow = Math.floor(this.gridRows / 2);
+        const minCol = -centerCol - 1;
+        const minRow = -centerRow - 1;
+
+        // Use different texture rows for different triangle types
+        const texX = q - minCol;
+        const texY = (r - minRow) + (s * (this.gridRows + 2));
+
         return [Math.floor(texX), Math.floor(texY)];
     }
 
     setCellState(gl, q, r, s, state) {
         const [texX, texY] = this.cubeToTextureCoords(q, r, s);
-        const textureWidth = this.gridCols;
-        const textureHeight = this.gridRows * 2; // Double height for left + right triangles
+        const textureWidth = this.gridCols + 2; // +2 for boundaries
+        const textureHeight = (this.gridRows + 2) * 2; // Double height for both triangle types
         
         if (texX >= 0 && texX < textureWidth && texY >= 0 && texY < textureHeight) {
             const index = (texY * textureWidth + texX) * 4;
@@ -243,6 +255,36 @@ class TriangleGrid extends BaseGrid {
             return true;
         }
         return false;
+    }
+
+    initGridTexture(gl, gridCols, gridRows) {
+        this.gridCols = gridCols;
+        this.gridRows = gridRows;
+
+        // Add 2 extra cells for boundaries (1 on each side)
+        this.textureWidth = (gridCols + 2) * this.colMult;
+        this.textureHeight = (gridRows + 2) * this.rowMult;
+        this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
+
+        // Initialize with transparent
+        for (let i = 0; i < this.textureWidth * this.textureHeight * 4; i += 4) {
+            this.textureData[i] = 0;
+            this.textureData[i + 1] = 0;
+            this.textureData[i + 2] = 0;
+            this.textureData[i + 3] = 0;
+        }
+
+        this.gridTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+    }
+
+    setBoundaryCell(gl, q, r, s, state) {
+        return this.setCellState(gl, q, r, s, state);
     }
 }
 
