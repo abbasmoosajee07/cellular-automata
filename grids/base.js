@@ -72,8 +72,8 @@ class BaseGrid {
         this.gridCols = gridCols;
         this.gridRows = gridRows;
 
-        const textureWidth = gridCols * this.colMult;
-        const textureHeight = gridRows * this.rowMult;
+        const textureWidth = (gridCols) * this.colMult;
+        const textureHeight = (gridRows) * this.rowMult;
         this.textureData = new Uint8Array(textureWidth * textureHeight * 4);
 
         for (let i = 0; i < textureWidth * textureHeight * 4; i += 4) {
@@ -131,11 +131,11 @@ class BaseGrid {
         return { x: worldX, y: worldY };
     }
 
-    getGridGeometry(bounds, cells, gridCols, gridRows, infiniteGrid, gl) {
+    getGridGeometry(gridCols, gridRows, infiniteGrid, gl) {
         return {
             texture: this.gridTexture,
-            textureWidth: this.textureWidth,
-            textureHeight: this.textureHeight,
+            textureWidth: this.textureWidth * this.colMult,
+            textureHeight: this.textureHeight * this.rowMult,
             gridCols: gridCols,
             gridRows: gridRows,
             baseCellSize: this.baseCellSize || this.radius || 50,
@@ -199,6 +199,32 @@ class BaseGrid {
 
     drawCanvasCells(ctx, cells) {
         throw new Error("Method 'drawCanvasCells()' must be implemented.");
+    }
+    setBoundaryCell(gl, q, r, s, state) {
+        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
+
+        if (texX >= 0 && texX < this.textureWidth && texY >= 0 && texY < this.textureHeight) {
+            const index = (texY * this.textureWidth + texX) * 4;
+            const color = this.colorSchema[state] || [0.5, 0.5, 0.5, 0.5]; // Default boundary color
+
+            // Store the cell color
+            this.textureData[index] = color[0] * 255;
+            this.textureData[index + 1] = color[1] * 255;
+            this.textureData[index + 2] = color[2] * 255;
+            this.textureData[index + 3] = color[3] * 255;
+
+            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+            const pixelData = new Uint8Array([
+                this.textureData[index],
+                this.textureData[index + 1],
+                this.textureData[index + 2],
+                this.textureData[index + 3]
+            ]);
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+
+            return true;
+        }
+        return false;
     }
 }
 

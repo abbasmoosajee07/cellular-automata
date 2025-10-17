@@ -6,18 +6,6 @@ class SquareGrid extends BaseGrid {
         this.baseCellSize = 60;
     }
 
-    worldToCell(world) {
-        const size = this.baseCellSize;
-
-        // Direct world to cell conversion - centered coordinates
-        // World (0,0) maps to cell (0,0)
-        const cellX = Math.round(world.x / size);
-        const cellY = Math.round(world.y / size);
-
-        // Convert to cube coordinates with s = 0
-        return [cellX, cellY, 0];
-    }
-
     calculateBounds(bounds) {
         const [minX, maxX, minY, maxY] = bounds;
         const size = this.baseCellSize;
@@ -52,32 +40,72 @@ class SquareGrid extends BaseGrid {
         return uniformLocations;
     }
 
-    cubeToTextureCoords(q, r, s) {
-        // Convert centered coordinates to texture coordinates
-        const minQ = -Math.floor(this.gridCols / 2);
-        const minR = -Math.floor(this.gridRows / 2);
+    initGridTexture(gl, gridCols, gridRows) {
+        this.gridCols = gridCols;
+        this.gridRows = gridRows;
 
-        const texX = q - minQ;
-        const texY = r - minR;
+        // Add 2 extra cells for boundaries (1 on each side)
+        this.textureWidth = (gridCols + 2) * this.colMult;
+        this.textureHeight = (gridRows + 2) * this.rowMult;
+        this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
 
-        return [Math.floor(texX), Math.floor(texY)];
+        // Initialize with transparent
+        for (let i = 0; i < this.textureWidth * this.textureHeight * 4; i += 4) {
+            this.textureData[i] = 0;
+            this.textureData[i + 1] = 0;
+            this.textureData[i + 2] = 0;
+            this.textureData[i + 3] = 0;
+        }
+
+        this.gridTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+    }
+
+    setBoundaryCell(gl, q, r, s, state) {
+        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
+
+        if (texX >= 0 && texX < this.textureWidth && texY >= 0 && texY < this.textureHeight) {
+            const index = (texY * this.textureWidth + texX) * 4;
+            const color = this.colorSchema[state] || [0.5, 0.5, 0.5, 0.5]; // Default boundary color
+
+            // Store the cell color
+            this.textureData[index] = color[0] * 255;
+            this.textureData[index + 1] = color[1] * 255;
+            this.textureData[index + 2] = color[2] * 255;
+            this.textureData[index + 3] = color[3] * 255;
+
+            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+            const pixelData = new Uint8Array([
+                this.textureData[index],
+                this.textureData[index + 1],
+                this.textureData[index + 2],
+                this.textureData[index + 3]
+            ]);
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+
+            return true;
+        }
+        return false;
     }
 
     setCellState(gl, q, r, s, state) {
         const [texX, texY] = this.cubeToTextureCoords(q, r, s);
 
-        if (texX >= 0 && texX < this.gridCols && texY >= 0 && texY < this.gridRows) {
-            const index = (texY * this.gridCols + texX) * 4;
+        if (texX >= 1 && texX < this.textureWidth - 1 && texY >= 1 && texY < this.textureHeight - 1) {
+            const index = (texY * this.textureWidth + texX) * 4;
 
             if (state) {
                 const color = this.colorSchema[state] || [1, 1, 1, 1];
-                // Store the cell color
                 this.textureData[index] = color[0] * 255;
                 this.textureData[index + 1] = color[1] * 255;
                 this.textureData[index + 2] = color[2] * 255;
-                this.textureData[index + 3] = 255; // Full opacity for active cells
+                this.textureData[index + 3] = 255;
             } else {
-                // For inactive cells, store transparent
                 this.textureData[index] = 0;
                 this.textureData[index + 1] = 0;
                 this.textureData[index + 2] = 0;
@@ -96,6 +124,17 @@ class SquareGrid extends BaseGrid {
             return true;
         }
         return false;
+    }
+
+    cubeToTextureCoords(q, r, s) {
+        // Convert centered coordinates to texture coordinates with 1-cell boundary offset
+        const minQ = -Math.floor(this.gridCols / 2) - 1; // -1 for boundary
+        const minR = -Math.floor(this.gridRows / 2) - 1; // -1 for boundary
+
+        const texX = q - minQ;
+        const texY = r - minR;
+
+        return [Math.floor(texX), Math.floor(texY)];
     }
 
     getFragmentShaderSource(isWebGL2 = false) {
@@ -118,23 +157,22 @@ class SquareGrid extends BaseGrid {
                     // Direct world to cell conversion - centered coordinates
                     vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
 
-                    // Calculate bounds (centered around 0)
-                    float minQ = -float(uGridCols) * 0.5;
-                    float maxQ = float(uGridCols) * 0.5 - 1.0;
-                    float minR = -float(uGridRows) * 0.5;
-                    float maxR = float(uGridRows) * 0.5 - 1.0;
+                    // Calculate bounds including boundary (centered around 0)
+                    float minQ = -float(uGridCols) * 0.5 - 1.0;  // -1 for boundary
+                    float maxQ = float(uGridCols) * 0.5;
+                    float minR = -float(uGridRows) * 0.5 - 1.0;  // -1 for boundary
+                    float maxR = float(uGridRows) * 0.5;
 
                     if (cellCoord.x >= minQ && cellCoord.x <= maxQ && 
                         cellCoord.y >= minR && cellCoord.y <= maxR) {
 
-                        // Convert to texture coordinates for the grid
-                        vec2 gridTexCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
-                        vec4 cellColor = texture(uGridTexture, gridTexCoord);
+                        // Convert to texture coordinates for the grid (with boundary offset)
+                        vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols + 2.0, uGridRows + 2.0);
+                        vec4 cellColor = texture(uGridTexture, texCoord);
 
-                        // Always use the color from texture, regardless of alpha
                         outColor = cellColor;
                     } else {
-                        // Outside grid bounds - use transparent
+                        // Outside extended bounds - use transparent
                         outColor = vec4(0.0);
                     }
                 }
@@ -156,21 +194,19 @@ class SquareGrid extends BaseGrid {
 
                     vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
 
-                    float minQ = -float(uGridCols) * 0.5;
-                    float maxQ = float(uGridCols) * 0.5 - 1.0;
-                    float minR = -float(uGridRows) * 0.5;
-                    float maxR = float(uGridRows) * 0.5 - 1.0;
+                    float minQ = -float(uGridCols) * 0.5 - 1.0;
+                    float maxQ = float(uGridCols) * 0.5;
+                    float minR = -float(uGridRows) * 0.5 - 1.0;
+                    float maxR = float(uGridRows) * 0.5;
 
                     if (cellCoord.x >= minQ && cellCoord.x <= maxQ && 
                         cellCoord.y >= minR && cellCoord.y <= maxR) {
 
-                        vec2 gridTexCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
-                        vec4 cellColor = texture2D(uGridTexture, gridTexCoord);
+                        vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols + 2.0, uGridRows + 2.0);
+                        vec4 cellColor = texture2D(uGridTexture, texCoord);
 
-                        // Always use the color from texture
                         gl_FragColor = cellColor;
                     } else {
-                        // Outside grid bounds - use transparent
                         gl_FragColor = vec4(0.0);
                     }
                 }

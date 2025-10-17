@@ -15,6 +15,7 @@ class GridManager {
         this.useWebGL = useWebGL;
         this.cells = init_cells;
         this.neighborsMap = new Map();
+        this.boundaryCells = new Map();
 
         // Grid defaults
         this.gridCols = 20;
@@ -26,8 +27,8 @@ class GridManager {
         // Camera & colors
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
         this.colorSchema = {
+            "boundary": this.hexToRgb("#fbff00"),
             bg: this.hexToRgb("#000000"), // Add background color to schema
-            line: this.hexToRgb("#555555"),
             1: this.hexToRgb("#32cd32"),
             11: this.hexToRgb("#ff3700"),
         };
@@ -56,11 +57,36 @@ class GridManager {
 
         // Sync existing cells
         this.syncCellsToTexture();
+        // this.createBoundary();
 
         this.updateCanvasSize();
 
         // Start continuous rendering
         this.startRendering();
+    }
+
+    createBoundary() {
+        const [minQ, maxQ, minR, maxR] = this.getBounds();
+        console.log(`Generating cells from (Q${minQ},R${minR}) to (Q${maxQ},R${maxR})`);
+        const s = 0;
+        const boundary = "boundary";
+        for (let q = minQ - 1; q <= maxQ + 1; q++) {
+            this.createBoundaryCell(q, minR -1, s, boundary);
+            this.createBoundaryCell(q, maxR +1, s, boundary);
+        }
+        for (let r = minR - 1; r <= maxR + 1; r++) {
+            this.createBoundaryCell(minQ -1, r, s, boundary);
+            this.createBoundaryCell(maxQ + 1, r, s, boundary);
+        }
+    }
+
+    createBoundaryCell(q, r, s, state) {
+        const key = this.createCubeKey(q, r, s);
+        this.cells.set(key, state);
+
+        if (this.useWebGL && this.renderer.gl) {
+            this.shapeGrid.setBoundaryCell(this.renderer.gl, q, r, s, state);
+        }
     }
 
     createShapeGrid(shape) {
@@ -101,18 +127,6 @@ class GridManager {
         renderLoop();
     }
 
-    getVisibleBounds() {
-        const halfW = this.width / (2 * this.cameraView.zoom);
-        const halfH = this.height / (2 * this.cameraView.zoom);
-
-        const minWorldX = -this.cameraView.camX / this.cameraView.zoom - halfW;
-        const maxWorldX = -this.cameraView.camX / this.cameraView.zoom + halfW;
-        const minWorldY = -this.cameraView.camY / this.cameraView.zoom - halfH;
-        const maxWorldY = -this.cameraView.camY / this.cameraView.zoom + halfH;
-
-        return [minWorldX, maxWorldX, minWorldY, maxWorldY];
-    }
-
     syncCellsToTexture() {
         for (const [key, state] of this.cells) {
             const [q, r, s] = this.parseCubeKey(key);
@@ -148,7 +162,7 @@ class GridManager {
     buildNeighborsMap() {
         const neighborsMap = new Map();
         const [minQ, maxQ, minR, maxR] = this.getBounds();
-        
+
         for (let q = minQ; q <= maxQ; q++) {
             for (let r = minR; r <= maxR; r++) {
                 const s = 0; // Square grid uses s = 0
@@ -187,7 +201,6 @@ class GridManager {
         ] : [0.5, 0.5, 0.5, 1.0];
     }
 
-    // Cube coordinate utilities
     createCubeKey(q, r, s) {
         return `${q},${r},${s}`;
     }
@@ -199,7 +212,7 @@ class GridManager {
 
     changeCell(q, r, s, state) {
         const key = this.createCubeKey(q, r, s);
-        
+
         if (state === 0) {
             this.cells.delete(key);
         } else {
@@ -279,17 +292,18 @@ class GridManager {
         const world = this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
         const cell = this.shapeGrid.worldToCell(world);
 
-        if (!cell || cell[0] === -1) return false;
-
         const [q, r, s] = cell;
+        console.log(q,r,s);
+        if (!this.checkBounds(q, r,)) {return;}
 
         let newState;
-        if (drawMode) {
+        if (drawMode && eraseMode) {
+            newState = 11;
+        } else if (drawMode) {
             newState =  1;
         } else if (eraseMode) {
             newState = 0;
         }
-
         this.changeCell(q, r, s, newState);
         return true;
     }
@@ -316,9 +330,9 @@ class GridManager {
 
     randomCells() {
         const [minQ, maxQ, minR, maxR] = this.getBounds();
-        console.log(`Grid dimensions: ${this.gridCols}x${this.gridRows}`);
-        console.log(`Generating cells from (${minQ},${minR}) to (${maxQ},${maxR})`);
-        console.log(`Total cells: ${(maxQ - minQ + 1) * (maxR - minR + 1)}`);
+        // console.log(`Grid dimensions: ${this.gridCols}x${this.gridRows}`);
+        // console.log(`Generating cells from (${minQ},${minR}) to (${maxQ},${maxR})`);
+        // console.log(`Total cells: ${(maxQ - minQ + 1) * (maxR - minR + 1)}`);
 
         let cellsGenerated = 0;
         for (let q = minQ; q <= maxQ; q++) {
@@ -331,7 +345,7 @@ class GridManager {
                 }
             }
         }
-        console.log(`Cells activated: ${cellsGenerated}`);
+        // console.log(`Cells activated: ${cellsGenerated}`);
         this.drawGrid();
     }
 
@@ -365,6 +379,7 @@ class GridManager {
                 }
             }
         }
+        this.createBoundary();
 
         // Update cells with the resized data
         this.cells = oldCells;
@@ -387,12 +402,11 @@ class GridManager {
     }
 
     drawGrid() {
-        const bounds = this.getVisibleBounds();
 
         if (this.useWebGL) {
             // WebGL path
             const geometry = this.shapeGrid.getGridGeometry(
-                bounds, this.cells, this.gridCols, this.gridRows, this.infiniteGrid, null
+                this.gridCols, this.gridRows, this.infiniteGrid, null
             );
             this.renderer.uploadGeometry(geometry);
             this.renderer.draw(this.cameraView, geometry);
