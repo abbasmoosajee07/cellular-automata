@@ -444,7 +444,7 @@ body.light-mode .control-btn {
 }
 
 /* 📱 Responsive Layout for Mobile */
-@media (max-width: 600px) {
+/* @media (max-width: 600px) {
   .control-panel {
     flex-direction: row;
     bottom: 1vmin;
@@ -461,7 +461,7 @@ body.light-mode .control-btn {
     justify-content: center;
     gap: 0.25rem;
   }
-}
+} */
 
 /* 🪄 Optional hover highlight for panels */
 .ui-panel:hover {
