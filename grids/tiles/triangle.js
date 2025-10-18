@@ -38,65 +38,55 @@ class TriangleGrid extends BaseGrid {
         return [minQ, maxQ, minR, maxR];
     }
 
-    setupUniforms(gl, program, cameraView, geometry, width, height) {
-        const uniformLocations = {
-            resolution: gl.getUniformLocation(program, 'uResolution'),
-            offset: gl.getUniformLocation(program, 'uOffset'),
-            scale: gl.getUniformLocation(program, 'uScale'),
-            gridCols: gl.getUniformLocation(program, 'uGridCols'),
-            gridRows: gl.getUniformLocation(program, 'uGridRows'),
-            baseCellSize: gl.getUniformLocation(program, 'uBaseCellSize'),
-            gridTexture: gl.getUniformLocation(program, 'uGridTexture')
-        };
+    cubeToTextureCoords(q, r, s) {
+        // Convert centered coordinates to texture coordinates
+        const centerCol = Math.floor(this.gridCols / 2);
+        const centerRow = Math.floor(this.gridRows / 2);
+        const minCol = -centerCol - 1;
+        const minRow = -centerRow - 1;
 
-        gl.uniform2f(uniformLocations.resolution, width, height);
-        gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
-        gl.uniform1f(uniformLocations.scale, cameraView.zoom);
-        gl.uniform1f(uniformLocations.gridCols, this.gridCols);
-        gl.uniform1f(uniformLocations.gridRows, this.gridRows);
-        gl.uniform1f(uniformLocations.baseCellSize, this.baseCellSize);
+        // Use different texture rows for different triangle types
+        const texX = q - minCol;
+        const texY = (r - minRow) + (s * (this.gridRows + 2));
 
-        return uniformLocations;
+        return [Math.floor(texX), Math.floor(texY)];
     }
 
-    drawCanvasCells(ctx, cells) {
-        this.rendererUsed = "canvas2d";
-        const cellSize = this.baseCellSize || 60;
+    setCellState(gl, q, r, s, state) {
+        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
+        const textureWidth = this.gridCols + 2; // +2 for boundaries
+        const textureHeight = (this.gridRows + 2) * 2; // Double height for both triangle types
+        
+        if (texX >= 0 && texX < textureWidth && texY >= 0 && texY < textureHeight) {
+            const index = (texY * textureWidth + texX) * 4;
 
-        for (const [key, state] of cells) {
             if (state) {
-                const [q, r, s] = key.split(',').map(Number);
-                const worldX = q * cellSize;
-                const worldY = -r * cellSize;
-
-                // Use color schema based on state value
-                const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
-                ctx.fillStyle = `rgba(
-                    ${Math.round(drawColor[0] * 255)},
-                    ${Math.round(drawColor[1] * 255)},
-                    ${Math.round(drawColor[2] * 255)},
-                    ${drawColor[3]}
-                )`;
-
-                // Draw the appropriate triangle based on s coordinate
-                ctx.beginPath();
-                if (s === 0) {
-                    // s=0 → below the diagonal (left triangle)
-                    // Match worldToCell(): "below diagonal" = bottom-left region
-                    ctx.moveTo(worldX, worldY);                        // top-left
-                    ctx.lineTo(worldX, worldY - cellSize);             // bottom-left
-                    ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
-                } else {
-                    // s=1 → above the diagonal (right triangle)
-                    // Match worldToCell(): "above diagonal" = top-right region
-                    ctx.moveTo(worldX, worldY);                        // top-left
-                    ctx.lineTo(worldX + cellSize, worldY);             // top-right
-                    ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
-                }
-                ctx.closePath();
-                ctx.fill();
+                const color = this.colorSchema[state] || [1, 1, 1, 1];
+                this.textureData[index] = color[0] * 255;
+                this.textureData[index + 1] = color[1] * 255;
+                this.textureData[index + 2] = color[2] * 255;
+                this.textureData[index + 3] = 255;
+            } else {
+                this.textureData[index] = 0;
+                this.textureData[index + 1] = 0;
+                this.textureData[index + 2] = 0;
+                this.textureData[index + 3] = 0;
             }
+
+            if (gl && this.gridTexture) {
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                const pixelData = new Uint8Array([
+                    this.textureData[index],
+                    this.textureData[index + 1],
+                    this.textureData[index + 2],
+                    this.textureData[index + 3]
+                ]);
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+            }
+            
+            return true;
         }
+        return false;
     }
 
     getFragmentShaderSource(isWebGL2 = false) {
@@ -206,85 +196,44 @@ class TriangleGrid extends BaseGrid {
         }
     }
 
-    cubeToTextureCoords(q, r, s) {
-        // Convert centered coordinates to texture coordinates
-        const centerCol = Math.floor(this.gridCols / 2);
-        const centerRow = Math.floor(this.gridRows / 2);
-        const minCol = -centerCol - 1;
-        const minRow = -centerRow - 1;
+    drawCanvasCells(ctx, cells) {
+        this.rendererUsed = "canvas2d";
+        const cellSize = this.baseCellSize || 60;
 
-        // Use different texture rows for different triangle types
-        const texX = q - minCol;
-        const texY = (r - minRow) + (s * (this.gridRows + 2));
-
-        return [Math.floor(texX), Math.floor(texY)];
-    }
-
-    setCellState(gl, q, r, s, state) {
-        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
-        const textureWidth = this.gridCols + 2; // +2 for boundaries
-        const textureHeight = (this.gridRows + 2) * 2; // Double height for both triangle types
-        
-        if (texX >= 0 && texX < textureWidth && texY >= 0 && texY < textureHeight) {
-            const index = (texY * textureWidth + texX) * 4;
-
+        for (const [key, state] of cells) {
             if (state) {
-                const color = this.colorSchema[state] || [1, 1, 1, 1];
-                this.textureData[index] = color[0] * 255;
-                this.textureData[index + 1] = color[1] * 255;
-                this.textureData[index + 2] = color[2] * 255;
-                this.textureData[index + 3] = 255;
-            } else {
-                this.textureData[index] = 0;
-                this.textureData[index + 1] = 0;
-                this.textureData[index + 2] = 0;
-                this.textureData[index + 3] = 0;
+                const [q, r, s] = key.split(',').map(Number);
+                const worldX = q * cellSize;
+                const worldY = -r * cellSize;
+
+                // Use color schema based on state value
+                const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
+                ctx.fillStyle = `rgba(
+                    ${Math.round(drawColor[0] * 255)},
+                    ${Math.round(drawColor[1] * 255)},
+                    ${Math.round(drawColor[2] * 255)},
+                    ${drawColor[3]}
+                )`;
+
+                // Draw the appropriate triangle based on s coordinate
+                ctx.beginPath();
+                if (s === 0) {
+                    // s=0 → below the diagonal (left triangle)
+                    // Match worldToCell(): "below diagonal" = bottom-left region
+                    ctx.moveTo(worldX, worldY);                        // top-left
+                    ctx.lineTo(worldX, worldY - cellSize);             // bottom-left
+                    ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
+                } else {
+                    // s=1 → above the diagonal (right triangle)
+                    // Match worldToCell(): "above diagonal" = top-right region
+                    ctx.moveTo(worldX, worldY);                        // top-left
+                    ctx.lineTo(worldX + cellSize, worldY);             // top-right
+                    ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
+                }
+                ctx.closePath();
+                ctx.fill();
             }
-
-            if (gl && this.gridTexture) {
-                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-                const pixelData = new Uint8Array([
-                    this.textureData[index],
-                    this.textureData[index + 1],
-                    this.textureData[index + 2],
-                    this.textureData[index + 3]
-                ]);
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
-            }
-            
-            return true;
         }
-        return false;
-    }
-
-    initGridTexture(gl, gridCols, gridRows) {
-        this.gridCols = gridCols;
-        this.gridRows = gridRows;
-
-        // Add 2 extra cells for boundaries (1 on each side)
-        this.textureWidth = (gridCols + 2) * this.colMult;
-        this.textureHeight = (gridRows + 2) * this.rowMult;
-        this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
-
-        // Initialize with transparent
-        for (let i = 0; i < this.textureWidth * this.textureHeight * 4; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
-
-        this.gridTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-    }
-
-    setBoundaryCell(gl, q, r, s, state) {
-        return this.setCellState(gl, q, r, s, state);
     }
 }
 

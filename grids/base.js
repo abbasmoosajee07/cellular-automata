@@ -7,11 +7,12 @@ class BaseGrid {
 
         // Common properties
         this.zoom = 1;
-        this.cellSize = 60;
         this.gridCols = 20;
         this.gridRows = 20;
         this.rowMult = 1;
         this.colMult = 1;
+        this.radius = 30;
+        this.baseCellSize = 60;
         this.gridTexture = null;
         this.textureData = null;
 
@@ -68,61 +69,31 @@ class BaseGrid {
         }
     }
 
-    initGridTexture(gl, gridCols, gridRows) {
-        this.gridCols = gridCols;
-        this.gridRows = gridRows;
+    setupUniforms(gl, program, cameraView, geometry, width, height) {
+        const uniformLocations = {
+            resolution: gl.getUniformLocation(program, "uResolution"),
+            offset: gl.getUniformLocation(program, "uOffset"),
+            scale: gl.getUniformLocation(program, "uScale"),
+            gridCols: gl.getUniformLocation(program, "uGridCols"),
+            gridRows: gl.getUniformLocation(program, "uGridRows"),
+            radius: gl.getUniformLocation(program, "uRadius"),
+            baseCellSize: gl.getUniformLocation(program, 'uBaseCellSize'),
+            gridTexture: gl.getUniformLocation(program, "uGridTexture")
+        };
 
-        const textureWidth = (gridCols) * this.colMult;
-        const textureHeight = (gridRows) * this.rowMult;
-        this.textureData = new Uint8Array(textureWidth * textureHeight * 4);
+        gl.uniform2f(uniformLocations.resolution, width, height);
+        gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
+        gl.uniform1f(uniformLocations.scale, cameraView.zoom);
+        gl.uniform1f(uniformLocations.gridCols, this.gridCols);
+        gl.uniform1f(uniformLocations.gridRows, this.gridRows);
+        gl.uniform1f(uniformLocations.radius, this.radius);
+        gl.uniform1f(uniformLocations.baseCellSize, this.baseCellSize);
 
-        for (let i = 0; i < textureWidth * textureHeight * 4; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
-
-        this.gridTexture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureWidth, textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-    }
+        gl.uniform1i(uniformLocations.gridTexture, 0);
 
-    setCellState(gl, q, r, s, state) {
-        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
-
-        if (texX >= 0 && texX < this.textureWidth && texY >= 0 && texY < this.textureHeight) {
-            const index = (texY * this.textureWidth + texX) * 4;
-
-            if (state) {
-                const color = this.colorSchema[state] || [1, 1, 1, 1];
-                this.textureData[index] = color[0] * 255;
-                this.textureData[index + 1] = color[1] * 255;
-                this.textureData[index + 2] = color[2] * 255;
-                this.textureData[index + 3] = 255;
-            } else {
-                this.textureData[index] = 0;
-                this.textureData[index + 1] = 0;
-                this.textureData[index + 2] = 0;
-                this.textureData[index + 3] = 0;
-            }
-
-            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-            const pixelData = new Uint8Array([
-                this.textureData[index],
-                this.textureData[index + 1],
-                this.textureData[index + 2],
-                this.textureData[index + 3]
-            ]);
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
-            
-            return true;
-        }
-        return false;
+        return uniformLocations;
     }
 
     screenToWorld(px, py, width, height, cameraView) {
@@ -144,6 +115,32 @@ class BaseGrid {
         };
     }
 
+    initGridTexture(gl, gridCols, gridRows) {
+        this.gridCols = gridCols;
+        this.gridRows = gridRows;
+
+        // Add 2 extra cells for boundaries (1 on each side)
+        this.textureWidth = (gridCols + 2) * this.colMult; // +2 for boundaries, *3 for rhombus types
+        this.textureHeight = (gridRows + 2) * this.rowMult; // +2 for boundaries
+        this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
+
+        // Initialize with transparent
+        for (let i = 0; i < this.textureWidth * this.textureHeight * 4; i += 4) {
+            this.textureData[i] = 0;
+            this.textureData[i + 1] = 0;
+            this.textureData[i + 2] = 0;
+            this.textureData[i + 3] = 0;
+        }
+
+        this.gridTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+    }
+
     resizeGridTexture(gl, newCols, newRows, oldCells) {
         this.initGridTexture(gl, newCols, newRows);
 
@@ -156,77 +153,43 @@ class BaseGrid {
     }
 
     clearGrid(gl) {
-        // Clear texture data
-        this.textureData.fill(0);
+        if (this.textureData) {
+            this.textureData.fill(0);
+        }
 
-        // Update GPU texture with CORRECT dimensions
         if (gl && this.gridTexture) {
-            const textureWidth = this.gridCols * this.colMult;
-            const textureHeight = this.gridRows * this.rowMult;
-
             gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
             gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0,
-                            textureWidth,    // Use multiplied width
-                            textureHeight,   // Use multiplied height
+                            this.textureWidth,
+                            this.textureHeight,
                             gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
         }
     }
 
-    // Default implementations
-    worldToCell(world) {
-        // Default implementation for square grid
-        const col = Math.round(world.x / (this.baseCellSize || 50));
-        const row = Math.round(world.y / (this.baseCellSize || 50));
-        return [col, row, 0];
-    }
-
     // Abstract methods
-    getFragmentShaderSource() {
-        throw new Error("Method 'getFragmentShaderSource()' must be implemented.");
-    }
-
-    cubeToTextureCoords(q, r, s) {
-        throw new Error("Method 'cubeToTextureCoords()' must be implemented.");
-    }
-
-    setupUniforms(gl, program, cameraView, geometry, width, height) {
-        throw new Error("Method 'setupUniforms()' must be implemented.");
+    worldToCell(world) {
+        throw new Error("Method 'worldToCell()' must be implemented.");
     }
 
     calculateBounds(bounds) {
         throw new Error("Method 'calculateBounds()' must be implemented.");
     }
 
+    cubeToTextureCoords(q, r, s) {
+        throw new Error("Method 'cubeToTextureCoords()' must be implemented.");
+    }
+
+    setCellState(gl, q, r, s, state) {
+        throw new Error("Method 'setCellState()' must be implemented.");
+    }
+
+    getFragmentShaderSource() {
+        throw new Error("Method 'getFragmentShaderSource()' must be implemented.");
+    }
+
     drawCanvasCells(ctx, cells) {
         throw new Error("Method 'drawCanvasCells()' must be implemented.");
     }
-    setBoundaryCell(gl, q, r, s, state) {
-        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
-
-        if (texX >= 0 && texX < this.textureWidth && texY >= 0 && texY < this.textureHeight) {
-            const index = (texY * this.textureWidth + texX) * 4;
-            const color = this.colorSchema[state] || [0.5, 0.5, 0.5, 0.5]; // Default boundary color
-
-            // Store the cell color
-            this.textureData[index] = color[0] * 255;
-            this.textureData[index + 1] = color[1] * 255;
-            this.textureData[index + 2] = color[2] * 255;
-            this.textureData[index + 3] = color[3] * 255;
-
-            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-            const pixelData = new Uint8Array([
-                this.textureData[index],
-                this.textureData[index + 1],
-                this.textureData[index + 2],
-                this.textureData[index + 3]
-            ]);
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
-
-            return true;
-        }
-        return false;
-    }
 }
-
 
 export {BaseGrid};

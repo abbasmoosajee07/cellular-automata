@@ -57,9 +57,9 @@ class GridManager {
 
         // Sync existing cells
         this.syncCellsToTexture();
-        // this.createBoundary();
 
         this.updateCanvasSize();
+        this.createBoundary();
 
         // Start continuous rendering
         this.startRendering();
@@ -69,23 +69,15 @@ class GridManager {
         const [minQ, maxQ, minR, maxR] = this.getBounds();
         console.log(`Generating cells from (Q${minQ},R${minR}) to (Q${maxQ},R${maxR})`);
         const s = 0;
+        const shift = 1;
         const boundary = "boundary";
-        for (let q = minQ - 1; q <= maxQ + 1; q++) {
-            this.createBoundaryCell(q, minR -1, s, boundary);
-            this.createBoundaryCell(q, maxR +1, s, boundary);
+        for (let q = minQ - shift; q <= maxQ + shift; q++) {
+            this.changeCell(q, minR -1, s, boundary);
+            this.changeCell(q, maxR +1, s, boundary);
         }
-        for (let r = minR - 1; r <= maxR + 1; r++) {
-            this.createBoundaryCell(minQ -1, r, s, boundary);
-            this.createBoundaryCell(maxQ + 1, r, s, boundary);
-        }
-    }
-
-    createBoundaryCell(q, r, s, state) {
-        const key = this.createCubeKey(q, r, s);
-        this.cells.set(key, state);
-
-        if (this.useWebGL && this.renderer.gl) {
-            this.shapeGrid.setBoundaryCell(this.renderer.gl, q, r, s, state);
+        for (let r = minR - shift; r <= maxR + shift; r++) {
+            this.changeCell(minQ -1, r, s, boundary);
+            this.changeCell(maxQ + 1, r, s, boundary);
         }
     }
 
@@ -212,7 +204,6 @@ class GridManager {
 
     changeCell(q, r, s, state) {
         const key = this.createCubeKey(q, r, s);
-
         if (state === 0) {
             this.cells.delete(key);
         } else {
@@ -293,7 +284,7 @@ class GridManager {
         const cell = this.shapeGrid.worldToCell(world);
 
         const [q, r, s] = cell;
-        console.log(q,r,s);
+        console.log("toggle", q,r,s);
         if (!this.checkBounds(q, r,)) {return;}
 
         let newState;
@@ -337,8 +328,8 @@ class GridManager {
         let cellsGenerated = 0;
         for (let q = minQ; q <= maxQ; q++) {
             for (let r = minR; r <= maxR; r++) {
-                const s = 0; // Square grid uses s = 0
                 const status = Math.random() < 0.5 ? 0 : 1;
+                const s = 0; // Square grid uses s = 0
                 if (status === 1) {
                     this.changeCell(q, r, s, status);
                     cellsGenerated++;

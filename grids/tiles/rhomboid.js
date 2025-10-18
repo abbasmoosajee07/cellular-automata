@@ -8,48 +8,103 @@ class RhomboidalGrid extends BaseGrid {
         this.colMult = 3;
     }
 
-    clearGrid(gl) {
-        // Clear texture data
-        this.textureData.fill(0);
+    worldToCell(worldPos) {
+        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * worldPos.y) / this.radius;
+        const s = (2 / 3 * worldPos.y) / this.radius;
 
-        // Update GPU texture
-        if (gl && this.gridTexture) {
-            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0,
-                            this.textureWidth,
-                            this.textureHeight,
-                            gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-        }
+        const x = q;
+        const z = s;
+        const y = -x - z;
+
+        let rx = Math.floor(x + 0.5);
+        let ry = Math.floor(y + 0.5);
+        let rz = Math.floor(z + 0.5);
+
+        const dx = Math.abs(rx - x);
+        const dy = Math.abs(ry - y);
+        const dz = Math.abs(rz - z);
+
+        if (dx > dy && dx > dz) rx = -ry - rz;
+        else if (dy > dz) ry = -rx - rz;
+        else rz = -rx - ry;
+
+        // Get local position for rhombus determination
+        const hexCenterX = this.radius * Math.sqrt(3) * (rx + rz * 0.5);
+        const hexCenterY = this.radius * 1.5 * rz;
+        
+        const localX = worldPos.x - hexCenterX;
+        const localY = worldPos.y - hexCenterY;
+
+        // Use the same triangle test as in shader
+        const getRhombusIndex = (localX, localY, radius) => {
+            const center = { x: 0, y: 0 };
+            
+            // Calculate hex vertices
+            const vertices = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI / 3 * i - Math.PI / 6;
+                vertices.push({
+                    x: radius * Math.cos(angle),
+                    y: radius * Math.sin(angle)
+                });
+            }
+
+            const pointInTriangle = (p, a, b, c) => {
+                const v0 = { x: c.x - a.x, y: c.y - a.y };
+                const v1 = { x: b.x - a.x, y: b.y - a.y };
+                const v2 = { x: p.x - a.x, y: p.y - a.y };
+                const dot00 = v0.x * v0.x + v0.y * v0.y;
+                const dot01 = v0.x * v1.x + v0.y * v1.y;
+                const dot02 = v0.x * v2.x + v0.y * v2.y;
+                const dot11 = v1.x * v1.x + v1.y * v1.y;
+                const dot12 = v1.x * v2.x + v1.y * v2.y;
+                const invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+                const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+                const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+                return (u >= 0 && v >= 0 && u + v <= 1);
+            };
+
+            const p = { x: localX, y: localY };
+            if (pointInTriangle(p, center, vertices[0], vertices[1])) return 0;
+            if (pointInTriangle(p, center, vertices[1], vertices[2])) return 0;
+            if (pointInTriangle(p, center, vertices[2], vertices[3])) return 1;
+            if (pointInTriangle(p, center, vertices[3], vertices[4])) return 1;
+            if (pointInTriangle(p, center, vertices[4], vertices[5])) return 2;
+            if (pointInTriangle(p, center, vertices[5], vertices[0])) return 2;
+            
+            return 0;
+        };
+
+        const rhombusType = getRhombusIndex(localX, localY, this.radius);
+        return [rx, rz, rhombusType];
     }
 
-    setBoundaryCell(gl, q, r, rhombusIndex, state) {
-        return this.setCellState(gl, q, r, rhombusIndex, state);
+    calculateBounds(bounds) {
+        const [minX, maxX, minY, maxY] = bounds;
+        const radius = this.radius;
+        const hexWidth = radius * Math.sqrt(3);
+        const hexHeight = radius * 2;
+
+        const minCol = Math.floor(minX / hexWidth) - 1;
+        const maxCol = Math.ceil(maxX / hexWidth) + 1;
+        const minRow = Math.floor(minY / hexHeight) - 1;
+        const maxRow = Math.ceil(maxY / hexHeight) + 1;
+
+        return [minCol, maxCol, minRow, maxRow];
     }
 
-    initGridTexture(gl, gridCols, gridRows) {
-        this.gridCols = gridCols;
-        this.gridRows = gridRows;
+    cubeToTextureCoords(q, r, rhombusIndex) {
+        // Convert centered coordinates to texture coordinates
+        const centerCol = Math.floor(this.gridCols / 2);
+        const centerRow = Math.floor(this.gridRows / 2);
+        const minCol = -centerCol - 1;
+        const minRow = -centerRow - 1;
 
-        // Add 2 extra cells for boundaries (1 on each side)
-        this.textureWidth = (gridCols + 2) * this.colMult; // +2 for boundaries, *3 for rhombus types
-        this.textureHeight = (gridRows + 2) * this.rowMult; // +2 for boundaries
-        this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
+        // Use different texture columns for different rhombus types
+        const texX = (q - minCol) * 3 + rhombusIndex; // *3 for three rhombus types
+        const texY = (r - minRow);
 
-        // Initialize with transparent
-        for (let i = 0; i < this.textureWidth * this.textureHeight * 4; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
-
-        this.gridTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+        return [Math.floor(texX), Math.floor(texY)];
     }
 
     setCellState(gl, q, r, rhombusIndex, state) {
@@ -87,16 +142,6 @@ class RhomboidalGrid extends BaseGrid {
             return true;
         }
         return false;
-    }
-
-    getCellState(q, r, rhombusIndex) {
-        const minQ = -Math.floor(this.gridCols / 2);
-        const minR = -Math.floor(this.gridRows / 2);
-        const texX = (q - minQ) * 3 + rhombusIndex;
-        const texY = (r - minR);
-        const textureWidth = (this.gridCols + 2) * 3;
-        const index = (texY * textureWidth + texX) * 4;
-        return this.textureData[index + 3] > 0 ? 1 : 0;
     }
 
     getFragmentShaderSource(isWebGL2 = false) {
@@ -357,130 +402,6 @@ class RhomboidalGrid extends BaseGrid {
                     }
                 }`;
         }
-    }
-
-    setupUniforms(gl, program, cameraView, geometry, width, height) {
-        const uniformLocations = {
-            resolution: gl.getUniformLocation(program, "uResolution"),
-            offset: gl.getUniformLocation(program, "uOffset"),
-            scale: gl.getUniformLocation(program, "uScale"),
-            gridCols: gl.getUniformLocation(program, "uGridCols"),
-            gridRows: gl.getUniformLocation(program, "uGridRows"),
-            radius: gl.getUniformLocation(program, "uRadius"),
-            gridTexture: gl.getUniformLocation(program, "uGridTexture")
-        };
-
-        gl.uniform2f(uniformLocations.resolution, width, height);
-        gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
-        gl.uniform1f(uniformLocations.scale, cameraView.zoom);
-        gl.uniform1f(uniformLocations.gridCols, this.gridCols);
-        gl.uniform1f(uniformLocations.gridRows, this.gridRows);
-        gl.uniform1f(uniformLocations.radius, this.radius);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, geometry.texture);
-        gl.uniform1i(uniformLocations.gridTexture, 0);
-
-        return uniformLocations;
-    }
-
-    cubeToTextureCoords(q, r, rhombusIndex) {
-        // Convert centered coordinates to texture coordinates
-        const centerCol = Math.floor(this.gridCols / 2);
-        const centerRow = Math.floor(this.gridRows / 2);
-        const minCol = -centerCol - 1;
-        const minRow = -centerRow - 1;
-
-        // Use different texture columns for different rhombus types
-        const texX = (q - minCol) * 3 + rhombusIndex; // *3 for three rhombus types
-        const texY = (r - minRow);
-
-        return [Math.floor(texX), Math.floor(texY)];
-    }
-
-    worldToCell(worldPos) {
-        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * worldPos.y) / this.radius;
-        const s = (2 / 3 * worldPos.y) / this.radius;
-
-        const x = q;
-        const z = s;
-        const y = -x - z;
-
-        let rx = Math.floor(x + 0.5);
-        let ry = Math.floor(y + 0.5);
-        let rz = Math.floor(z + 0.5);
-
-        const dx = Math.abs(rx - x);
-        const dy = Math.abs(ry - y);
-        const dz = Math.abs(rz - z);
-
-        if (dx > dy && dx > dz) rx = -ry - rz;
-        else if (dy > dz) ry = -rx - rz;
-        else rz = -rx - ry;
-
-        // Get local position for rhombus determination
-        const hexCenterX = this.radius * Math.sqrt(3) * (rx + rz * 0.5);
-        const hexCenterY = this.radius * 1.5 * rz;
-        
-        const localX = worldPos.x - hexCenterX;
-        const localY = worldPos.y - hexCenterY;
-
-        // Use the same triangle test as in shader
-        const getRhombusIndex = (localX, localY, radius) => {
-            const center = { x: 0, y: 0 };
-            
-            // Calculate hex vertices
-            const vertices = [];
-            for (let i = 0; i < 6; i++) {
-                const angle = Math.PI / 3 * i - Math.PI / 6;
-                vertices.push({
-                    x: radius * Math.cos(angle),
-                    y: radius * Math.sin(angle)
-                });
-            }
-
-            const pointInTriangle = (p, a, b, c) => {
-                const v0 = { x: c.x - a.x, y: c.y - a.y };
-                const v1 = { x: b.x - a.x, y: b.y - a.y };
-                const v2 = { x: p.x - a.x, y: p.y - a.y };
-                const dot00 = v0.x * v0.x + v0.y * v0.y;
-                const dot01 = v0.x * v1.x + v0.y * v1.y;
-                const dot02 = v0.x * v2.x + v0.y * v2.y;
-                const dot11 = v1.x * v1.x + v1.y * v1.y;
-                const dot12 = v1.x * v2.x + v1.y * v2.y;
-                const invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-                const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-                const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-                return (u >= 0 && v >= 0 && u + v <= 1);
-            };
-
-            const p = { x: localX, y: localY };
-            if (pointInTriangle(p, center, vertices[0], vertices[1])) return 0;
-            if (pointInTriangle(p, center, vertices[1], vertices[2])) return 0;
-            if (pointInTriangle(p, center, vertices[2], vertices[3])) return 1;
-            if (pointInTriangle(p, center, vertices[3], vertices[4])) return 1;
-            if (pointInTriangle(p, center, vertices[4], vertices[5])) return 2;
-            if (pointInTriangle(p, center, vertices[5], vertices[0])) return 2;
-            
-            return 0;
-        };
-
-        const rhombusType = getRhombusIndex(localX, localY, this.radius);
-        return [rx, rz, rhombusType];
-    }
-
-    calculateBounds(bounds) {
-        const [minX, maxX, minY, maxY] = bounds;
-        const radius = this.radius;
-        const hexWidth = radius * Math.sqrt(3);
-        const hexHeight = radius * 2;
-        
-        const minCol = Math.floor(minX / hexWidth) - 1;
-        const maxCol = Math.ceil(maxX / hexWidth) + 1;
-        const minRow = Math.floor(minY / hexHeight) - 1;
-        const maxRow = Math.ceil(maxY / hexHeight) + 1;
-        
-        return [minCol, maxCol, minRow, maxRow];
     }
 
     drawCanvasCells(ctx, cells) {

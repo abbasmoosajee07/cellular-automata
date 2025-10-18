@@ -4,31 +4,119 @@ class HexagonGrid extends BaseGrid {
     constructor(colorSchema) {
         super(colorSchema, "hexagon");
         this.radius = 30;
+        this.rowMult = 1;
+        this.colMult = 1;
     }
 
-    setupUniforms(gl, program, cameraView, geometry, width, height) {
-        const uniformLocations = {
-            resolution: gl.getUniformLocation(program, "uResolution"),
-            offset: gl.getUniformLocation(program, "uOffset"),
-            scale: gl.getUniformLocation(program, "uScale"),
-            gridCols: gl.getUniformLocation(program, "uGridCols"),
-            gridRows: gl.getUniformLocation(program, "uGridRows"),
-            radius: gl.getUniformLocation(program, "uRadius"),
-            gridTexture: gl.getUniformLocation(program, "uGridTexture")
-        };
+    initGridTexture(gl, gridCols, gridRows) {
+        this.gridCols = gridCols;
+        this.gridRows = gridRows;
 
-        gl.uniform2f(uniformLocations.resolution, width, height);
-        gl.uniform2f(uniformLocations.offset, cameraView.camX, cameraView.camY);
-        gl.uniform1f(uniformLocations.scale, cameraView.zoom);
-        gl.uniform1f(uniformLocations.gridCols, this.gridCols);
-        gl.uniform1f(uniformLocations.gridRows, this.gridRows);
-        gl.uniform1f(uniformLocations.radius, this.radius);
+        this.textureWidth = (gridCols + 4) * this.colMult;
+        this.textureHeight = (gridRows + 4) * this.rowMult;
+        this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, geometry.texture);
-        gl.uniform1i(uniformLocations.gridTexture, 0);
+        for (let i = 0; i < this.textureWidth * this.textureHeight * 4; i += 4) {
+            this.textureData[i] = 0;
+            this.textureData[i + 1] = 0;
+            this.textureData[i + 2] = 0;
+            this.textureData[i + 3] = 0;
+        }
 
-        return uniformLocations;
+        this.gridTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+    }
+
+    worldToCell(worldPos) {
+        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * worldPos.y) / this.radius;
+        const r = (2 / 3 * worldPos.y) / this.radius;
+        const s = -q - r;
+
+        let rx = Math.round(q);
+        let ry = Math.round(r);
+        let rz = Math.round(s);
+
+        const dx = Math.abs(rx - q);
+        const dy = Math.abs(ry - r);
+        const dz = Math.abs(rz - s);
+
+        if (dx > dy && dx > dz) {
+            rx = -ry - rz;
+        } else if (dy > dz) {
+            ry = -rx - rz;
+        } else {
+            rz = -rx - ry;
+        }
+
+        // Return all three cube coordinates
+        return [rx, ry, rz];
+    }
+
+    calculateBounds(bounds) {
+        const [minX, maxX, minY, maxY] = bounds;
+        const radius = this.radius;
+        const hexWidth = radius * Math.sqrt(3);
+        const hexHeight = radius * 1.5;
+        
+        const minCol = Math.floor(minX / hexWidth) - 2;
+        const maxCol = Math.ceil(maxX / hexWidth) + 2;
+        const minRow = Math.floor(minY / hexHeight) - 2;
+        const maxRow = Math.ceil(maxY / hexHeight) + 2;
+        
+        return [minCol, maxCol, minRow, maxRow];
+    }
+
+    cubeToTextureCoords(q, r, s) {
+        // Verify cube coordinates sum to zero
+        if (Math.abs(q + r + s) > 0.001) {
+            // console.warn(`Invalid cube coordinates: (${q}, ${r}, ${s}) sum to ${q + r + s}`);
+            // Auto-correct by calculating s from q and r
+            s = -q - r;
+        }
+        
+        const centerCol = Math.floor(this.gridCols / 2);
+        const centerRow = Math.floor(this.gridRows / 2);
+        
+        // Use q and r for texture coordinates (s is redundant since s = -q - r)
+        const texX = q + centerCol + 2;
+        const texY = r + centerRow + 2;
+
+        return [Math.floor(texX), Math.floor(texY)];
+    }
+
+    setCellState(gl, q, r, s, state) {
+        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
+
+        if (texX >= 0 && texX < this.textureWidth && texY >= 0 && texY < this.textureHeight) {
+            const index = (texY * this.textureWidth + texX) * 4;
+
+            if (state) {
+                const color = this.colorSchema[state] || [1, 1, 1, 1];
+                this.textureData[index] = color[0] * 255;
+                this.textureData[index + 1] = color[1] * 255;
+                this.textureData[index + 2] = color[2] * 255;
+                this.textureData[index + 3] = 255;
+            } else {
+                this.textureData[index] = 0;
+                this.textureData[index + 1] = 0;
+                this.textureData[index + 2] = 0;
+                this.textureData[index + 3] = 0;
+            }
+
+            if (gl && this.gridTexture) {
+                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 
+                                new Uint8Array(this.textureData.subarray(index, index + 4)));
+            }
+            
+            return true;
+        }
+        return false;
     }
 
     getFragmentShaderSource(isWebGL2 = false) {
@@ -46,49 +134,103 @@ class HexagonGrid extends BaseGrid {
                 uniform float uRadius;
                 uniform sampler2D uGridTexture;
 
-                // Flat-topped axial conversion
-                vec2 worldToHex(vec2 pos, float r) {
-                    float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
-                    float s = (2.0/3.0 * pos.y) / r;
-                    return vec2(q, s);
+                // Convert world position to cube coordinates
+                vec3 worldToCube(vec2 worldPos, float size) {
+                    float q = (sqrt(3.0) / 3.0 * worldPos.x - 1.0 / 3.0 * worldPos.y) / size;
+                    float r = (2.0 / 3.0 * worldPos.y) / size;
+                    return vec3(q, r, -q - r);
                 }
 
-                ivec3 hexRound(vec2 h) {
-                    float x = h.x;
-                    float z = h.y;
-                    float y = -x - z;
-                    float rx = floor(x + 0.5);
-                    float ry = floor(y + 0.5);
-                    float rz = floor(z + 0.5);
-                    float dx = abs(rx - x);
-                    float dy = abs(ry - y);
-                    float dz = abs(rz - z);
-                    if (dx > dy && dx > dz) rx = -ry - rz;
-                    else if (dy > dz) ry = -rx - rz;
-                    else rz = -rx - ry;
-                    return ivec3(int(rx), int(rz), int(-rx - rz));
+                // Round to nearest hex coordinates
+                vec3 cubeRound(vec3 cube) {
+                    float x = cube.x;
+                    float y = cube.z;  // Note: y is the third coordinate
+                    float z = cube.y;  // z is the second coordinate
+                    
+                    float rx = round(x);
+                    float ry = round(y);
+                    float rz = round(z);
+                    
+                    float x_diff = abs(rx - x);
+                    float y_diff = abs(ry - y);
+                    float z_diff = abs(rz - z);
+                    
+                    if (x_diff > y_diff && x_diff > z_diff) {
+                        rx = -ry - rz;
+                    } else if (y_diff > z_diff) {
+                        ry = -rx - rz;
+                    } else {
+                        rz = -rx - ry;
+                    }
+                    
+                    return vec3(rx, rz, ry); // Return as (q, r, s)
+                }
+
+                // Get hexagon center position from cube coordinates
+                vec2 cubeToWorld(vec3 cube, float size) {
+                    float q = cube.x;
+                    float r = cube.y;
+                    float x = size * (sqrt(3.0) * q + sqrt(3.0) / 2.0 * r);
+                    float y = size * (3.0 / 2.0 * r);
+                    return vec2(x, y);
+                }
+
+                // Check if point is inside hexagon
+                bool pointInHexagon(vec2 localPos, float size) {
+                    // Transform to hex space
+                    vec2 p = vec2(
+                        localPos.x / (sqrt(3.0) * size),
+                        localPos.y / (1.5 * size)
+                    );
+                    
+                    // Convert to axial coordinates and check bounds
+                    vec2 axial = vec2(p.x - p.y * 0.5, p.y);
+                    vec2 rounded = round(axial);
+                    vec2 diff = abs(axial - rounded);
+                    
+                    return max(diff.x, diff.y) <= 0.5;
                 }
 
                 void main() {
+                    // Convert to world coordinates
                     vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                    vec2 axial = worldToHex(worldPos, uRadius);
-                    ivec3 cell = hexRound(axial);
-
-                    // Use rectangular grid mapping with proper bounds
-                    float minQ = -float(uGridCols) * 0.5;
-                    float minR = -float(uGridRows) * 0.5;
                     
-                    vec2 texCoord = vec2(
-                        (float(cell.x) + float(cell.y) * 0.5 - minQ) / uGridCols,
-                        (float(cell.y) - minR) / uGridRows
-                    );
+                    // Convert to cube coordinates
+                    vec3 cube = worldToCube(worldPos, uRadius);
+                    vec3 hexCoord = cubeRound(cube);
+                    
+                    // Verify cube coordinates sum to zero (with tolerance)
+                    float sum = hexCoord.x + hexCoord.y + hexCoord.z;
+                    if (abs(sum) > 0.001) {
+                        // Force correction if rounding introduced error
+                        hexCoord.x = round(cube.x);
+                        hexCoord.z = round(cube.z);
+                        hexCoord.y = -hexCoord.x - hexCoord.z;
+                    }
+                    
+                    // Get hexagon center
+                    vec2 hexCenter = cubeToWorld(hexCoord, uRadius);
+                    vec2 localPos = worldPos - hexCenter;
+                    
+                    // Check if within hexagon
+                    if (!pointInHexagon(localPos, uRadius * 0.95)) {
+                        outColor = vec4(0.0);
+                        return;
+                    }
+
+                    // Convert to texture coordinates
+                    float centerCol = uGridCols * 0.5;
+                    float centerRow = uGridRows * 0.5;
+                    float texX = hexCoord.x + centerCol + 2.0;
+                    float texY = hexCoord.y + centerRow + 2.0;
+
+                    // Normalize texture coordinates
+                    vec2 texCoord = vec2(texX / (uGridCols + 4.0), texY / (uGridRows + 4.0));
 
                     if (texCoord.x >= 0.0 && texCoord.x <= 1.0 && texCoord.y >= 0.0 && texCoord.y <= 1.0) {
                         vec4 cellColor = texture(uGridTexture, texCoord);
-                        // Always use the color from texture, regardless of alpha - like square grid
                         outColor = cellColor;
                     } else {
-                        // Outside grid bounds - use transparent
                         outColor = vec4(0.0);
                     }
                 }`;
@@ -104,184 +246,153 @@ class HexagonGrid extends BaseGrid {
                 uniform sampler2D uGridTexture;
                 varying vec2 vTexCoord;
 
-                vec2 worldToHex(vec2 pos, float r) {
-                    float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
-                    float s = (2.0/3.0 * pos.y) / r;
-                    return vec2(q, s);
+                vec3 worldToCube(vec2 worldPos, float size) {
+                    float q = (sqrt(3.0) / 3.0 * worldPos.x - 1.0 / 3.0 * worldPos.y) / size;
+                    float r = (2.0 / 3.0 * worldPos.y) / size;
+                    return vec3(q, r, -q - r);
                 }
 
-                vec3 hexRound(vec2 h) {
-                    float x = h.x;
-                    float z = h.y;
-                    float y = -x - z;
-                    float rx = floor(x + 0.5);
-                    float ry = floor(y + 0.5);
-                    float rz = floor(z + 0.5);
-                    float dx = abs(rx - x);
-                    float dy = abs(ry - y);
-                    float dz = abs(rz - z);
-                    if (dx > dy && dx > dz) rx = -ry - rz;
-                    else if (dy > dz) ry = -rx - rz;
-                    else rz = -rx - ry;
-                    return vec3(rx, rz, -rx - rz);
+                vec3 cubeRound(vec3 cube) {
+                    float x = cube.x;
+                    float y = cube.z;
+                    float z = cube.y;
+                    
+                    float rx = round(x);
+                    float ry = round(y);
+                    float rz = round(z);
+                    
+                    float x_diff = abs(rx - x);
+                    float y_diff = abs(ry - y);
+                    float z_diff = abs(rz - z);
+                    
+                    if (x_diff > y_diff && x_diff > z_diff) {
+                        rx = -ry - rz;
+                    } else if (y_diff > z_diff) {
+                        ry = -rx - rz;
+                    } else {
+                        rz = -rx - ry;
+                    }
+                    
+                    return vec3(rx, rz, ry);
+                }
+
+                vec2 cubeToWorld(vec3 cube, float size) {
+                    float q = cube.x;
+                    float r = cube.y;
+                    float x = size * (sqrt(3.0) * q + sqrt(3.0) / 2.0 * r);
+                    float y = size * (3.0 / 2.0 * r);
+                    return vec2(x, y);
+                }
+
+                bool pointInHexagon(vec2 localPos, float size) {
+                    vec2 p = vec2(
+                        localPos.x / (sqrt(3.0) * size),
+                        localPos.y / (1.5 * size)
+                    );
+                    
+                    vec2 axial = vec2(p.x - p.y * 0.5, p.y);
+                    vec2 rounded = round(axial);
+                    vec2 diff = abs(axial - rounded);
+                    
+                    return max(diff.x, diff.y) <= 0.5;
                 }
 
                 void main() {
                     vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                    vec2 axial = worldToHex(worldPos, uRadius);
-                    vec3 cell = hexRound(axial);
-
-                    float minQ = -float(uGridCols) * 0.5;
-                    float minR = -float(uGridRows) * 0.5;
+                    vec3 cube = worldToCube(worldPos, uRadius);
+                    vec3 hexCoord = cubeRound(cube);
                     
-                    vec2 texCoord = vec2(
-                        (cell.x + cell.y * 0.5 - minQ) / uGridCols,
-                        (cell.y - minR) / uGridRows
-                    );
+                    float sum = hexCoord.x + hexCoord.y + hexCoord.z;
+                    if (abs(sum) > 0.001) {
+                        hexCoord.x = round(cube.x);
+                        hexCoord.z = round(cube.z);
+                        hexCoord.y = -hexCoord.x - hexCoord.z;
+                    }
+                    
+                    vec2 hexCenter = cubeToWorld(hexCoord, uRadius);
+                    vec2 localPos = worldPos - hexCenter;
+                    
+                    if (!pointInHexagon(localPos, uRadius * 0.95)) {
+                        gl_FragColor = vec4(0.0);
+                        return;
+                    }
+
+                    float centerCol = uGridCols * 0.5;
+                    float centerRow = uGridRows * 0.5;
+                    float texX = hexCoord.x + centerCol + 2.0;
+                    float texY = hexCoord.y + centerRow + 2.0;
+                    
+                    vec2 texCoord = vec2(texX / (uGridCols + 4.0), texY / (uGridRows + 4.0));
 
                     if (texCoord.x >= 0.0 && texCoord.x <= 1.0 && texCoord.y >= 0.0 && texCoord.y <= 1.0) {
                         vec4 cellColor = texture2D(uGridTexture, texCoord);
-                        // Always use the color from texture - like square grid
                         gl_FragColor = cellColor;
                     } else {
-                        // Outside grid bounds - use transparent
                         gl_FragColor = vec4(0.0);
                     }
                 }`;
         }
     }
 
-    calculateBounds(bounds) {
-        const [minX, maxX, minY, maxY] = bounds;
-        const size = this.radius * 2;
-        const minCol = Math.floor(minX / size) - 1;
-        const maxCol = Math.ceil(maxX / size) + 1;
-        const minRow = Math.floor(minY / size) - 1;
-        const maxRow = Math.ceil(maxY / size) + 1;
-        return [minCol, maxCol, minRow, maxRow];
-    }
-
-    worldToCell(worldPos) {
-        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * worldPos.y) / this.radius;
-        const s = (2 / 3 * worldPos.y) / this.radius;
-
-        // Cube coordinates for rounding
-        const x = q;
-        const z = s;
-        const y = -x - z;
-
-        let rx = Math.floor(x + 0.5);
-        let ry = Math.floor(y + 0.5);
-        let rz = Math.floor(z + 0.5);
-
-        const dx = Math.abs(rx - x);
-        const dy = Math.abs(ry - y);
-        const dz = Math.abs(rz - z);
-
-        if (dx > dy && dx > dz) rx = -ry - rz;
-        else if (dy > dz) ry = -rx - rz;
-        else rz = -rx - ry;
-
-        // Return all three cube coordinates with q + r + s = 0
-        return [rx, rz, -rx - rz];
-    }
-
     drawCanvasCells(ctx, cells) {
         this.rendererUsed = "canvas2d";
         const radius = this.radius || 30;
 
+        ctx.save();
+        
         for (const [key, state] of cells) {
             if (state) {
-                const [q, r, s] = key.split(',').map(Number);
-                // Verify cube coordinate constraint
-                if (Math.abs(q + r + s) > 0.001) {
-                    // console.warn(`Invalid cube coordinates: (${q}, ${r}, ${s}), sum = ${q + r + s}`);
-                    continue;
+                const coords = key.split(',').map(Number);
+                let q, r, s;
+                
+                if (coords.length === 3) {
+                    [q, r, s] = coords;
+                    // Verify cube coordinates
+                    if (Math.abs(q + r + s) > 0.001) {
+                        s = -q - r; // Auto-correct
+                    }
+                } else if (coords.length === 2) {
+                    [q, r] = coords;
+                    s = -q - r;
+                } else {
+                    continue; // Skip invalid coordinates
                 }
-                // Use color schema based on state value
-                const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
+
+                // Calculate hexagon center using cube coordinates
+                const centerX = radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+                const centerY = radius * r * -1.5;
+                
+                const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
                 ctx.fillStyle = `rgba(
                     ${Math.round(drawColor[0] * 255)},
                     ${Math.round(drawColor[1] * 255)},
                     ${Math.round(drawColor[2] * 255)},
                     ${drawColor[3]}
                 )`;
-
-                const x = radius * Math.sqrt(3) * (q + r * 0.5);
-                const y = radius * r * -1.5; // Keep original negative for rectangular layout
-                this.drawFlatTopHexagon(ctx, x, y, radius);
+                this.drawHexagon(ctx, centerX, centerY, radius);
             }
         }
+        
+        ctx.restore();
     }
 
-    drawFlatTopHexagon(ctx, centerX, centerY, radius) {
+    drawHexagon(ctx, centerX, centerY, radius) {
         ctx.beginPath();
+        // Draw flat-topped hexagon
         for (let i = 0; i < 6; i++) {
             const angle = Math.PI / 3 * i - Math.PI / 6; // -30° offset for flat-topped
             const x = centerX + radius * Math.cos(angle);
             const y = centerY + radius * Math.sin(angle);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
         }
         ctx.closePath();
         ctx.fill();
-    }
-
-    cubeToTextureCoords(q, r, s) {
-        // Verify cube coordinate constraint
-        if (Math.abs(q + r + s) > 0.001) {
-            // console.warn(`Invalid cube coordinates in texture mapping: (${q}, ${r}, ${s}), sum = ${q + r + s}`);
-        }
-
-        // Use rectangular grid mapping
-        const minQ = -Math.floor(this.gridCols / 2);
-        const minR = -Math.floor(this.gridRows / 2);
-        
-        const texX = q + r * 0.5 - minQ;
-        const texY = r - minR;
-        
-        return [Math.floor(texX), Math.floor(texY)];
-    }
-
-    setCellState(gl, q, r, s, state) {
-        // Verify cube coordinate constraint
-        if (Math.abs(q + r + s) > 0.001) {
-            // console.warn(`Invalid cube coordinates: (${q}, ${r}, ${s}), sum = ${q + r + s}`);
-            return false;
-        }
-
-        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
-
-        if (texX >= 0 && texX < this.gridCols && texY >= 0 && texY < this.gridRows) {
-            const index = (texY * this.gridCols + texX) * 4;
-
-            if (state) {
-                const color = this.colorSchema[state] || [1, 1, 1, 1];
-                this.textureData[index] = color[0] * 255;
-                this.textureData[index + 1] = color[1] * 255;
-                this.textureData[index + 2] = color[2] * 255;
-                this.textureData[index + 3] = 255;
-            } else {
-                this.textureData[index] = 0;
-                this.textureData[index + 1] = 0;
-                this.textureData[index + 2] = 0;
-                this.textureData[index + 3] = 0;
-            }
-
-            if (gl && this.gridTexture) {
-                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-                const pixelData = new Uint8Array([
-                    this.textureData[index],
-                    this.textureData[index + 1],
-                    this.textureData[index + 2],
-                    this.textureData[index + 3]
-                ]);
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
-            }
-            
-            return true;
-        }
-        return false;
+        ctx.stroke();
     }
 }
 
