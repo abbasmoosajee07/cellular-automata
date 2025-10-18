@@ -31,6 +31,10 @@ class WebGLRenderer {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.clearColor(0, 0, 0, 0);
 
+        // --- Background fill (match canvas logic) ---
+        const bgColor = this.shapeGrid.colorSchema.bg || [0.5, 0.5, 0.5, 1];
+        gl.clearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         return gl;
     }
 
@@ -130,7 +134,6 @@ class WebGLRenderer {
         }
 
         gl.clear(gl.COLOR_BUFFER_BIT);
-
         gl.useProgram(this.program);
 
         if (this.vao) {
@@ -138,18 +141,15 @@ class WebGLRenderer {
         } else {
             gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
             gl.enableVertexAttribArray(this.attribLocations.position);
-            gl.vertexAttribPointer(this.attribLocations.position, 2, gl.FLOAT, false, this.stride, this.positionOffset);
-
-            if (this.attribLocations.triIndex >= 0 && this.usesTriIndex) {
-                gl.enableVertexAttribArray(this.attribLocations.triIndex);
-                gl.vertexAttribPointer(this.attribLocations.triIndex, 1, gl.FLOAT, false, this.stride, this.triIndexOffset);
-            }
+            gl.vertexAttribPointer(
+                this.attribLocations.position, 2, gl.FLOAT, false, this.stride, this.positionOffset
+            );
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
         }
 
         const uniformLocations = this.shapeGrid.setupUniforms(
-            gl, this.program, cameraView, gridGeometry, this.width, this.height
+            gl, this.program, cameraView, this.width, this.height
         );
 
         gl.activeTexture(gl.TEXTURE0);

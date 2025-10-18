@@ -3,16 +3,16 @@ class BaseGrid {
     constructor(colorSchema, shape) {
         this.colorSchema = colorSchema;
         this.shape = shape;
-        this.rendererUsed = "webgl";
 
         // Common properties
-        this.zoom = 1;
+        this.radius = 30;
+        this.cellSize = 60;
+
         this.gridCols = 20;
         this.gridRows = 20;
         this.rowMult = 1;
         this.colMult = 1;
-        this.radius = 30;
-        this.baseCellSize = 60;
+
         this.gridTexture = null;
         this.textureData = null;
 
@@ -69,7 +69,7 @@ class BaseGrid {
         }
     }
 
-    setupUniforms(gl, program, cameraView, geometry, width, height) {
+    setupUniforms(gl, program, cameraView, width, height) {
         const uniformLocations = {
             resolution: gl.getUniformLocation(program, "uResolution"),
             offset: gl.getUniformLocation(program, "uOffset"),
@@ -87,7 +87,7 @@ class BaseGrid {
         gl.uniform1f(uniformLocations.gridCols, this.gridCols);
         gl.uniform1f(uniformLocations.gridRows, this.gridRows);
         gl.uniform1f(uniformLocations.radius, this.radius);
-        gl.uniform1f(uniformLocations.baseCellSize, this.baseCellSize);
+        gl.uniform1f(uniformLocations.baseCellSize, this.cellSize);
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
@@ -102,14 +102,14 @@ class BaseGrid {
         return { x: worldX, y: worldY };
     }
 
-    getGridGeometry(gridCols, gridRows, infiniteGrid, gl) {
+    getGridGeometry(gridCols, gridRows, gl) {
         return {
             texture: this.gridTexture,
             textureWidth: this.textureWidth * this.colMult,
             textureHeight: this.textureHeight * this.rowMult,
             gridCols: gridCols,
             gridRows: gridRows,
-            baseCellSize: this.baseCellSize || this.radius || 50,
+            baseCellSize: this.cellSize || this.radius || 50,
             vertexCount: 4,
             indexCount: 6
         };

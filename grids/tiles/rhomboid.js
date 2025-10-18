@@ -405,7 +405,6 @@ class RhomboidalGrid extends BaseGrid {
     }
 
     drawCanvasCells(ctx, cells) {
-        this.rendererUsed = "canvas2d";
         const radius = this.radius || 30;
 
         for (const [key, state] of cells) {

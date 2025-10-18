@@ -335,7 +335,7 @@ class HexagonGrid extends BaseGrid {
     }
 
     drawCanvasCells(ctx, cells) {
-        this.rendererUsed = "canvas2d";
+
         const radius = this.radius || 30;
 
         ctx.save();

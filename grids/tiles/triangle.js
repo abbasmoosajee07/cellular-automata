@@ -3,14 +3,14 @@ import { BaseGrid } from '../base.js';
 class TriangleGrid extends BaseGrid {
     constructor(colorSchema) {
         super(colorSchema, "triangle");
-        this.baseCellSize = 60;
-        this.height = this.baseCellSize * Math.sqrt(3) / 2;
+        this.cellSize = 60;
+        this.height = this.cellSize * Math.sqrt(3) / 2;
         this.rowMult = 2;
         this.colMult = 1;
     }
 
     worldToCell(world) {
-        const size = this.baseCellSize;
+        const size = this.cellSize;
 
         // Convert world coordinates to match the triangle drawing positions
         const q = Math.floor(world.x / size);
@@ -27,7 +27,7 @@ class TriangleGrid extends BaseGrid {
 
     calculateBounds(bounds) {
         const [minX, maxX, minY, maxY] = bounds;
-        const size = this.baseCellSize;
+        const size = this.cellSize;
 
         // Calculate visible square cell range
         const minQ = Math.floor(minX / size) - 1;
@@ -197,8 +197,7 @@ class TriangleGrid extends BaseGrid {
     }
 
     drawCanvasCells(ctx, cells) {
-        this.rendererUsed = "canvas2d";
-        const cellSize = this.baseCellSize || 60;
+        const cellSize = this.cellSize || 60;
 
         for (const [key, state] of cells) {
             if (state) {

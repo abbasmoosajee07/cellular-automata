@@ -26,6 +26,7 @@ class GridManager {
 
         // Camera & colors
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
+
         this.colorSchema = {
             "boundary": this.hexToRgb("#fbff00"),
             bg: this.hexToRgb("#000000"), // Add background color to schema
@@ -63,22 +64,6 @@ class GridManager {
 
         // Start continuous rendering
         this.startRendering();
-    }
-
-    createBoundary() {
-        const [minQ, maxQ, minR, maxR] = this.getBounds();
-        console.log(`Generating cells from (Q${minQ},R${minR}) to (Q${maxQ},R${maxR})`);
-        const s = 0;
-        const shift = 1;
-        const boundary = "boundary";
-        for (let q = minQ - shift; q <= maxQ + shift; q++) {
-            this.changeCell(q, minR -1, s, boundary);
-            this.changeCell(q, maxR +1, s, boundary);
-        }
-        for (let r = minR - shift; r <= maxR + shift; r++) {
-            this.changeCell(minQ -1, r, s, boundary);
-            this.changeCell(maxQ + 1, r, s, boundary);
-        }
     }
 
     createShapeGrid(shape) {
@@ -138,6 +123,20 @@ class GridManager {
     setBoundaryType(boundaryType) {
         this.boundaryType = boundaryType;
         this.infiniteGrid = (boundaryType === "infinite");
+    }
+
+    createBoundary() {
+        const [minQ, maxQ, minR, maxR] = this.getBounds();
+        console.log(`Generating cells from (Q${minQ},R${minR}) to (Q${maxQ},R${maxR})`);
+        const boundary = "boundary";
+        for (let q = minQ - 1; q <= maxQ + 1; q++) {
+            this.changeCell(q, minR - 1, 0, boundary);
+            this.changeCell(q, maxR + 1, 0, boundary);
+        }
+        for (let r = minR - 1; r <= maxR + 1; r++) {
+            this.changeCell(minQ - 1, r, 0, boundary);
+            this.changeCell(maxQ + 1, r, 0, boundary);
+        }
     }
 
     getNeighbors(q, r, s) {
@@ -344,10 +343,6 @@ class GridManager {
         this.gridCols = newCols;
         this.gridRows = newRows;
 
-        // Update shape grid dimensions
-        this.shapeGrid.gridCols = newCols;
-        this.shapeGrid.gridRows = newRows;
-
         // Save current cells data
         const oldCells = new Map();
         for (const [key, state] of this.cells) {
@@ -381,7 +376,6 @@ class GridManager {
 
     setColorSchema(newSchema) {
         this.colorSchema = newSchema;
-        this.bgColor = this.colorSchema.bg || [0.5, 0.5, 0.5, 0];
 
         // If using WebGL, we need to update all cell textures
         if (this.useWebGL && this.renderer.gl) {
@@ -393,11 +387,10 @@ class GridManager {
     }
 
     drawGrid() {
-
         if (this.useWebGL) {
             // WebGL path
             const geometry = this.shapeGrid.getGridGeometry(
-                this.gridCols, this.gridRows, this.infiniteGrid, null
+                this.gridCols, this.gridRows, null
             );
             this.renderer.uploadGeometry(geometry);
             this.renderer.draw(this.cameraView, geometry);
