@@ -48,6 +48,13 @@ class Canvas2DRenderer {
         ctx.restore();
     }
 
+    clearAll() {
+        return;
+    }
+
+    renderCell(q, r, s, state) {
+        return this.shapeGrid.drawSingleCell(this.ctx, q, r, s, state);
+    }
 }
 
 export { Canvas2DRenderer };

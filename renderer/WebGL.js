@@ -162,6 +162,14 @@ class WebGLRenderer {
             gl.bindVertexArray(null);
         }
     }
+
+    clearAll() {
+        this.shapeGrid.clearGrid(this.gl);
+    }
+
+    renderCell(q, r, s, state) {
+        this.shapeGrid.setCellState(this.gl, q, r, s, state);
+    }
 }
 
 

@@ -1,6 +1,7 @@
 import {  GridManager  } from '../grids/gridManager.js';
+import {  CellManager  } from './cellManager.js';
 
-class AutomataSimulator{
+class SimulatorController{
     docIDs = [
         "gridCanvas", "menuPanel", "menuToggle", "reMap",
         "drawTiles", "eraseTiles", "clearGrid", "randomFill",
@@ -17,7 +18,7 @@ class AutomataSimulator{
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
-        this.gridManager.randomCells()
+        this.randomCells()
         this.gridManager.drawGrid();
     }
 
@@ -56,11 +57,33 @@ class AutomataSimulator{
         });
     }
 
+    randomCells() {
+        const [minQ, maxQ, minR, maxR] = this.cells.bounds;
+        // console.log(`Grid dimensions: ${this.gridCols}x${this.gridRows}`);
+        // console.log(`Generating cells from (${minQ},${minR}) to (${maxQ},${maxR})`);
+        // console.log(`Total cells: ${(maxQ - minQ + 1) * (maxR - minR + 1)}`);
+
+        let cellsGenerated = 0;
+        for (let q = minQ; q <= maxQ; q++) {
+            for (let r = minR; r <= maxR; r++) {
+                const status = Math.random() < 0.5 ? 0 : 1;
+                const s = 0; // Square grid uses s = 0
+                if (status === 1) {
+                    this.gridManager.changeCell(q, r, s, status);
+                    cellsGenerated++;
+                }
+            }
+        }
+        // console.log(`Cells activated: ${cellsGenerated}`);
+        this.gridManager.drawGrid();
+    }
+
     initGrid() {
-        this.gridManager = new GridManager("square", this.gridCanvas, new Map(), this.useWebgl);
+        this.gridManager = new GridManager("square", this.gridCanvas, new CellManager, this.useWebgl);
         this.savedView = { ...this.gridManager.cameraView };
         this.gridManager.gridRows = parseInt(this.rowInput.value);
         this.gridManager.gridCols = parseInt(this.colInput.value);
+        this.cells = this.gridManager.cells;
     }
 
     setupGridControls() {
@@ -111,7 +134,7 @@ class AutomataSimulator{
             this.gridManager.setBoundaryType(this.boundsType);
             this.gridManager.neighborType = this.neighborsType;
             this.gridManager.resizeGrid(this.gridSize[0], this.gridSize[1]);
-            this.gridManager.cells = oldGrid.cells;
+            this.cells = oldGrid.cells;
             this.gridManager.drawGrid();
         });
     }
@@ -132,7 +155,7 @@ class AutomataSimulator{
             this.gridManager.drawGrid();
         });
 
-        this.randomFill.addEventListener('click', () => this.gridManager.randomCells());
+        this.randomFill.addEventListener('click', () => this.randomCells());
 
         window.addEventListener('resize', () => {
             this.gridManager.updateCanvasSize();
@@ -140,14 +163,14 @@ class AutomataSimulator{
         });
 
         this.neighborTiles.addEventListener('click', () => {
-            const availCells = this.gridManager.cells;
+            const availCells = this.cells.cells;
             const neighborsToActivate = [];
 
             // Collect neighbors of all active cells
             for (const [key, cellData] of availCells) {
                 if (cellData === 1) { // expand only from alive cells
-                    const [q, r, s] = this.gridManager.parseCubeKey(key);
-                    const neighborCells = this.gridManager.getNeighbors(q, r, s);
+                    const [q, r, s] = this.cells.parseCubeKey(key);
+                    const neighborCells = this.cells.getNeighbors(q, r, s);
                     neighborsToActivate.push(...neighborCells); // just dump them in
                 }
             }
@@ -158,7 +181,7 @@ class AutomataSimulator{
             }
 
             this.gridManager.drawGrid();
-            console.log(this.gridManager.cells);
+            // console.log(this.gridManager.cells);
         });
     }
 
@@ -168,13 +191,13 @@ class AutomataSimulator{
         let lastX = 0, lastY = 0;
         let lastTouchDistance = null;
         const MIN_ZOOM = 10;
-        const MAX_ZOOM = 0.001;
+        const MAX_ZOOM = 0.0001;
 
         const getPointer = (e) => {
             if (e.touches && e.touches.length > 0) {
                 return { x: e.touches[0].clientX, y: e.touches[0].clientY, touches: e.touches.length };
             }
-            // this.updateStatusBar();
+            this.updateStatusBar(e.clientX, e.clientY);
             return { x: e.clientX, y: e.clientY, touches: 1 };
         };
 
@@ -193,7 +216,6 @@ class AutomataSimulator{
                 draggingCam = false;
                 lastTouchDistance = null;
             }
-            this.updateStatusBar();
         };
 
         const handleMove = (e) => {
@@ -222,7 +244,6 @@ class AutomataSimulator{
                 lastY = pointer.y;
                 this.gridManager.drawGrid();
             }
-            this.updateStatusBar();
         };
 
         const handleUp = () => {
@@ -252,7 +273,7 @@ class AutomataSimulator{
             const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
             const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
             this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
-            this.updateStatusBar();
+            this.updateStatusBar(this.gridManager.cameraView.camX, this.gridManager.cameraView.camY);
             this.gridManager.drawGrid();
         }, { passive: false });
 
@@ -271,16 +292,16 @@ class AutomataSimulator{
         // console.log(this.gridManager.cells);
     }
 
-    updateStatusBar() {
+    updateStatusBar(px, py) {
         document.getElementById("status-gen").textContent = 0;
 
         document.getElementById("status-popl").textContent = 0;
 
-        document.getElementById("status-zoom").textContent = this.gridManager.cameraView.zoom.toFixed(2) + "x";
-
-        document.getElementById("status-camera").textContent = `(${this.gridManager.cameraView.camX}, ${this.gridManager.cameraView.camY})`;
+        document.getElementById("status-zoom").textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
+        const [q, r, s] = this.gridManager.screenToCell(px, py)
+        document.getElementById("status-camera").textContent = `${q},${r},${s}`;
     }
 
 }
 
-export { AutomataSimulator };
+export { SimulatorController };
