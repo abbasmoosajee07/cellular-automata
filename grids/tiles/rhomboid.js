@@ -407,18 +407,17 @@ class RhomboidalGrid extends BaseGrid {
     drawCanvasCells(ctx, cells) {
         const radius = this.radius || 30;
 
-        for (const [key, state] of cells) {
+        cells.forEachCell((q, r, s, state) => {
             if (state) {
-                const [q, r, rhombusType] = key.split(',').map(Number);
 
                 const centerX = radius * Math.sqrt(3) * (q + r * 0.5);
                 const centerY = radius * -r * 1.5;
                 // Use color schema based on state value
                 const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
 
-                this.drawAdjacentRhombus(ctx, centerX, centerY, radius, rhombusType, drawColor);
+                this.drawAdjacentRhombus(ctx, centerX, centerY, radius, s, drawColor);
             }
-        }
+        }, { skipDead: true });
     }
 
     drawAdjacentRhombus(ctx, centerX, centerY, radius, rhombusType, fillColor) {

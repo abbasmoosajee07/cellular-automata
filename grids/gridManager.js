@@ -37,7 +37,7 @@ class GridManager {
 
     createDefaultColorSchema() {
         return {
-            "boundary": this.hexToRgb("#0f4812"),
+            255: this.hexToRgb("#0f4812"),
             bg: this.hexToRgb("#000000"),
             1: this.hexToRgb("#32cd32"),
             11: this.hexToRgb("#ff3700"),
@@ -83,12 +83,10 @@ class GridManager {
     }
 
     syncCellsToTexture() {
-        for (const [key, state] of this.cells.cells) {
-            const [q, r, s] = this.cells.parseCubeKey(key);
-            if (state && this.checkBounds(q, r, s)) {
-                this.renderer.renderCell(q, r, s, state);
-            }
-        }
+        this.cells.forEachCell((q, r, s, state) => {
+            if (this.checkBounds(q, r, s))
+                this.renderCell(q, r, s, state);
+        }, { skipDead: true });
     }
 
     updateCanvasSize() {
@@ -124,8 +122,8 @@ class GridManager {
     createBoundary() {
         const [minQ, maxQ, minR, maxR] = this.getBounds();
         console.log(`Generating boundary from (Q${minQ},R${minR}) to (Q${maxQ},R${maxR})`);
-        
-        const boundary = "boundary";
+
+        const boundary = 255;
         for (let q = minQ - 1; q <= maxQ + 1; q++) {
             this.changeCell(q, minR - 1, 0, boundary);
             this.changeCell(q, maxR + 1, 0, boundary);
@@ -137,21 +135,14 @@ class GridManager {
     }
 
     changeCell(q, r, s, state) {
-        const key = this.cells.createCubeKey(q, r, s);
-        
-        if (state === 0) {
-            this.cells.cells.delete(key);
-        } else {
-            this.cells.cells.set(key, state);
-        }
-        
-        this.renderer.renderCell(q, r, s, state);
+        this.cells.setCell(q, r, s, state);
+        this.renderCell(q, r, s, state);
     }
 
     getBounds() {
         const cols = this.gridCols;
         const rows = this.gridRows;
-        
+
         return [
             -Math.floor(cols / 2),
             Math.floor((cols - 1) / 2),
@@ -181,13 +172,13 @@ class GridManager {
         const [q1, r1, s1] = startCell;
         const [q2, r2, s2] = endCell;
         const N = Math.max(Math.abs(q2 - q1), Math.abs(r2 - r1), Math.abs(s2 - s1));
-        
+
         for (let i = 0; i <= N; i++) {
             const t = i / N;
             const q = Math.round(q1 + (q2 - q1) * t);
             const r = Math.round(r1 + (r2 - r1) * t);
             const s = -q - r;
-            
+
             if (this.checkBounds(q, r, s)) {
                 const state = (mode === 'draw') ? 1 : 0;
                 this.changeCell(q, r, s, state);
@@ -216,7 +207,7 @@ class GridManager {
         } else if (eraseMode) {
             newState = 0;
         }
-        
+
         this.changeCell(q, r, s, newState);
         return true;
     }
@@ -244,11 +235,11 @@ class GridManager {
     resizeGrid(newCols, newRows) {
         this.gridCols = newCols;
         this.gridRows = newRows;
-
+        this.cells.resize(newCols, newRows, 6);
         if (this.useWebGL && this.renderer.gl) {
-            this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, this.cells.cells);
+            this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, this.cells);
         }
-        
+
         this.createBoundary();
         this.cells.bounds = this.getBounds();
         this.centerView();
@@ -257,10 +248,10 @@ class GridManager {
     setColorSchema(newSchema) {
         this.colorSchema = newSchema;
         this.shapeGrid.colorSchema = newSchema;
-        
+
         for (const [key, state] of this.cells.cells) {
             const [q, r, s] = this.cells.parseCubeKey(key);
-            this.renderer.renderCell(q, r, s, state);
+            this.renderCell(q, r, s, state);
         }
     }
 
@@ -270,8 +261,17 @@ class GridManager {
             this.renderer.uploadGeometry(geometry);
             this.renderer.draw(this.cameraView, geometry);
         } else {
-            this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells.cells);
+            this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells);
         }
+    }
+
+    renderCell(q, r, s, state) {
+        if (this.useWebGL) {
+            this.renderer.renderCell(q, r, s, state);
+        } else {
+            this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells);
+        }
+
     }
 }
 

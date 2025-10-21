@@ -43,6 +43,10 @@ body {
   transition: background .3s ease, color .3s ease;
 }
 
+canvas {
+    cursor: crosshair;
+}
+
 /* ==============================
    Controls & Forms
 ============================== */

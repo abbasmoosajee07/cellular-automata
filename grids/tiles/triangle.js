@@ -199,9 +199,8 @@ class TriangleGrid extends BaseGrid {
     drawCanvasCells(ctx, cells) {
         const cellSize = this.cellSize || 60;
 
-        for (const [key, state] of cells) {
+        cells.forEachCell((q, r, s, state) => {
             if (state) {
-                const [q, r, s] = key.split(',').map(Number);
                 const worldX = q * cellSize;
                 const worldY = -r * cellSize;
 
@@ -232,7 +231,7 @@ class TriangleGrid extends BaseGrid {
                 ctx.closePath();
                 ctx.fill();
             }
-        }
+        }, { skipDead: true });
     }
 }
 

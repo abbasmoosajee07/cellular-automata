@@ -340,23 +340,8 @@ class HexagonGrid extends BaseGrid {
 
         ctx.save();
         
-        for (const [key, state] of cells) {
+        cells.forEachCell((q, r, s, state) => {
             if (state) {
-                const coords = key.split(',').map(Number);
-                let q, r, s;
-                
-                if (coords.length === 3) {
-                    [q, r, s] = coords;
-                    // Verify cube coordinates
-                    if (Math.abs(q + r + s) > 0.001) {
-                        s = -q - r; // Auto-correct
-                    }
-                } else if (coords.length === 2) {
-                    [q, r] = coords;
-                    s = -q - r;
-                } else {
-                    continue; // Skip invalid coordinates
-                }
 
                 // Calculate hexagon center using cube coordinates
                 const centerX = radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
@@ -371,8 +356,7 @@ class HexagonGrid extends BaseGrid {
                 )`;
                 this.drawHexagon(ctx, centerX, centerY, radius);
             }
-        }
-        
+        }, { skipDead: true });
         ctx.restore();
     }
 

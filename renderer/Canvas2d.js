@@ -33,9 +33,6 @@ class Canvas2DRenderer {
         )`;
         ctx.fillRect(0, 0, this.width, this.height);
 
-        // --- Skip drawing if no cells ---
-        if (!cells || cells.size === 0) return;
-
         // --- Camera transform (match WebGL logic) ---
         ctx.save();
         ctx.translate(this.width / 2, this.height / 2);
@@ -52,9 +49,7 @@ class Canvas2DRenderer {
         return;
     }
 
-    renderCell(q, r, s, state) {
-        return this.shapeGrid.drawSingleCell(this.ctx, q, r, s, state);
-    }
+
 }
 
 export { Canvas2DRenderer };

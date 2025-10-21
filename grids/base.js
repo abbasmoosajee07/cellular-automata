@@ -147,10 +147,9 @@ class BaseGrid {
         this.initGridTexture(gl, newCols, newRows);
 
         if (oldCells) {
-            for (const [key, state] of oldCells) {
-                const [q, r, s] = key.split(',').map(Number);
+            oldCells.forEachCell((q, r, s, state) => {
                 this.setCellState(gl, q, r, s, state);
-            }
+            }, { skipDead: true });
         }
     }
 

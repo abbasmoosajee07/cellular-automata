@@ -3,7 +3,7 @@ import { BaseGrid } from '../base.js';
 class SquareGrid extends BaseGrid {
     constructor(colorSchema) {
         super(colorSchema, "square");
-        this.cellSize = 60;
+        this.cellSize = 50;
     }
 
     worldToCell(world) {
@@ -149,30 +149,27 @@ class SquareGrid extends BaseGrid {
     drawCanvasCells(ctx, cells) {
         const cellSize = this.cellSize;
 
-        for (const [key, state] of cells) {
-            if (state) {
+        cells.forEachCell((q, r, s, state) => {
+            if (!state) return;
 
-                const [q, r, s] = key.split(',').map(Number);
-                const worldX =  q * cellSize;
-                const worldY = -r * cellSize;
+            const worldX = q * cellSize;
+            const worldY = -r * cellSize;
 
-                // Use color schema based on state value
-                const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
-                ctx.fillStyle = `rgba(
-                    ${Math.round(drawColor[0] * 255)},
-                    ${Math.round(drawColor[1] * 255)},
-                    ${Math.round(drawColor[2] * 255)},
-                    ${drawColor[3]}
-                )`;
+            const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
+            ctx.fillStyle = `rgba(
+                ${Math.round(drawColor[0] * 255)},
+                ${Math.round(drawColor[1] * 255)},
+                ${Math.round(drawColor[2] * 255)},
+                ${drawColor[3]}
+            )`;
 
-                ctx.fillRect(
-                    worldX - cellSize / 2,
-                    worldY - cellSize / 2,
-                    cellSize,
-                    cellSize
-                );
-            }
-        }
+            ctx.fillRect(
+                worldX - cellSize / 2,
+                worldY - cellSize / 2,
+                cellSize,
+                cellSize
+            );
+        }, { skipDead: true });
     }
 }
 

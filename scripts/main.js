@@ -163,17 +163,17 @@ class SimulatorController{
         });
 
         this.neighborTiles.addEventListener('click', () => {
-            const availCells = this.cells.cells;
+            const availCells = this.cells;
             const neighborsToActivate = [];
 
             // Collect neighbors of all active cells
-            for (const [key, cellData] of availCells) {
-                if (cellData === 1) { // expand only from alive cells
-                    const [q, r, s] = this.cells.parseCubeKey(key);
+            availCells.forEachCell((q, r, s, state) => {
+                if (state === 1) { // expand only from alive cells
                     const neighborCells = this.cells.getNeighbors(q, r, s);
                     neighborsToActivate.push(...neighborCells); // just dump them in
                 }
-            }
+            }, { skipDead: true });
+
 
             // Apply neighbor activation
             for (const [nq, nr, ns] of neighborsToActivate) {
