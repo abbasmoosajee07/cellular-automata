@@ -196,42 +196,39 @@ class TriangleGrid extends BaseGrid {
         }
     }
 
-    drawCanvasCells(ctx, cells) {
+    drawShapeCell(ctx, q, r, s, state) {
         const cellSize = this.cellSize || 60;
 
-        cells.forEachCell((q, r, s, state) => {
-            if (state) {
-                const worldX = q * cellSize;
-                const worldY = -r * cellSize;
+        const worldX = q * cellSize;
+        const worldY = -r * cellSize;
 
-                // Use color schema based on state value
-                const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
-                ctx.fillStyle = `rgba(
-                    ${Math.round(drawColor[0] * 255)},
-                    ${Math.round(drawColor[1] * 255)},
-                    ${Math.round(drawColor[2] * 255)},
-                    ${drawColor[3]}
-                )`;
+        // Use color schema based on state value
+        const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
+        ctx.fillStyle = `rgba(
+            ${Math.round(drawColor[0] * 255)},
+            ${Math.round(drawColor[1] * 255)},
+            ${Math.round(drawColor[2] * 255)},
+            ${drawColor[3]}
+        )`;
 
-                // Draw the appropriate triangle based on s coordinate
-                ctx.beginPath();
-                if (s === 0) {
-                    // s=0 → below the diagonal (left triangle)
-                    // Match worldToCell(): "below diagonal" = bottom-left region
-                    ctx.moveTo(worldX, worldY);                        // top-left
-                    ctx.lineTo(worldX, worldY - cellSize);             // bottom-left
-                    ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
-                } else {
-                    // s=1 → above the diagonal (right triangle)
-                    // Match worldToCell(): "above diagonal" = top-right region
-                    ctx.moveTo(worldX, worldY);                        // top-left
-                    ctx.lineTo(worldX + cellSize, worldY);             // top-right
-                    ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
-                }
-                ctx.closePath();
-                ctx.fill();
-            }
-        }, { skipDead: true });
+        // Draw the appropriate triangle based on s coordinate
+        ctx.beginPath();
+        if (s === 0) {
+            // s=0 → below the diagonal (left triangle)
+            // Match worldToCell(): "below diagonal" = bottom-left region
+            ctx.moveTo(worldX, worldY);                        // top-left
+            ctx.lineTo(worldX, worldY - cellSize);             // bottom-left
+            ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
+        } else {
+            // s=1 → above the diagonal (right triangle)
+            // Match worldToCell(): "above diagonal" = top-right region
+            ctx.moveTo(worldX, worldY);                        // top-left
+            ctx.lineTo(worldX + cellSize, worldY);             // top-right
+            ctx.lineTo(worldX + cellSize, worldY - cellSize);  // bottom-right
+        }
+        ctx.closePath();
+        ctx.fill();
+
     }
 }
 

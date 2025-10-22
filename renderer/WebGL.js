@@ -167,7 +167,7 @@ class WebGLRenderer {
         this.shapeGrid.clearGrid(this.gl);
     }
 
-    renderCell(q, r, s, state) {
+    renderCell(cameraView, q, r, s, state) {
         this.shapeGrid.setCellState(this.gl, q, r, s, state);
     }
 }

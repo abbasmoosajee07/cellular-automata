@@ -162,27 +162,29 @@ class SimulatorController{
             this.gridManager.drawGrid();
         });
 
-        this.neighborTiles.addEventListener('click', () => {
-            const availCells = this.cells;
-            const neighborsToActivate = [];
+        this.neighborTiles.addEventListener('click', () => {this.fillNeighbors()});
+    }
 
-            // Collect neighbors of all active cells
-            availCells.forEachCell((q, r, s, state) => {
-                if (state === 1) { // expand only from alive cells
-                    const neighborCells = this.cells.getNeighbors(q, r, s);
-                    neighborsToActivate.push(...neighborCells); // just dump them in
-                }
-            }, { skipDead: true });
+    fillNeighbors() {
+        const availCells = this.cells;
+        const neighborsToActivate = [];
 
-
-            // Apply neighbor activation
-            for (const [nq, nr, ns] of neighborsToActivate) {
-                this.gridManager.changeCell(nq, nr, ns, 1);
+        // Collect neighbors of all active cells
+        availCells.forEachCell((q, r, s, state) => {
+            if (state === 1) { // expand only from alive cells
+                const neighborCells = this.cells.getNeighbors(q, r, s);
+                neighborsToActivate.push(...neighborCells); // just dump them in
             }
+        }, { skipDead: true });
 
-            this.gridManager.drawGrid();
-            // console.log(this.gridManager.cells);
-        });
+
+        // Apply neighbor activation
+        for (const [nq, nr, ns] of neighborsToActivate) {
+            this.gridManager.changeCell(nq, nr, ns, 1);
+        }
+
+        this.gridManager.drawGrid();
+        // console.log(this.gridManager.cells);
     }
 
     setupCanvasControls() {
@@ -259,8 +261,15 @@ class SimulatorController{
         this.gridCanvas.addEventListener('mouseleave', handleUp);
 
         // Touch
-        this.gridCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleDown(getPointer(e)); });
-        this.gridCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); });
+        this.gridCanvas.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            handleDown(getPointer(e)); 
+        }, { passive: false });
+
+        this.gridCanvas.addEventListener('touchmove', (e) => { 
+            e.preventDefault(); 
+            handleMove(e); 
+        }, { passive: false });
         this.gridCanvas.addEventListener('touchend', handleUp);
         this.gridCanvas.addEventListener('touchcancel', handleUp);
 

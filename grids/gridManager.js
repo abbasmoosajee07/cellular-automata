@@ -85,7 +85,7 @@ class GridManager {
     syncCellsToTexture() {
         this.cells.forEachCell((q, r, s, state) => {
             if (this.checkBounds(q, r, s))
-                this.renderCell(q, r, s, state);
+                this.renderer.renderCell(this.cameraView, q, r, s, state);
         }, { skipDead: true });
     }
 
@@ -136,7 +136,7 @@ class GridManager {
 
     changeCell(q, r, s, state) {
         this.cells.setCell(q, r, s, state);
-        this.renderCell(q, r, s, state);
+        this.renderer.renderCell(this.cameraView, q, r, s, state);
     }
 
     getBounds() {
@@ -198,7 +198,7 @@ class GridManager {
 
         const [q, r, s] = cell;
         if (!this.checkBounds(q, r)) return false;
-
+        console.log(q, r, s);
         let newState;
         if (drawMode && eraseMode) {
             newState = 11;
@@ -235,7 +235,7 @@ class GridManager {
     resizeGrid(newCols, newRows) {
         this.gridCols = newCols;
         this.gridRows = newRows;
-        this.cells.resize(newCols, newRows, 6);
+        this.cells.resize(newCols, newRows, 4);
         if (this.useWebGL && this.renderer.gl) {
             this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, this.cells);
         }
@@ -251,7 +251,7 @@ class GridManager {
 
         for (const [key, state] of this.cells.cells) {
             const [q, r, s] = this.cells.parseCubeKey(key);
-            this.renderCell(q, r, s, state);
+            this.renderer.renderCell(this.cameraView, q, r, s, state);
         }
     }
 
@@ -265,14 +265,6 @@ class GridManager {
         }
     }
 
-    renderCell(q, r, s, state) {
-        if (this.useWebGL) {
-            this.renderer.renderCell(q, r, s, state);
-        } else {
-            this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells);
-        }
-
-    }
 }
 
 export { GridManager };

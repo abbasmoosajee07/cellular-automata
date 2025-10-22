@@ -188,8 +188,8 @@ class BaseGrid {
         throw new Error("Method 'getFragmentShaderSource()' must be implemented.");
     }
 
-    drawCanvasCells(ctx, cells) {
-        throw new Error("Method 'drawCanvasCells()' must be implemented.");
+    drawShapeCell(ctx, q, r, s, state) {
+        throw new Error("Method 'drawShapeCell()' must be implemented.");
     }
 }
 

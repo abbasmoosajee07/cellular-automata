@@ -146,30 +146,25 @@ class SquareGrid extends BaseGrid {
         }
     }
 
-    drawCanvasCells(ctx, cells) {
+    drawShapeCell(ctx, q, r, s, state) {
         const cellSize = this.cellSize;
+        const worldX = q * cellSize;
+        const worldY = -r * cellSize;
+        // console.log("", q, r, state);
+        const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
+        ctx.fillStyle = `rgba(
+            ${Math.round(drawColor[0] * 255)},
+            ${Math.round(drawColor[1] * 255)},
+            ${Math.round(drawColor[2] * 255)},
+            ${drawColor[3]}
+        )`;
 
-        cells.forEachCell((q, r, s, state) => {
-            if (!state) return;
-
-            const worldX = q * cellSize;
-            const worldY = -r * cellSize;
-
-            const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
-            ctx.fillStyle = `rgba(
-                ${Math.round(drawColor[0] * 255)},
-                ${Math.round(drawColor[1] * 255)},
-                ${Math.round(drawColor[2] * 255)},
-                ${drawColor[3]}
-            )`;
-
-            ctx.fillRect(
-                worldX - cellSize / 2,
-                worldY - cellSize / 2,
-                cellSize,
-                cellSize
-            );
-        }, { skipDead: true });
+        ctx.fillRect(
+            worldX - cellSize / 2,
+            worldY - cellSize / 2,
+            cellSize,
+            cellSize
+        );
     }
 }
 

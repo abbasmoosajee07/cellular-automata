@@ -54,7 +54,7 @@ class HexagonGrid extends BaseGrid {
         }
 
         // Return all three cube coordinates
-        return [rx, ry, rz];
+        return [rx, ry, 0];
     }
 
     calculateBounds(bounds) {
@@ -334,30 +334,22 @@ class HexagonGrid extends BaseGrid {
         }
     }
 
-    drawCanvasCells(ctx, cells) {
-
+    drawShapeCell(ctx, q, r, s, state) {
         const radius = this.radius || 30;
 
-        ctx.save();
-        
-        cells.forEachCell((q, r, s, state) => {
-            if (state) {
+        // Calculate hexagon center using cube coordinates
+        const centerX = radius * Math.sqrt(3) * (q + r * 0.5);
+        const centerY = radius * -1.5 * r;
 
-                // Calculate hexagon center using cube coordinates
-                const centerX = radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-                const centerY = radius * r * -1.5;
-                
-                const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
-                ctx.fillStyle = `rgba(
-                    ${Math.round(drawColor[0] * 255)},
-                    ${Math.round(drawColor[1] * 255)},
-                    ${Math.round(drawColor[2] * 255)},
-                    ${drawColor[3]}
-                )`;
-                this.drawHexagon(ctx, centerX, centerY, radius);
-            }
-        }, { skipDead: true });
-        ctx.restore();
+        const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
+        ctx.fillStyle = `rgba(
+            ${Math.round(drawColor[0] * 255)},
+            ${Math.round(drawColor[1] * 255)},
+            ${Math.round(drawColor[2] * 255)},
+            ${drawColor[3]}
+        )`;
+        this.drawHexagon(ctx, centerX, centerY, radius);
+
     }
 
     drawHexagon(ctx, centerX, centerY, radius) {
