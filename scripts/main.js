@@ -1,5 +1,5 @@
 import {  GridManager  } from '../grids/gridManager.js';
-import init, { WasmCellManager  } from "../pkg/cell_manager.js";
+import init, { WasmCellManager  } from "../dist/cell_manager.js";
 
 class SimulatorController{
     docIDs = [
