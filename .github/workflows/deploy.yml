@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 
 on:
-  workflow_dispatch:  # Only manual trigger
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -34,15 +34,18 @@ jobs:
       - name: Cache Cargo
         uses: actions/cache@v3
         with:
-          path: target
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      # ⚡ Fast prebuilt wasm-pack installer
       - name: Install wasm-pack
-        run: cargo install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
 
       - name: Build WASM + frontend
         run: python build.py --release
-        # If you want faster deploys during development, you could use --dev instead
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
@@ -50,7 +53,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: './dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
