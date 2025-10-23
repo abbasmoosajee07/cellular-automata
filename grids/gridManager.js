@@ -141,7 +141,7 @@ class GridManager {
 
     changeCell(q, r, s, state) {
         // console.log(q, r, s, state);
-        // this.cells.set_cell(q, r, s, state);
+        this.cells.set_cell(q, r, s, state);
         this.renderer.renderCell(this.cameraView, q, r, s, state);
     }
 
