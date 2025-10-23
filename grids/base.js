@@ -147,9 +147,14 @@ class BaseGrid {
         this.initGridTexture(gl, newCols, newRows);
 
         if (oldCells) {
-            oldCells.forEachCell((q, r, s, state) => {
-                this.setCellState(gl, q, r, s, state);
-            }, { skipDead: true });
+        const arr = oldCells.for_each_cell();
+        for (let i = 0; i < arr.length; i += 4) {
+            const q = arr[i];
+            const r = arr[i + 1];
+            const s = arr[i + 2];
+            const state = arr[i + 3];
+            this.setCellState(gl, q, r, s, state);
+            };
         }
     }
 

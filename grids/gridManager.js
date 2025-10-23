@@ -32,7 +32,7 @@ class GridManager {
         this.createBoundary();
         this.cells.bounds = this.getBounds();
         
-        this.startRendering();
+        // this.startRendering();
     }
 
     createDefaultColorSchema() {
@@ -83,10 +83,15 @@ class GridManager {
     }
 
     syncCellsToTexture() {
-        this.cells.forEachCell((q, r, s, state) => {
+        const arr = this.cells.for_each_cell();
+        for (let i = 0; i < arr.length; i += 4) {
+            const q = arr[i];
+            const r = arr[i + 1];
+            const s = arr[i + 2];
+            const state = arr[i + 3];
             if (this.checkBounds(q, r, s))
                 this.renderer.renderCell(this.cameraView, q, r, s, state);
-        }, { skipDead: true });
+        };
     }
 
     updateCanvasSize() {
@@ -135,7 +140,8 @@ class GridManager {
     }
 
     changeCell(q, r, s, state) {
-        this.cells.setCell(q, r, s, state);
+        // console.log(q, r, s, state);
+        // this.cells.set_cell(q, r, s, state);
         this.renderer.renderCell(this.cameraView, q, r, s, state);
     }
 
@@ -198,7 +204,7 @@ class GridManager {
 
         const [q, r, s] = cell;
         if (!this.checkBounds(q, r)) return false;
-        console.log(q, r, s);
+        // console.log(q, r, s);
         let newState;
         if (drawMode && eraseMode) {
             newState = 11;

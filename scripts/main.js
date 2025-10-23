@@ -1,5 +1,5 @@
 import {  GridManager  } from '../grids/gridManager.js';
-import {  CellManager  } from './cellManager.js';
+import init, { WasmCellManager  } from "../pkg/cell_manager.js";
 
 class SimulatorController{
     docIDs = [
@@ -9,16 +9,20 @@ class SimulatorController{
         "neighborTiles",
     ]
 
-    constructor(useWebgl = true){
+    async init(useWebgl = true) {
         this.useWebgl = useWebgl;
-        this.gridSize = [20, 20]
+        this.gridSize = [20, 20];
+
+        await init(); // <-- wait for WASM to finish loading
+
         this.initElements();
-        this.initGrid();
-        this.setupGridControls()
+        await this.initGrid(); // make initGrid async as well
+        this.setupGridControls();
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
-        this.randomCells()
+        this.randomCells();
+        this.cells = this.gridManager.cells;
         this.gridManager.drawGrid();
     }
 
@@ -57,29 +61,13 @@ class SimulatorController{
         });
     }
 
-    randomCells() {
-        const [minQ, maxQ, minR, maxR] = this.cells.bounds;
-        // console.log(`Grid dimensions: ${this.gridCols}x${this.gridRows}`);
-        // console.log(`Generating cells from (${minQ},${minR}) to (${maxQ},${maxR})`);
-        // console.log(`Total cells: ${(maxQ - minQ + 1) * (maxR - minR + 1)}`);
-
-        let cellsGenerated = 0;
-        for (let q = minQ; q <= maxQ; q++) {
-            for (let r = minR; r <= maxR; r++) {
-                const status = Math.random() < 0.5 ? 0 : 1;
-                const s = 0; // Square grid uses s = 0
-                if (status === 1) {
-                    this.gridManager.changeCell(q, r, s, status);
-                    cellsGenerated++;
-                }
-            }
-        }
-        // console.log(`Cells activated: ${cellsGenerated}`);
-        this.gridManager.drawGrid();
-    }
-
-    initGrid() {
-        this.gridManager = new GridManager("square", this.gridCanvas, new CellManager, this.useWebgl);
+    async initGrid() {
+        this.gridManager = new GridManager(
+            "square",
+            this.gridCanvas,
+            new WasmCellManager (20,20,5), // safe now
+            this.useWebgl
+        );
         this.savedView = { ...this.gridManager.cameraView };
         this.gridManager.gridRows = parseInt(this.rowInput.value);
         this.gridManager.gridCols = parseInt(this.colInput.value);
@@ -163,28 +151,6 @@ class SimulatorController{
         });
 
         this.neighborTiles.addEventListener('click', () => {this.fillNeighbors()});
-    }
-
-    fillNeighbors() {
-        const availCells = this.cells;
-        const neighborsToActivate = [];
-
-        // Collect neighbors of all active cells
-        availCells.forEachCell((q, r, s, state) => {
-            if (state === 1) { // expand only from alive cells
-                const neighborCells = this.cells.getNeighbors(q, r, s);
-                neighborsToActivate.push(...neighborCells); // just dump them in
-            }
-        }, { skipDead: true });
-
-
-        // Apply neighbor activation
-        for (const [nq, nr, ns] of neighborsToActivate) {
-            this.gridManager.changeCell(nq, nr, ns, 1);
-        }
-
-        this.gridManager.drawGrid();
-        // console.log(this.gridManager.cells);
     }
 
     setupCanvasControls() {
@@ -309,6 +275,48 @@ class SimulatorController{
         document.getElementById("status-zoom").textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
         const [q, r, s] = this.gridManager.screenToCell(px, py)
         document.getElementById("status-camera").textContent = `${q},${r},${s}`;
+    }
+
+    randomCells() {
+        const [minQ, maxQ, minR, maxR] = this.cells.bounds;
+        for (let q = minQ; q <= maxQ; q++) {
+            for (let r = minR; r <= maxR; r++) {
+                const status = Math.random() < 0.5 ? 0 : 1;
+                const s = 0; // Square grid uses s = 0
+                if (status === 1) {
+                    this.gridManager.changeCell(q, r, s, status);
+                }
+            }
+        }
+        this.gridManager.drawGrid();
+    }
+
+    fillNeighbors() {
+        const availCells = this.cells;
+        const neighborsToActivate = [];
+
+        // Collect neighbors of all active cells
+        const arr = availCells.for_each_cell();
+        for (let i = 0; i < arr.length; i += 4) {
+            const q = arr[i];
+            const r = arr[i + 1];
+            const s = arr[i + 2];
+            const state = arr[i + 3];
+            if (state === 1) { // expand only from alive cells
+                const nbCells = this.cells.get_neighbors(q, r, s);
+                for (let i = 0; i + 2 < nbCells.length; i += 3) {
+                neighborsToActivate.push([nbCells[i], nbCells[i+1], nbCells[i+2]]);
+                }
+            }
+        };
+
+        // Apply neighbor activation
+        for (const [nq, nr, ns] of neighborsToActivate) {
+            this.gridManager.changeCell(nq, nr, ns, 1);
+        }
+
+        this.gridManager.drawGrid();
+        // console.log(this.gridManager.cells);
     }
 
 }

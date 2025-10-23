@@ -45,51 +45,18 @@ class Canvas2DRenderer {
 
         // --- Draw cells via shape-specific logic ---
         ctx.save();
-        
-        cells.forEachCell((q, r, s, state) => {
-            // if (state) {
-                this.shapeGrid.drawShapeCell(ctx, q, r, s, state);
-            // }
-        }, { skipDead: true });
+        const arr = cells.for_each_cell();
+        for (let i = 0; i < arr.length; i += 4) {
+            const q = arr[i];
+            const r = arr[i + 1];
+            const s = arr[i + 2];
+            const state = arr[i + 3];
+            this.shapeGrid.drawShapeCell(ctx, q, r, s, state);
+        }
         ctx.restore();
     }
 
-    drawShapeCell(ctx, q, r, s, state) {
-        const radius = this.radius || 30;
 
-        // Calculate hexagon center using cube coordinates
-        const centerX = radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-        const centerY = radius * r * -1.5;
-
-        const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
-        ctx.fillStyle = `rgba(
-            ${Math.round(drawColor[0] * 255)},
-            ${Math.round(drawColor[1] * 255)},
-            ${Math.round(drawColor[2] * 255)},
-            ${drawColor[3]}
-        )`;
-        this.drawHexagon(ctx, centerX, centerY, radius);
-
-    }
-
-    drawHexagon(ctx, centerX, centerY, radius) {
-        ctx.beginPath();
-        // Draw flat-topped hexagon
-        for (let i = 0; i < 6; i++) {
-            const angle = Math.PI / 3 * i - Math.PI / 6; // -30° offset for flat-topped
-            const x = centerX + radius * Math.cos(angle);
-            const y = centerY + radius * Math.sin(angle);
-
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-    }
     renderCell(cameraView, q, r, s, state) {
         return
         const ctx = this.ctx;
@@ -101,6 +68,7 @@ class Canvas2DRenderer {
         ctx.translate(cameraView.camX, -cameraView.camY);
 
         // --- Draw cells via shape-specific logic ---
+        console.log("", q, r, s, state);
         this.shapeGrid.drawShapeCell(ctx, q, r, s, state);
 
         ctx.restore();

@@ -251,7 +251,8 @@
     import { SimulatorController } from './scripts/main.js';
 
     // ===== SIMULATOR INITIALIZATION =====
-    let simulator = new SimulatorController(true); // default: WebGL ON
+    let simulator = new SimulatorController();
+    simulator.init(true); // async initialization
 
     window.switchRenderers = function () {
         const checkbox = document.getElementById("useWebgl");
@@ -277,7 +278,8 @@
         }
 
         // --- Create a fresh simulator with chosen rendering mode ---
-        simulator = new SimulatorController(useWebgl);
+        simulator = new SimulatorController();
+        simulator.init(useWebgl); // async initialization
 
         console.log(`Renderer switched to: ${useWebgl ? "WebGL" : "Canvas2D"}`);
     };
