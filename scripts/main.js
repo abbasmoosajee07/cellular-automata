@@ -23,7 +23,6 @@ class SimulatorController{
         this.setupMenuControls();
         this.randomCells();
         this.cells = this.gridManager.cells;
-        this.gridManager.drawGrid();
     }
 
     initElements() {
@@ -278,16 +277,8 @@ class SimulatorController{
     }
 
     randomCells() {
-        const [minQ, maxQ, minR, maxR] = this.cells.bounds;
-        for (let q = minQ; q <= maxQ; q++) {
-            for (let r = minR; r <= maxR; r++) {
-                const status = Math.random() < 0.5 ? 0 : 1;
-                const s = 0; // Square grid uses s = 0
-                if (status === 1) {
-                    this.gridManager.changeCell(q, r, s, status);
-                }
-            }
-        }
+        this.gridManager.cells.random_cells();
+        this.gridManager.syncCellsToTexture();
         this.gridManager.drawGrid();
     }
 

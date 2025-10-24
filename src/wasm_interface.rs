@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use crate::core::CellManager;
+use crate::cell_manager::cellmanger::CellManager;
 
 #[wasm_bindgen]
 pub struct WasmCellManager {
@@ -31,10 +31,16 @@ impl WasmCellManager {
         self.inner.count_live_neighbors(q, r, s)
     }
 
+    pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
+        self.inner.get_neighbors(q, r, s)
+    }
+
     pub fn for_each_cell(&self) -> Vec<i32> {
         self.inner.for_each_cell()
     }
-
+    pub fn random_cells(&mut self) {
+        self.inner.random_cells();
+    }
     pub fn resize(&mut self, w: usize, h: usize, d: usize) {
         self.inner.resize(w, h, d);
     }

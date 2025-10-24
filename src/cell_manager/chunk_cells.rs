@@ -1,0 +1,120 @@
+use std::collections::HashMap;
+
+pub struct ChunkedCellManager {
+    chunk_size: usize,
+    depth: usize,
+    chunks: HashMap<(i32, i32, i32), Vec<u32>>,
+    adj_neighbors: Vec<(i32, i32, i32)>,
+}
+
+fn local_index(
+    chunk_size: usize,
+    lx: usize, ly: usize, lz: usize) -> usize {
+    lx + ly * chunk_size + lz * chunk_size * chunk_size
+}
+
+impl ChunkedCellManager {
+
+    pub fn new(chunk_size: usize, depth: usize) -> ChunkedCellManager {
+        ChunkedCellManager {
+            chunk_size,
+            depth,
+            chunks: HashMap::new(),
+            adj_neighbors: vec![
+                (0, -1, 0), (0, 1, 0),
+                (1, 0, 0), (-1, 0, 0),
+                (0, 0, -1), (0, 0, 1),
+            ],
+        }
+    }
+
+    fn get_chunk_mut(&mut self, cx: i32, cy: i32, cz: i32) -> &mut Vec<u32> {
+        self.chunks
+            .entry((cx, cy, cz))
+            .or_insert_with(|| vec![0; self.chunk_size * self.chunk_size * self.depth])
+    }
+
+    fn get_chunk(&self, cx: i32, cy: i32, cz: i32) -> Option<&Vec<u32>> {
+        self.chunks.get(&(cx, cy, cz))
+    }
+
+    pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
+        if q < 0 || r < 0 || s < 0 {
+            return;
+        }
+        let cx = q / self.chunk_size as i32;
+        let cy = r / self.chunk_size as i32;
+        let cz = s / self.depth as i32;
+        let lx = (q % self.chunk_size as i32) as usize;
+        let ly = (r % self.chunk_size as i32) as usize;
+        let lz = (s % self.depth as i32) as usize;
+        let idx = local_index(self.chunk_size, lx, ly, lz);
+        self.get_chunk_mut(cx, cy, cz)[idx] = value;
+    }
+
+    pub fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 {
+        if q < 0 || r < 0 || s < 0 {
+            return 0;
+        }
+        let cx = q / self.chunk_size as i32;
+        let cy = r / self.chunk_size as i32;
+        let cz = s / self.depth as i32;
+        if let Some(chunk) = self.get_chunk(cx, cy, cz) {
+            let lx = (q % self.chunk_size as i32) as usize;
+            let ly = (r % self.chunk_size as i32) as usize;
+            let lz = (s % self.depth as i32) as usize;
+            chunk[local_index(self.chunk_size, lx, ly, lz)]
+        } else {
+            0
+        }
+    }
+
+    pub fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 {
+        let mut count = 0;
+        for &(dq, dr, ds) in &self.adj_neighbors {
+            count += self.get_cell(q + dq, r + dr, s + ds);
+        }
+        count
+    }
+
+    pub fn clear(&mut self) {
+        self.chunks.clear();
+    }
+
+    pub fn for_each_cell(&self) -> Vec<i32> {
+        let mut out = Vec::new();
+        for (&(cx, cy, cz), chunk) in &self.chunks {
+            for lz in 0..self.depth {
+                for ly in 0..self.chunk_size {
+                    for lx in 0..self.chunk_size {
+                        let idx = local_index(self.chunk_size, lx, ly, lz);
+                        let val = chunk[idx];
+                        if val != 0 {
+                            out.push(cx * self.chunk_size as i32 + lx as i32);
+                            out.push(cy * self.chunk_size as i32 + ly as i32);
+                            out.push(cz * self.depth as i32 + lz as i32);
+                            out.push(val as i32);
+                        }
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
+        let mut out = Vec::new();
+        for &(dq, dr, ds) in &self.adj_neighbors {
+            out.push(q + dq);
+            out.push(r + dr);
+            out.push(s + ds);
+        }
+        out
+    }
+
+    pub fn resize(&mut self, _new_width: usize, _new_height: usize, new_depth: usize) {
+        self.depth = new_depth;
+    }
+}
+
+

@@ -5,8 +5,14 @@ edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+name = "cell_manager"      # keep your library as-is
+
+[[bin]]
+name = "cell_manager_bin"  # 👈 rename the binary target
+path = "src/main.rs"
 
 [dependencies]
+fastrand = "2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"

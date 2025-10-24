@@ -12,26 +12,26 @@ class GridManager {
         this.canvas = canvas;
         this.useWebGL = useWebGL;
         this.cells = init_cells;
-        
+
         // Grid configuration
         this.gridCols = 20;
         this.gridRows = 20;
         this.infiniteGrid = false;
         this.boundaryType = "wrap";
         this.neighborType = "adjacent";
-        
+
         // Camera & rendering
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
         this.colorSchema = this.createDefaultColorSchema();
-        
+
         // Initialize components
         this.shapeGrid = this.createShapeGrid(this.shape);
         this.initializeRenderer(this.useWebGL);
-        this.syncCellsToTexture();
         this.updateCanvasSize();
         this.createBoundary();
         this.cells.bounds = this.getBounds();
-        
+        // this.syncCellsToTexture();
+
         // this.startRendering();
     }
 

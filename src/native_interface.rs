@@ -1,4 +1,4 @@
-use crate::core::CellManager;
+use crate::cell_manager::cellmanger::CellManager;
 
 pub fn run_native_test() {
     let mut cm = CellManager::new(10, 10, 3, None);
@@ -13,4 +13,6 @@ pub fn run_native_test() {
     for chunk in cm.for_each_cell().chunks(4) {
         println!("q={} r={} s={} val={}", chunk[0], chunk[1], chunk[2], chunk[3]);
     }
+    cm.random_cells();
+
 }
