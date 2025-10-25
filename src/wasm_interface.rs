@@ -38,10 +38,20 @@ impl WasmCellManager {
     pub fn for_each_cell(&self) -> Vec<i32> {
         self.inner.for_each_cell()
     }
+
     pub fn random_cells(&mut self) {
         self.inner.random_cells();
     }
+
+    pub fn create_boundary(&mut self) {
+        self.inner.create_boundary();
+    }
+
     pub fn resize(&mut self, w: usize, h: usize, d: usize) {
         self.inner.resize(w, h, d);
+    }
+
+    pub fn get_bounds(&self) -> Vec<i32> {
+        self.inner.get_bounds().to_vec()
     }
 }
