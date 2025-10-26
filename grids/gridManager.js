@@ -226,7 +226,6 @@ class GridManager {
         }
 
         this.createBoundary();
-
         this.centerView();
     }
 

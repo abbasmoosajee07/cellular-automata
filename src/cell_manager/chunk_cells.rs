@@ -7,14 +7,11 @@ pub struct ChunkedCellManager {
     adj_neighbors: Vec<(i32, i32, i32)>,
 }
 
-fn local_index(
-    chunk_size: usize,
-    lx: usize, ly: usize, lz: usize) -> usize {
+fn local_index(chunk_size: usize, lx: usize, ly: usize, lz: usize) -> usize {
     lx + ly * chunk_size + lz * chunk_size * chunk_size
 }
 
 impl ChunkedCellManager {
-
     pub fn new(chunk_size: usize, depth: usize) -> ChunkedCellManager {
         ChunkedCellManager {
             chunk_size,
@@ -28,6 +25,22 @@ impl ChunkedCellManager {
         }
     }
 
+    /// Convert a world coordinate to (chunk, local) pair — handles negatives safely
+    fn world_to_chunk_local(&self, q: i32, r: i32, s: i32) -> ((i32, i32, i32), (usize, usize, usize)) {
+        let cs = self.chunk_size as i32;
+        let depth = self.depth as i32;
+
+        let cx = if q >= 0 { q / cs } else { (q + 1 - cs) / cs };
+        let cy = if r >= 0 { r / cs } else { (r + 1 - cs) / cs };
+        let cz = if s >= 0 { s / depth } else { (s + 1 - depth) / depth };
+
+        let lx = ((q % cs + cs) % cs) as usize;
+        let ly = ((r % cs + cs) % cs) as usize;
+        let lz = ((s % depth + depth) % depth) as usize;
+
+        ((cx, cy, cz), (lx, ly, lz))
+    }
+
     fn get_chunk_mut(&mut self, cx: i32, cy: i32, cz: i32) -> &mut Vec<u32> {
         self.chunks
             .entry((cx, cy, cz))
@@ -39,30 +52,14 @@ impl ChunkedCellManager {
     }
 
     pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
-        if q < 0 || r < 0 || s < 0 {
-            return;
-        }
-        let cx = q / self.chunk_size as i32;
-        let cy = r / self.chunk_size as i32;
-        let cz = s / self.depth as i32;
-        let lx = (q % self.chunk_size as i32) as usize;
-        let ly = (r % self.chunk_size as i32) as usize;
-        let lz = (s % self.depth as i32) as usize;
+        let ((cx, cy, cz), (lx, ly, lz)) = self.world_to_chunk_local(q, r, s);
         let idx = local_index(self.chunk_size, lx, ly, lz);
         self.get_chunk_mut(cx, cy, cz)[idx] = value;
     }
 
     pub fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 {
-        if q < 0 || r < 0 || s < 0 {
-            return 0;
-        }
-        let cx = q / self.chunk_size as i32;
-        let cy = r / self.chunk_size as i32;
-        let cz = s / self.depth as i32;
+        let ((cx, cy, cz), (lx, ly, lz)) = self.world_to_chunk_local(q, r, s);
         if let Some(chunk) = self.get_chunk(cx, cy, cz) {
-            let lx = (q % self.chunk_size as i32) as usize;
-            let ly = (r % self.chunk_size as i32) as usize;
-            let lz = (s % self.depth as i32) as usize;
             chunk[local_index(self.chunk_size, lx, ly, lz)]
         } else {
             0
@@ -116,5 +113,3 @@ impl ChunkedCellManager {
         self.depth = new_depth;
     }
 }
-
-

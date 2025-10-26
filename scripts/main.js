@@ -11,21 +11,20 @@ class SimulatorController{
 
     shapeStates = {"hex": 1, "square": 1, "rhombus": 3, "triangle": 2};
 
-    async init(useWebgl = true) {
+    async initSim(useWebgl = true) {
         this.useWebgl = useWebgl;
         this.gridSize = [20, 20];
 
         await init(); // <-- wait for WASM to finish loading
 
         this.initElements();
-        await this.initGrid(); // make initGrid async as well
+        await this.setupGrid(); // make initGrid async as well
         this.setupGridControls();
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
         this.randomCells();
-        // this.gridManager.drawGrid();
-        this.cells = this.gridManager.cells;
+        this.gridManager.drawGrid();
     }
 
     initElements() {
@@ -63,18 +62,43 @@ class SimulatorController{
         });
     }
 
-    async initGrid() {
-        const init_shape = "square";
+    async setupGrid({ preserveState = false } = {}) {
+        const shape = this.selectedShape || "square";
+        const shapeStates = this.shapeStates[shape];
+        const [cols, rows] = this.gridSize;
+
+        const oldGrid = this.gridManager || null;
+
+        // If we preserve, reuse old cells; otherwise make new
+        const cellManager = preserveState && oldGrid
+            ? oldGrid.cells
+            : new WasmCellManager(cols, rows, shapeStates);
+
+        // Always create a new GridManager — safer for WebGL + camera reinit
         this.gridManager = new GridManager(
-            init_shape,
+            shape,
             this.gridCanvas,
-            new WasmCellManager (this.gridSize[0], this.gridSize[1], this.shapeStates[init_shape]), // safe now
+            cellManager,
             this.useWebgl
         );
-        this.savedView = { ...this.gridManager.cameraView };
-        this.gridManager.gridRows = parseInt(this.rowInput.value);
+
+        // Restore camera and view if requested
+        if (preserveState && oldGrid) {
+            Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
+            this.gridManager.setBoundaryType(this.boundsType);
+            this.gridManager.neighborType = this.neighborsType;
+        }
+
+        // Sync grid sizes and texture
         this.gridManager.gridCols = parseInt(this.colInput.value);
+        this.gridManager.gridRows = parseInt(this.rowInput.value);
+        this.gridManager.resizeGrid(cols, rows, shapeStates);
+        this.gridManager.syncCellsToTexture();
+
         this.cells = this.gridManager.cells;
+        this.savedView = { ...this.gridManager.cameraView };
+
+        this.gridManager.drawGrid();
     }
 
     setupGridControls() {
@@ -110,23 +134,7 @@ class SimulatorController{
 
         // --- Rebuild / Remap Grid Button ---
         this.reMap.addEventListener('click', () => {
-            const oldGrid = this.gridManager;
-
-            // Create a new grid with same state and camera
-            this.gridManager = new GridManager(
-                this.selectedShape,
-                this.gridCanvas,
-                oldGrid.cells,
-                this.useWebgl
-            );
-
-            Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
-
-            this.gridManager.setBoundaryType(this.boundsType);
-            this.gridManager.neighborType = this.neighborsType;
-            this.gridManager.resizeGrid(this.gridSize[0], this.gridSize[1], this.shapeStates[this.selectedShape]);
-            // this.cells = oldGrid.cells;
-            // this.gridManager.drawGrid();
+            this.setupGrid({ preserveState: true });
         });
     }
 
@@ -287,37 +295,9 @@ class SimulatorController{
     }
 
     fillNeighbors() {
-        const availCells = this.cells;
-        const neighborsToActivate = [];
-
-        // Collect neighbors of all active cells
-        const arr = availCells.for_each_cell();
-        for (let i = 0; i < arr.length; i += 4) {
-            const q = arr[i];
-            const r = arr[i + 1];
-            const s = arr[i + 2];
-            const state = arr[i + 3];
-            if (state === 1) { // expand only from alive cells
-                const nbCells = this.cells.get_neighbors(q, r, s);
-                for (let i = 0; i + 2 < nbCells.length; i += 3) {
-                neighborsToActivate.push([nbCells[i], nbCells[i+1], nbCells[i+2]]);
-                }
-            }
-        };
-
-        // Apply neighbor activation
-        for (const [nq, nr, ns] of neighborsToActivate) {
-            this.gridManager.changeCell(nq, nr, ns, 1);
-        }
-
-        this.gridManager.drawGrid();
-        // console.log(this.gridManager.cells);
-    }
-
-    fillNeighbors() {
         this.gridManager.cells.floodfill();
+        this.gridManager.syncCellsToTexture();
         this.gridManager.drawGrid();
-        // console.log(this.gridManager.cells);
     }
 }
 

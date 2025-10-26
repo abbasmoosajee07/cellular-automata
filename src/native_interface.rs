@@ -1,6 +1,5 @@
 use crate::cell_manager::cellmanager::CellManager;
 
-
 /// Runs a sequence of native tests for CellManager implementations
 /// (both Flat and Chunked if the threshold is crossed)
 pub fn run_native_tests() {
@@ -11,21 +10,21 @@ pub fn run_native_tests() {
     println!("Initial bounds: {:?}", cm.get_bounds());
 
     // 2️⃣ Create boundary walls
-    // cm.create_boundary();
-    // println!("Boundary created (small grid):");
-    // for chunk in cm.for_each_cell().chunks(4) {
-    //     print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
-    // }
+    cm.create_boundary();
+    println!("Boundary created (small grid):");
+    for chunk in cm.for_each_cell().chunks(4) {
+        print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
+    }
     println!("\nTotal active cells: {}", cm.for_each_cell().len() / 4);
 
     // 3️⃣ Randomize some cells
     cm.random_cells();
     println!("Added random cells (density 0.42):");
     println!("\nTotal active cells: {}", cm.for_each_cell().len() / 4);
-    // for chunk in cm.for_each_cell().chunks(4) {
-    //     print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
-    // }
-    // println!("\n");
+    for chunk in cm.for_each_cell().chunks(4) {
+        print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
+    }
+    println!("\n");
 
     // 4️⃣ Resize to larger dimensions → should switch backend if above threshold
     println!("--- Resizing to larger grid ---");
@@ -33,12 +32,12 @@ pub fn run_native_tests() {
     println!("New bounds after resize: {:?}", cm.get_bounds());
 
     // 5️⃣ Recreate boundary
-    // cm.create_boundary();
-    // println!("Boundary recreated after resize:");
-    // for chunk in cm.for_each_cell().chunks(4) {
-    //     print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
-    // }
-    // println!("\n");
+    cm.create_boundary();
+    println!("Boundary recreated after resize:");
+    for chunk in cm.for_each_cell().chunks(4) {
+        print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
+    }
+    println!("\n");
 
     // 6️⃣ Verify live neighbor count for a random cell
     let test_q = 0;

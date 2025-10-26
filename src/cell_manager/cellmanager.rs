@@ -47,7 +47,7 @@ pub struct CellManager {
 
 impl CellManager {
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> Self {
-        let threshold: usize = 2usize;
+        let threshold: usize = 2500usize;
         let use_chunked: bool = width > threshold || height > threshold;
 
         let inner: Box<dyn CellOps> = if use_chunked {
