@@ -1,7 +1,7 @@
 // src/lib.rs
 
 pub mod cell_manager{
-    pub mod cellmanger;
+    pub mod cellmanager;
     pub mod flat_cells;
     pub mod chunk_cells;
 }

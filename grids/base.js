@@ -1,6 +1,5 @@
 
 class BaseGrid {
-    adj_neighbors = [[0, -1, 0], [0, 1, 0], [1, 0, 0], [-1, 0, 0]];
 
     constructor(colorSchema, shape) {
         this.colorSchema = colorSchema;

@@ -9,6 +9,8 @@ class SimulatorController{
         "neighborTiles",
     ]
 
+    shapeStates = {"hex": 1, "square": 1, "rhombus": 3, "triangle": 2};
+
     async init(useWebgl = true) {
         this.useWebgl = useWebgl;
         this.gridSize = [20, 20];
@@ -22,6 +24,7 @@ class SimulatorController{
         this.setupCanvasControls();
         this.setupMenuControls();
         this.randomCells();
+        // this.gridManager.drawGrid();
         this.cells = this.gridManager.cells;
     }
 
@@ -61,10 +64,11 @@ class SimulatorController{
     }
 
     async initGrid() {
+        const init_shape = "square";
         this.gridManager = new GridManager(
-            "square",
+            init_shape,
             this.gridCanvas,
-            new WasmCellManager (20,20,5), // safe now
+            new WasmCellManager (this.gridSize[0], this.gridSize[1], this.shapeStates[init_shape]), // safe now
             this.useWebgl
         );
         this.savedView = { ...this.gridManager.cameraView };
@@ -120,9 +124,9 @@ class SimulatorController{
 
             this.gridManager.setBoundaryType(this.boundsType);
             this.gridManager.neighborType = this.neighborsType;
-            this.gridManager.resizeGrid(this.gridSize[0], this.gridSize[1]);
-            this.cells = oldGrid.cells;
-            this.gridManager.drawGrid();
+            this.gridManager.resizeGrid(this.gridSize[0], this.gridSize[1], this.shapeStates[this.selectedShape]);
+            // this.cells = oldGrid.cells;
+            // this.gridManager.drawGrid();
         });
     }
 
@@ -310,6 +314,11 @@ class SimulatorController{
         // console.log(this.gridManager.cells);
     }
 
+    fillNeighbors() {
+        this.gridManager.cells.floodfill();
+        this.gridManager.drawGrid();
+        // console.log(this.gridManager.cells);
+    }
 }
 
 export { SimulatorController };

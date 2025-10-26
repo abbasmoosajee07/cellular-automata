@@ -28,9 +28,9 @@ class GridManager {
         this.shapeGrid = this.createShapeGrid(this.shape);
         this.initializeRenderer(this.useWebGL);
         this.updateCanvasSize();
+        this.syncCellsToTexture();
         this.createBoundary();
-        this.cells.bounds = this.getBounds();
-        // this.syncCellsToTexture();
+        this.grid_bounds = this.cells.get_bounds();
 
         // this.startRendering();
     }
@@ -77,6 +77,7 @@ class GridManager {
 
     startRendering() {
         const renderLoop = () => {
+            this.drawGrid();
             requestAnimationFrame(renderLoop);
         };
         renderLoop();
@@ -89,9 +90,9 @@ class GridManager {
             const r = arr[i + 1];
             const s = arr[i + 2];
             const state = arr[i + 3];
-            if (this.checkBounds(q, r, s))
-                this.renderer.renderCell(this.cameraView, q, r, s, state);
-        };
+            this.renderer.renderCell(this.cameraView, q, r, s, state);
+        }
+
     }
 
     updateCanvasSize() {
@@ -125,18 +126,8 @@ class GridManager {
     }
 
     createBoundary() {
-        const [minQ, maxQ, minR, maxR] = this.getBounds();
-        console.log(`Generating boundary from (Q${minQ},R${minR}) to (Q${maxQ},R${maxR})`);
-
-        const boundary = 255;
-        for (let q = minQ - 1; q <= maxQ + 1; q++) {
-            this.changeCell(q, minR - 1, 0, boundary);
-            this.changeCell(q, maxR + 1, 0, boundary);
-        }
-        for (let r = minR - 1; r <= maxR + 1; r++) {
-            this.changeCell(minQ - 1, r, 0, boundary);
-            this.changeCell(maxQ + 1, r, 0, boundary);
-        }
+        this.cells.create_boundary();
+        this.syncCellsToTexture();
     }
 
     changeCell(q, r, s, state) {
@@ -145,22 +136,9 @@ class GridManager {
         this.renderer.renderCell(this.cameraView, q, r, s, state);
     }
 
-    getBounds() {
-        const cols = this.gridCols;
-        const rows = this.gridRows;
-
-        return [
-            -Math.floor(cols / 2),
-            Math.floor((cols - 1) / 2),
-            -Math.floor(rows / 2),
-            Math.floor((rows - 1) / 2)
-        ];
-    }
-
     checkBounds(q, r, s) {
         if (this.infiniteGrid) return true;
-        
-        const [minQ, maxQ, minR, maxR] = this.getBounds();
+        const [minQ, maxQ, minR, maxR, minS, maxS] = [...this.grid_bounds];
         return !(q < minQ || q > maxQ || r < minR || r > maxR);
     }
 
@@ -238,16 +216,17 @@ class GridManager {
         osc.stop(audioCtx.currentTime + 0.1);
     }
 
-    resizeGrid(newCols, newRows) {
+    resizeGrid(newCols, newRows, newStates) {
         this.gridCols = newCols;
         this.gridRows = newRows;
-        this.cells.resize(newCols, newRows, 4);
+        this.cells.resize(newCols, newRows, newStates);
+        this.grid_bounds = this.cells.get_bounds();
         if (this.useWebGL && this.renderer.gl) {
             this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, this.cells);
         }
 
         this.createBoundary();
-        this.cells.bounds = this.getBounds();
+
         this.centerView();
     }
 

@@ -38,7 +38,7 @@ impl FlatCellManager {
         let origin = (
             (width as i32) / 2,
             (height as i32) / 2,
-            (depth as i32) / 2,
+            (depth as i32) * 0,
         );
         FlatCellManager {
             width,
@@ -109,7 +109,7 @@ impl FlatCellManager {
         let new_origin = (
             (new_width as i32) / 2,
             (new_height as i32) / 2,
-            (new_depth as i32) / 2,
+            (new_depth as i32) * 0,
         );
 
         let mut new_cells = vec![0u32; new_width * new_height * new_depth];

@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use crate::cell_manager::cellmanger::CellManager;
+use crate::cell_manager::cellmanager::CellManager;
 
 #[wasm_bindgen]
 pub struct WasmCellManager {
@@ -54,4 +54,9 @@ impl WasmCellManager {
     pub fn get_bounds(&self) -> Vec<i32> {
         self.inner.get_bounds().to_vec()
     }
+
+    pub fn floodfill(&mut self) {
+        self.inner.floodfill();
+    }
+
 }
