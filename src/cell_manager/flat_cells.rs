@@ -1,4 +1,3 @@
-// use std::collections::HashMap;
 
 pub struct FlatCellManager {
     width: usize,
@@ -103,6 +102,10 @@ impl FlatCellManager {
             out.push(s + ds);
         }
         out
+    }
+
+    pub fn set_adj_neighbors(&mut self, neighbors: Vec<(i32, i32, i32)>) {
+        self.adj_neighbors = neighbors;
     }
 
     pub fn resize(&mut self, new_width: usize, new_height: usize, new_depth: usize) {

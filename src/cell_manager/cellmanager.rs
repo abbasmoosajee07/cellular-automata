@@ -1,4 +1,7 @@
-use crate::cell_manager::{flat_cells::FlatCellManager, chunk_cells::ChunkedCellManager};
+use crate::cell_manager::{
+    flat_cells::FlatCellManager,
+    chunk_cells::ChunkedCellManager
+};
 use fastrand;
 
 /// Common interface for any cell manager implementation
@@ -13,29 +16,24 @@ pub trait CellOps {
 }
 
 /// Implement the shared trait for both manager types
-impl CellOps for FlatCellManager {
-    fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) { self.set_cell(q, r, s, value); }
-    fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 { self.get_cell(q, r, s) }
-    fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 { self.count_live_neighbors(q, r, s) }
-    fn clear(&mut self) { self.clear(); }
-    fn for_each_cell(&self) -> Vec<i32> { self.for_each_cell() }
-    fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> { self.get_neighbors(q, r, s) }
-    fn resize(&mut self, width: usize, height: usize, depth: usize) {
-        self.resize(width, height, depth);
-    }
+macro_rules! impl_cellops {
+    ($t:ty) => {
+        impl CellOps for $t {
+            fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) { self.set_cell(q, r, s, value); }
+            fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 { self.get_cell(q, r, s) }
+            fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 { self.count_live_neighbors(q, r, s) }
+            fn clear(&mut self) { self.clear(); }
+            fn for_each_cell(&self) -> Vec<i32> { self.for_each_cell() }
+            fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> { self.get_neighbors(q, r, s) }
+            fn resize(&mut self, width: usize, height: usize, depth: usize) {
+                self.resize(width, height, depth);
+            }
+        }
+    };
 }
 
-impl CellOps for ChunkedCellManager {
-    fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) { self.set_cell(q, r, s, value); }
-    fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 { self.get_cell(q, r, s) }
-    fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 { self.count_live_neighbors(q, r, s) }
-    fn clear(&mut self) { self.clear(); }
-    fn for_each_cell(&self) -> Vec<i32> { self.for_each_cell() }
-    fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> { self.get_neighbors(q, r, s) }
-    fn resize(&mut self, width: usize, height: usize, depth: usize) {
-        self.resize(width, height, depth);
-    }
-}
+impl_cellops!(FlatCellManager);
+impl_cellops!(ChunkedCellManager);
 
 pub struct CellManager {
     width: usize,

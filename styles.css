@@ -472,3 +472,41 @@ body.light-mode .control-btn {
   background: rgba(26, 26, 26, 0.85);
   transform: translateY(-1px);
 }
+
+.config-group {
+  margin: 1em 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-label {
+  font-weight: 600;
+  margin-bottom: 0.4em;
+}
+
+.config-select {
+  padding: 0.5em 0.75em;
+  border-radius: 0.5em;
+  border: 1px solid #ccc;
+  background: var(--card-bg);
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.config-select:hover {
+  border-color: #888;
+}
+
+.config-select:focus {
+  outline: none;
+  border-color: var(--feature-color);
+  box-shadow: 0 0 0 2px var(--dark-color);
+}
+
+.config-desc {
+  font-size: 0.85em;
+  color: #555;
+  margin-top: 0.4em;
+  line-height: 1.4;
+}

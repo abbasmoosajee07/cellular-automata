@@ -104,9 +104,9 @@
                     </div>
                 </div>
 
-                <!-- Boundary Behaviour -->
+                <!-- Boundary Behaviour (Topology) -->
                 <div class="config-group">
-                    <h3>Boundary Behavior</h3>
+                    <h3>Grid Topology</h3>
                     <div class="config-row">
                         <div class="config-option">
                             <input type="radio" id="bounds-infinite" name="bounds" value="infinite">
@@ -129,17 +129,9 @@
 
                 <!-- Neighbor Rules -->
                 <div class="config-group">
-                    <h3>Neighbor Rules</h3>
-                    <div class="config-row">
-                        <div class="config-option">
-                            <input type="radio" id="neighbors-adjacent" name="neighbors" value="adjacent" checked>
-                            <label for="neighbors-adjacent">Adjacent Only</label>
-                        </div>
-                        <div class="config-option">
-                            <input type="radio" id="neighbors-touching" name="neighbors" value="touching">
-                            <label for="neighbors-touching">All Touching</label>
-                        </div>
-                    </div>
+                <label for="neighbor-type" class="config-label">Neighbor Type</label>
+                <select id="neighbor-type" name="neighbors" class="config-select"></select>
+                <p id="neighbor-desc" class="config-desc"></p>
                 </div>
 
                 <div class="form-row">

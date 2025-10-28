@@ -14,7 +14,7 @@ class SimulatorController{
     async initSim(useWebgl = true) {
         this.useWebgl = useWebgl;
         this.gridSize = [20, 20];
-
+        this.selectNeighbor();
         await init(); // <-- wait for WASM to finish loading
 
         this.initElements();
@@ -23,8 +23,68 @@ class SimulatorController{
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
-        this.randomCells();
+        // this.randomCells();
+        this.gridManager.changeCell(0,0,0,1);
         this.gridManager.drawGrid();
+    }
+
+    selectNeighbor() {
+        // Neighborhood definitions
+        const neighborhoodTypes = {
+        vonNeumann: {
+            label: "Von Neumann (4)",
+            desc: "Each cell interacts with its four orthogonal neighbors (N, S, E, W).",
+        },
+        moore: {
+            label: "Moore (8)",
+            desc: "Includes all eight surrounding cells (orthogonal + diagonal). Used in Conway’s Life.",
+        },
+        hex: {
+            label: "Hexagonal (6)",
+            desc: "Six neighbors arranged like a hex grid — no diagonal or corner conflicts.",
+        },
+        margolus: {
+            label: "Margolus",
+            desc: "Uses alternating 2×2 block neighborhoods that shift every generation.",
+        },
+        extended: {
+            label: "Extended Moore (radius 2)",
+            desc: "Covers all cells within a square of radius 2 (total of 24 neighbors).",
+        },
+        circular: {
+            label: "Circular (radius r)",
+            desc: "All cells within a circular radius r of the center cell influence it.",
+        },
+        custom: {
+            label: "Custom / Weighted",
+            desc: "Manually define which cells are neighbors or assign weights to them.",
+        },
+        };
+
+        // Elements
+        const neighborSelect = document.getElementById("neighbor-type");
+        const neighborDesc = document.getElementById("neighbor-desc");
+
+        // Populate dropdown
+        Object.entries(neighborhoodTypes).forEach(([value, { label }]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        neighborSelect.appendChild(option);
+        });
+
+        // Default selection
+        neighborSelect.value = "moore";
+        neighborDesc.textContent = neighborhoodTypes["moore"].desc;
+
+        // Update description when changed
+        neighborSelect.addEventListener("change", (e) => {
+        const selected = e.target.value;
+        neighborDesc.textContent = neighborhoodTypes[selected]?.desc || "";
+        });
+
+        this.neighborsType = "moore";
+
     }
 
     initElements() {
@@ -115,13 +175,6 @@ class SimulatorController{
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
             radio.addEventListener('change', () => {
                 if (radio.checked) { this.selectedShape = radio.value; }
-            });
-        });
-
-        // --- Neighbor rules ---
-        document.querySelectorAll('input[name="neighbors"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.checked) { this.neighborsType = radio.value; }
             });
         });
 
