@@ -5,7 +5,6 @@ pub struct FlatCellManager {
     depth: usize,
     origin: (i32, i32, i32),
     cells: Vec<u32>,
-    adj_neighbors: Vec<(i32, i32, i32)>,
 }
 
 impl FlatCellManager {
@@ -30,9 +29,7 @@ impl FlatCellManager {
     }
 }
 
-
 impl FlatCellManager {
-
     pub fn new(width: usize, height: usize, depth: usize) -> FlatCellManager {
         let origin = (
             (width as i32) / 2,
@@ -45,11 +42,6 @@ impl FlatCellManager {
             depth,
             origin,
             cells: vec![0u32; width * height * depth],
-            adj_neighbors: vec![
-                (0, -1, 0), (0, 1, 0),
-                (1, 0, 0), (-1, 0, 0),
-                (0, 0, -1), (0, 0, 1),
-            ],
         }
     }
 
@@ -61,14 +53,6 @@ impl FlatCellManager {
 
     pub fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 {
         self.index_internal(q, r, s).map(|i| self.cells[i]).unwrap_or(0)
-    }
-
-    pub fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 {
-        let mut count = 0;
-        for &(dq, dr, ds) in &self.adj_neighbors {
-            count += self.get_cell(q + dq, r + dr, s + ds);
-        }
-        count
     }
 
     pub fn clear(&mut self) {
@@ -92,20 +76,6 @@ impl FlatCellManager {
             }
         }
         out
-    }
-
-    pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
-        let mut out = Vec::new();
-        for &(dq, dr, ds) in &self.adj_neighbors {
-            out.push(q + dq);
-            out.push(r + dr);
-            out.push(s + ds);
-        }
-        out
-    }
-
-    pub fn set_adj_neighbors(&mut self, neighbors: Vec<(i32, i32, i32)>) {
-        self.adj_neighbors = neighbors;
     }
 
     pub fn resize(&mut self, new_width: usize, new_height: usize, new_depth: usize) {

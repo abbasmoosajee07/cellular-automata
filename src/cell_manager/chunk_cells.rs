@@ -4,7 +4,6 @@ pub struct ChunkedCellManager {
     chunk_size: usize,
     depth: usize,
     chunks: HashMap<(i32, i32, i32), Vec<u32>>,
-    adj_neighbors: Vec<(i32, i32, i32)>,
 }
 
 fn local_index(chunk_size: usize, lx: usize, ly: usize, lz: usize) -> usize {
@@ -17,11 +16,6 @@ impl ChunkedCellManager {
             chunk_size,
             depth,
             chunks: HashMap::new(),
-            adj_neighbors: vec![
-                (0, -1, 0), (0, 1, 0),
-                (1, 0, 0), (-1, 0, 0),
-                (0, 0, -1), (0, 0, 1),
-            ],
         }
     }
 
@@ -66,14 +60,6 @@ impl ChunkedCellManager {
         }
     }
 
-    pub fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 {
-        let mut count = 0;
-        for &(dq, dr, ds) in &self.adj_neighbors {
-            count += self.get_cell(q + dq, r + dr, s + ds);
-        }
-        count
-    }
-
     pub fn clear(&mut self) {
         self.chunks.clear();
     }
@@ -95,16 +81,6 @@ impl ChunkedCellManager {
                     }
                 }
             }
-        }
-        out
-    }
-
-    pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
-        let mut out = Vec::new();
-        for &(dq, dr, ds) in &self.adj_neighbors {
-            out.push(q + dq);
-            out.push(r + dr);
-            out.push(s + ds);
         }
         out
     }

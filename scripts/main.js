@@ -82,7 +82,6 @@ class SimulatorController{
         const selected = e.target.value;
         neighborDesc.textContent = neighborhoodTypes[selected]?.desc || "";
         });
-
         this.neighborsType = "moore";
 
     }
@@ -133,7 +132,10 @@ class SimulatorController{
         const cellManager = preserveState && oldGrid
             ? oldGrid.cells
             : new WasmCellManager(cols, rows, shapeStates);
-
+        if (preserveState == true) {
+            console.log("switch neighbors")
+            this.cells.switch_neighbors(shape);
+        }
         // Always create a new GridManager — safer for WebGL + camera reinit
         this.gridManager = new GridManager(
             shape,
