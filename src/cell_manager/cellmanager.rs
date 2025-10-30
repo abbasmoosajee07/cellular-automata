@@ -1,52 +1,7 @@
 use crate::cell_manager::{
-    flat_cells::FlatCellManager,
-    chunk_cells::ChunkedCellManager,
+    CellBackend, FlatCellManager, ChunkedCellManager, Neighborhood
 };
 use fastrand;
-
-enum CellBackend {
-    Flat(FlatCellManager),
-    Chunked(ChunkedCellManager),
-}
-
-impl CellBackend {
-    fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
-        match self {
-            CellBackend::Flat(fm) => fm.set_cell(q, r, s, value),
-            CellBackend::Chunked(cm) => cm.set_cell(q, r, s, value),
-        }
-    }
-
-    fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 {
-        match self {
-            CellBackend::Flat(fm) => fm.get_cell(q, r, s),
-            CellBackend::Chunked(cm) => cm.get_cell(q, r, s),
-        }
-    }
-
-
-    fn clear(&mut self) {
-        match self {
-            CellBackend::Flat(fm) => fm.clear(),
-            CellBackend::Chunked(cm) => cm.clear(),
-        }
-    }
-
-    fn for_each_cell(&self) -> Vec<i32> {
-        match self {
-            CellBackend::Flat(fm) => fm.for_each_cell(),
-            CellBackend::Chunked(cm) => cm.for_each_cell(),
-        }
-    }
-
-
-    fn _resize(&mut self, w: usize, h: usize, d: usize) {
-        match self {
-            CellBackend::Flat(fm) => fm.resize(w, h, d),
-            CellBackend::Chunked(cm) => cm.resize(w, h, d),
-        }
-    }
-}
 
 pub struct CellManager {
     width: usize,
@@ -54,7 +9,7 @@ pub struct CellManager {
     depth: usize,
     threshold: usize,
     inner: CellBackend,
-    adj_neighbors: Vec<(i32, i32, i32)>,
+    neighbor_manager: Neighborhood,
 }
 
 impl CellManager {
@@ -70,9 +25,7 @@ impl CellManager {
         };
 
         // Default neighbors
-        let adj_neighbors = vec![
-            (0, -1, 0), (0, 1, 0), (1, 0, 0), (-1, 0, 0),
-        ];
+        let neighbor_manager = Neighborhood::new("hexagon");
 
         Self {
             width,
@@ -80,7 +33,7 @@ impl CellManager {
             depth,
             threshold,
             inner,
-            adj_neighbors,
+            neighbor_manager,
         }
     }
 
@@ -101,18 +54,12 @@ impl CellManager {
     }
 
     pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
-        let mut out = Vec::new();
-        for &(dq, dr, ds) in &self.adj_neighbors {
-            out.push(q + dq);
-            out.push(r + dr);
-            out.push(s + ds);
-        }
-        out
+        self.neighbor_manager.get_neighbors(q, r, s)
     }
 
     pub fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 {
         let mut count = 0;
-        for &(dq, dr, ds) in &self.adj_neighbors {
+        for &(dq, dr, ds) in self.neighbor_manager.get_neighbor_offsets() {
             count += self.get_cell(q + dq, r + dr, s + ds);
         }
         count
@@ -220,27 +167,7 @@ impl CellManager {
     }
 
     pub fn switch_neighbors(&mut self, shape: String) {
-        let shape_neighbors = match shape.as_str() {
-            "square" => vec![
-                (0, -1, 0), (0, 1, 0),
-                (1, 0, 0), (-1, 0, 0),
-            ],
-            "hexagon" => vec![
-                (0, -1, 0), (0, 1, 0),
-                (1, 0, 0), (-1, 0, 0),
-                (1, -1, 0), (-1, 1, 0),
-            ],
-            "triangle" => vec![
-                (-1, 1, 1), (0, -1, 0),
-                (1, 0, 0),
-            ],
-            _ => vec![
-                (0, -1, 0), (0, 1, 0),
-                (1, 0, 0), (-1, 0, 0),
-                (1, -1, 0), (-1, 1, 0),
-            ],
-        };
-
-        self.adj_neighbors = shape_neighbors;
+        self.neighbor_manager.switch_neighbors(&shape);
     }
+
 }

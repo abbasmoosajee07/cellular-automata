@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use crate::cell_manager::cellmanager::CellManager;
+use crate::CellManager;
 
 #[wasm_bindgen]
 pub struct WasmCellManager {

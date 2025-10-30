@@ -1,4 +1,4 @@
-use crate::cell_manager::cellmanager::CellManager;
+use crate::CellManager;
 
 /// Runs a sequence of native tests for CellManager implementations
 /// (both Flat and Chunked if the threshold is crossed)
