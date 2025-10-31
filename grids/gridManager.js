@@ -38,7 +38,7 @@ class GridManager {
     createDefaultColorSchema() {
         return {
             255: this.hexToRgb("#0f4812"),
-            bg: this.hexToRgb("#000000"),
+            bg: [0, 0, 0, 0.0],
             1: this.hexToRgb("#32cd32"),
             11: this.hexToRgb("#ff3700"),
         };

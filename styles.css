@@ -44,7 +44,8 @@ body {
 }
 
 canvas {
-    cursor: crosshair;
+  cursor: crosshair;
+  background: transparent;
 }
 
 /* ==============================
@@ -509,4 +510,30 @@ body.light-mode .control-btn {
   color: #555;
   margin-top: 0.4em;
   line-height: 1.4;
+}
+
+
+.size-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.form-row {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.form-row label {
+    white-space: nowrap;
+    margin: 0;
+}
+
+.grid-size-in {
+    padding: 6px 8px;
+    border: 1px solid var(--dark-color);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    width: 100%;
 }

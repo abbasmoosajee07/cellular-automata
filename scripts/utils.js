@@ -41,4 +41,4 @@ function switchThemes() {
     }
 }
 
-switchThemes();
+export {switchThemes};

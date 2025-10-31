@@ -1,3 +1,4 @@
+import {switchThemes} from './utils.js'
 import {  GridManager  } from '../grids/gridManager.js';
 import init, { WasmCellManager  } from "../pkg/cell_manager.js";
 
@@ -15,6 +16,7 @@ class SimulatorController{
         this.useWebgl = useWebgl;
         this.gridSize = [20, 20];
         this.selectNeighbor();
+        this.selectTopology();
         await init(); // <-- wait for WASM to finish loading
 
         this.initElements();
@@ -26,6 +28,52 @@ class SimulatorController{
         // this.randomCells();
         this.gridManager.changeCell(0,0,0,1);
         this.gridManager.drawGrid();
+    }
+
+    selectTopology() {
+        // Neighborhood definitions
+        const topoolgyTypes = {
+        infinite: {
+            label: "Infinite",
+            desc: "Infinitely expands grid in all directions.",
+        },
+        wrap: {
+            label: "Wrap-around",
+            desc: "Connects opposite sides of the grids",
+        },
+        finite: {
+            label: "Finite",
+            desc: "Forms a virtual cliff for grid",
+        },
+        bounded: {
+            label: "Bounded",
+            desc: "Adds walls to each side of grid",
+        },
+        };
+
+        // Elements
+        const topologySelect = document.getElementById("topology-type");
+        const topologyDesc = document.getElementById("topology-desc");
+
+        // Populate dropdown
+        Object.entries(topoolgyTypes).forEach(([value, { label }]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        topologySelect.appendChild(option);
+        });
+
+        // Default selection
+        topologySelect.value = "infinite";
+        topologyDesc.textContent = topoolgyTypes["infinite"].desc;
+
+        // Update description when changed
+        topologySelect.addEventListener("change", (e) => {
+        const selected = e.target.value;
+        topologyDesc.textContent = topoolgyTypes[selected]?.desc || "";
+        });
+        this.topologyType = "infinite";
+
     }
 
     selectNeighbor() {
@@ -82,7 +130,7 @@ class SimulatorController{
         const selected = e.target.value;
         neighborDesc.textContent = neighborhoodTypes[selected]?.desc || "";
         });
-        this.neighborsType = "moore";
+        this.topologyType = "moore";
 
     }
 
@@ -136,6 +184,7 @@ class SimulatorController{
             console.log("switch neighbors")
             this.cells.switch_neighbors(shape);
         }
+        switchThemes();
         // Always create a new GridManager — safer for WebGL + camera reinit
         this.gridManager = new GridManager(
             shape,
@@ -148,7 +197,7 @@ class SimulatorController{
         if (preserveState && oldGrid) {
             Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
             this.gridManager.setBoundaryType(this.boundsType);
-            this.gridManager.neighborType = this.neighborsType;
+            this.gridManager.neighborType = this.topologyType;
         }
 
         // Sync grid sizes and texture
@@ -177,13 +226,6 @@ class SimulatorController{
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
             radio.addEventListener('change', () => {
                 if (radio.checked) { this.selectedShape = radio.value; }
-            });
-        });
-
-        // --- Boundary behavior ---
-        document.querySelectorAll('input[name="bounds"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.checked) { this.boundsType = radio.value; }
             });
         });
 

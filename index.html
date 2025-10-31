@@ -104,45 +104,35 @@
                     </div>
                 </div>
 
+                <!-- Neighbor Rules -->
+                <div class="config-group">
+                    <h3>Neighbor Type</h3>
+                    <select id="neighbor-type" name="neighbors" class="config-select"></select>
+                    <p id="neighbor-desc" class="config-desc"></p>
+                </div>
+
                 <!-- Boundary Behaviour (Topology) -->
                 <div class="config-group">
-                    <h3>Grid Topology</h3>
-                    <div class="config-row">
-                        <div class="config-option">
-                            <input type="radio" id="bounds-infinite" name="bounds" value="infinite">
-                            <label for="bounds-infinite">Infinite</label>
+                    <h3>Topology Type</h3>
+                    <select id="topology-type" name="topology" class="config-select"></select>
+                    <p id="topology-desc" class="config-desc"></p>
+                </div>
+
+                <!-- Grid Size Controls -->
+                <div class="config-group">
+                    <!-- <h3>Grid Size</h3> -->
+                    <div class="size-controls">
+                        <div class="form-row">
+                            <label for="colInput">Columns:</label>
+                            <input type="number" class="grid-size-in" id="colInput" min="1" max="16382" value="20" step="1">
                         </div>
-                        <div class="config-option">
-                            <input type="radio" id="bounds-wrap" name="bounds" value="wrap-around" checked>
-                            <label for="bounds-wrap">Wrap-around</label>
-                        </div>
-                        <div class="config-option">
-                            <input type="radio" id="bounds-bounded" name="bounds" value="bounded">
-                            <label for="bounds-bounded">Bounded</label>
-                        </div>
-                        <div class="config-option">
-                            <input type="radio" id="bounds-cliff" name="bounds" value="cliff">
-                            <label for="bounds-cliff">Fall off</label>
+                        <div class="form-row">
+                            <label for="rowInput">Rows:</label>
+                            <input type="number" class="grid-size-in" id="rowInput" min="1" max="16382" value="20" step="1">
                         </div>
                     </div>
                 </div>
 
-                <!-- Neighbor Rules -->
-                <div class="config-group">
-                <label for="neighbor-type" class="config-label">Neighbor Type</label>
-                <select id="neighbor-type" name="neighbors" class="config-select"></select>
-                <p id="neighbor-desc" class="config-desc"></p>
-                </div>
-
-                <div class="form-row">
-                    <label for="colInput">Cols:</label>
-                    <input type="number" class="grid-size-in" id="colInput" min="1" max = "16382" value="20" step="1">
-                </div>
-
-                <div class="form-row">
-                    <label for="rowInput">Rows:</label>
-                    <input type="number" class="grid-size-in" id="rowInput" min="1" max = "16382" value="20" step="1">
-                </div>
                 <div class="form-row">
                     <label for="useWebgl">Use Webgl</label>
                     <input type="checkbox" id="useWebgl"  onclick="switchRenderers()" checked>
@@ -238,7 +228,6 @@
     </div>
 </body>
 
-<script src="./scripts/utils.js"></script>
 <script type = "module">
     import { SimulatorController } from './scripts/main.js';
 
