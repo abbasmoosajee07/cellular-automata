@@ -25,7 +25,7 @@ impl CellManager {
         };
 
         // Default neighbors
-        let neighbor_manager = Neighborhood::new("hexagon");
+        let neighbor_manager = Neighborhood::new("square", "vonNeumann", 1);
 
         Self {
             width,
@@ -166,8 +166,8 @@ impl CellManager {
         }
     }
 
-    pub fn switch_neighbors(&mut self, shape: String) {
-        self.neighbor_manager.switch_neighbors(&shape);
+    pub fn switch_neighbors(&mut self, shape: String, chosen_type: String, range: i32) {
+        self.neighbor_manager.switch_neighbors(&shape, &chosen_type, range);
     }
 
 }

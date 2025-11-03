@@ -90,8 +90,8 @@
                             <label for="shape-square">Square</label>
                         </div>
                         <div class="config-option">
-                            <input type="radio" id="shape-hex" name="shape" value="hex">
-                            <label for="shape-hex">Hexagons</label>
+                            <input type="radio" id="shape-hexagon" name="shape" value="hexagon">
+                            <label for="shape-hexagon">Hexagons</label>
                         </div>
                         <div class="config-option">
                             <input type="radio" id="shape-triangle" name="shape" value="triangle">
@@ -109,6 +109,10 @@
                     <h3>Neighbor Type</h3>
                     <select id="neighbor-type" name="neighbors" class="config-select"></select>
                     <p id="neighbor-desc" class="config-desc"></p>
+                    <div class="form-row">
+                        <label for="rangeInput">Range of Influence:</label>
+                        <input type="number" class="grid-size-in" id="rangeInput" min="1" max="16382" value="1" step="1">
+                    </div>
                 </div>
 
                 <!-- Boundary Behaviour (Topology) -->
@@ -211,19 +215,19 @@
     <div id="statusBar" class="ui-panel">
     <div class="status-item">
         <span class="status-label">Generation:</span>
-        <span id="status-gen">0</span>
+        <span id="status_gen">0</span>
     </div>
     <div class="status-item">
         <span class="status-label">Population:</span>
-        <span id="status-popl">0</span>
+        <span id="status_popl">0</span>
     </div>
     <div class="status-item">
         <span class="status-label">Zoom:</span>
-        <span id="status-zoom">1.00x</span>
+        <span id="status_zoom">1.00x</span>
     </div>
     <div class="status-item">
         <span class="status-label">Camera:</span>
-        <span id="status-camera">(0, 0)</span>
+        <span id="status_camera">(0, 0)</span>
     </div>
     </div>
 </body>

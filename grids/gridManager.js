@@ -46,15 +46,15 @@ class GridManager {
 
     createShapeGrid(shape) {
         const shapeMap = {
-            "hex": HexagonGrid,
             "square": SquareGrid,
+            "hexagon": HexagonGrid,
             "rhombus": RhomboidalGrid,
             "triangle": TriangleGrid
         };
-        
+
         const GridClass = shapeMap[shape];
         if (!GridClass) throw new Error(`Unknown grid shape: ${shape}`);
-        
+
         return new GridClass(this.colorSchema);
     }
 
@@ -92,7 +92,6 @@ class GridManager {
             const state = arr[i + 3];
             this.renderer.renderCell(this.cameraView, q, r, s, state);
         }
-
     }
 
     updateCanvasSize() {
@@ -106,7 +105,7 @@ class GridManager {
     hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         if (!result) return [0.5, 0.5, 0.5, 1.0];
-        
+
         return [
             parseInt(result[1], 16) / 255,
             parseInt(result[2], 16) / 255,
@@ -131,7 +130,6 @@ class GridManager {
     }
 
     changeCell(q, r, s, state) {
-        // console.log(q, r, s, state);
         this.cells.set_cell(q, r, s, state);
         this.renderer.renderCell(this.cameraView, q, r, s, state);
     }

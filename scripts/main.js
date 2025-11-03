@@ -5,16 +5,22 @@ import init, { WasmCellManager  } from "../pkg/cell_manager.js";
 class SimulatorController{
     docIDs = [
         "gridCanvas", "menuPanel", "menuToggle", "reMap",
-        "drawTiles", "eraseTiles", "clearGrid", "randomFill",
-        "rowInput", "colInput", "resetView", "pinLoc",
-        "neighborTiles",
-    ]
+        "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
+        "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
+        "status_gen", "status_popl", "status_zoom", "status_camera",
+    ];
 
-    shapeStates = {"hex": 1, "square": 1, "rhombus": 3, "triangle": 2};
+    shapeProps = {
+        square: [1, ["vonNeumann", "cross", "checkerboard", "moore", "star"]],
+        hexagon: [1, ["hexagonal", "tripod", "asterix"]],
+        rhombus: [3, ["Qbert"]],
+        triangle: [2, ["vonNeumann", "biohazard", "inner", "vertices", "moore"]],
+    };
 
     async initSim(useWebgl = true) {
         this.useWebgl = useWebgl;
         this.gridSize = [20, 20];
+        this.selectedShape = "square";
         this.selectNeighbor();
         this.selectTopology();
         await init(); // <-- wait for WASM to finish loading
@@ -28,110 +34,6 @@ class SimulatorController{
         // this.randomCells();
         this.gridManager.changeCell(0,0,0,1);
         this.gridManager.drawGrid();
-    }
-
-    selectTopology() {
-        // Neighborhood definitions
-        const topoolgyTypes = {
-        infinite: {
-            label: "Infinite",
-            desc: "Infinitely expands grid in all directions.",
-        },
-        wrap: {
-            label: "Wrap-around",
-            desc: "Connects opposite sides of the grids",
-        },
-        finite: {
-            label: "Finite",
-            desc: "Forms a virtual cliff for grid",
-        },
-        bounded: {
-            label: "Bounded",
-            desc: "Adds walls to each side of grid",
-        },
-        };
-
-        // Elements
-        const topologySelect = document.getElementById("topology-type");
-        const topologyDesc = document.getElementById("topology-desc");
-
-        // Populate dropdown
-        Object.entries(topoolgyTypes).forEach(([value, { label }]) => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        topologySelect.appendChild(option);
-        });
-
-        // Default selection
-        topologySelect.value = "infinite";
-        topologyDesc.textContent = topoolgyTypes["infinite"].desc;
-
-        // Update description when changed
-        topologySelect.addEventListener("change", (e) => {
-        const selected = e.target.value;
-        topologyDesc.textContent = topoolgyTypes[selected]?.desc || "";
-        });
-        this.topologyType = "infinite";
-
-    }
-
-    selectNeighbor() {
-        // Neighborhood definitions
-        const neighborhoodTypes = {
-        vonNeumann: {
-            label: "Von Neumann (4)",
-            desc: "Each cell interacts with its four orthogonal neighbors (N, S, E, W).",
-        },
-        moore: {
-            label: "Moore (8)",
-            desc: "Includes all eight surrounding cells (orthogonal + diagonal). Used in Conway’s Life.",
-        },
-        hex: {
-            label: "Hexagonal (6)",
-            desc: "Six neighbors arranged like a hex grid — no diagonal or corner conflicts.",
-        },
-        margolus: {
-            label: "Margolus",
-            desc: "Uses alternating 2×2 block neighborhoods that shift every generation.",
-        },
-        extended: {
-            label: "Extended Moore (radius 2)",
-            desc: "Covers all cells within a square of radius 2 (total of 24 neighbors).",
-        },
-        circular: {
-            label: "Circular (radius r)",
-            desc: "All cells within a circular radius r of the center cell influence it.",
-        },
-        custom: {
-            label: "Custom / Weighted",
-            desc: "Manually define which cells are neighbors or assign weights to them.",
-        },
-        };
-
-        // Elements
-        const neighborSelect = document.getElementById("neighbor-type");
-        const neighborDesc = document.getElementById("neighbor-desc");
-
-        // Populate dropdown
-        Object.entries(neighborhoodTypes).forEach(([value, { label }]) => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        neighborSelect.appendChild(option);
-        });
-
-        // Default selection
-        neighborSelect.value = "moore";
-        neighborDesc.textContent = neighborhoodTypes["moore"].desc;
-
-        // Update description when changed
-        neighborSelect.addEventListener("change", (e) => {
-        const selected = e.target.value;
-        neighborDesc.textContent = neighborhoodTypes[selected]?.desc || "";
-        });
-        this.topologyType = "moore";
-
     }
 
     initElements() {
@@ -171,26 +73,24 @@ class SimulatorController{
 
     async setupGrid({ preserveState = false } = {}) {
         const shape = this.selectedShape || "square";
-        const shapeStates = this.shapeStates[shape];
+        const activeState = this.shapeProps[shape][0] || 1;
         const [cols, rows] = this.gridSize;
-
         const oldGrid = this.gridManager || null;
 
         // If we preserve, reuse old cells; otherwise make new
         const cellManager = preserveState && oldGrid
             ? oldGrid.cells
-            : new WasmCellManager(cols, rows, shapeStates);
+            : new WasmCellManager(cols, rows, activeState);
+
         if (preserveState == true) {
-            console.log("switch neighbors")
-            this.cells.switch_neighbors(shape);
+            console.log("switch_neighbors:", this.neighborhoodType, this.rangeValue)
+            this.cells.switch_neighbors(shape, this.neighborhoodType, this.rangeValue);
         }
+
         switchThemes();
         // Always create a new GridManager — safer for WebGL + camera reinit
         this.gridManager = new GridManager(
-            shape,
-            this.gridCanvas,
-            cellManager,
-            this.useWebgl
+            shape, this.gridCanvas, cellManager, this.useWebgl
         );
 
         // Restore camera and view if requested
@@ -203,7 +103,7 @@ class SimulatorController{
         // Sync grid sizes and texture
         this.gridManager.gridCols = parseInt(this.colInput.value);
         this.gridManager.gridRows = parseInt(this.rowInput.value);
-        this.gridManager.resizeGrid(cols, rows, shapeStates);
+        this.gridManager.resizeGrid(cols, rows, activeState);
         this.gridManager.syncCellsToTexture();
 
         this.cells = this.gridManager.cells;
@@ -222,10 +122,16 @@ class SimulatorController{
             this.gridSize[0] = parseInt(this.colInput.value) || 20; // cols
         });
 
+        this.rangeInput.addEventListener('input', () => {
+            this.rangeValue = parseInt(this.rangeInput.value) || 1; // cols
+        });
+
         // --- Shape selection ---
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
             radio.addEventListener('change', () => {
                 if (radio.checked) { this.selectedShape = radio.value; }
+                this.selectNeighbor();
+
             });
         });
 
@@ -259,6 +165,115 @@ class SimulatorController{
         });
 
         this.neighborTiles.addEventListener('click', () => {this.fillNeighbors()});
+    }
+
+    selectTopology() {
+        const TOPOLOGY = {
+            selectId: 'topology-type',
+            descId: 'topology-desc',
+            defaultValue: 'infinite',
+            types: {
+                infinite: { label: "Infinite", desc: "Infinitely expands grid in all directions." },
+                wrap: { label: "Wrap-around", desc: "Connects opposite sides of the grids" },
+                finite: { label: "Finite", desc: "Forms a virtual cliff for grid" },
+                bounded: { label: "Bounded", desc: "Adds walls to each side of grid" },
+            }
+        };
+        this.setupDropdown(TOPOLOGY, 'topologyType');
+    }
+
+    selectNeighbor() {
+        // All available neighborhood definitions
+        const ALL_NEIGHBOR_TYPES = {
+            vonNeumann: {
+                label: "Von Neumann",
+                desc: "Each cell interacts with its four orthogonal neighbors."
+            },
+            moore: {
+                label: "Moore",
+                desc: "Includes all eight surrounding cells."
+            },
+            hexagonal: {
+                label: "Hexagonal",
+                desc: "Each cell interacts with six surrounding cells."
+            },
+            tripod: {
+                label: "Tripod",
+                desc: "Each cell interacts with three cells forming a tripod pattern."
+            },
+            asterix: {
+                label: "Asterix",
+                desc: "A dense 12-neighbor radial pattern."
+            },
+            cross: {
+                label: "Cross",
+                desc: "Orthogonal plus center — resembles a cross."
+            },
+            checkerboard: {
+                label: "Checkerboard",
+                desc: "Diagonal neighbors only, like black and white squares."
+            },
+            star: {
+                label: "Star",
+                desc: "Alternating diagonal and orthogonal neighbors forming a star."
+            },
+            Qbert: {
+                label: "Q*bert",
+                desc: "Isometric rhombus layout, 6 diagonal neighbors."
+            },
+            biohazard: {
+                label: "Biohazard",
+                desc: "Triangular neighborhood with alternating diagonals."
+            },
+            inner: {
+                label: "Inner",
+                desc: "Three closest neighbors forming a compact core."
+            },
+            vertices: {
+                label: "Vertices",
+                desc: "Triangular vertex-based neighborhood."
+            }
+        };
+
+        const usedNeighborhoods = this.shapeProps[this.selectedShape][1] || [];
+        // Filter only relevant types for this shape
+        const filteredTypes = Object.fromEntries(
+            usedNeighborhoods
+                .filter(name => ALL_NEIGHBOR_TYPES[name])
+                .map(name => [name, ALL_NEIGHBOR_TYPES[name]])
+        );
+
+        const NEIGHBORHOOD = {
+            selectId: "neighbor-type",
+            descId: "neighbor-desc",
+            defaultValue: usedNeighborhoods[0] || "moore",
+            types: filteredTypes
+        };
+        this.setupDropdown(NEIGHBORHOOD, "neighborhoodType");
+    }
+
+    setupDropdown(config, propertyName) {
+        const select = document.getElementById(config.selectId);
+        const desc = document.getElementById(config.descId);
+
+        select.innerHTML = '';
+
+        Object.entries(config.types).forEach(([value, { label }]) => {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = label;
+            select.appendChild(option);
+        });
+
+        select.value = config.defaultValue;
+        desc.textContent = config.types[config.defaultValue].desc;
+        this[propertyName] = config.defaultValue;
+
+        select.addEventListener("change", (e) => {
+            const selected = e.target.value;
+            desc.textContent = config.types[selected]?.desc || "";
+            this[propertyName] = selected;
+        });
     }
 
     setupCanvasControls() {
@@ -372,17 +387,14 @@ class SimulatorController{
             this.gridManager.infiniteGrid,
         );
         this.gridManager.drawGrid();
-        // console.log(this.gridManager.cells);
     }
 
     updateStatusBar(px, py) {
-        document.getElementById("status-gen").textContent = 0;
-
-        document.getElementById("status-popl").textContent = 0;
-
-        document.getElementById("status-zoom").textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
+        this.status_gen.textContent = 0;
+        this.status_popl.textContent = 0;
+        this.status_zoom.textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
         const [q, r, s] = this.gridManager.screenToCell(px, py)
-        document.getElementById("status-camera").textContent = `${q},${r},${s}`;
+        this.status_camera.textContent = `${q},${r},${s}`;
     }
 
     randomCells() {

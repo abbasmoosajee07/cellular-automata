@@ -52,8 +52,8 @@ impl WasmCellManager {
     }
 
     #[wasm_bindgen]
-    pub fn switch_neighbors(&mut self, shape: String) {
-        self.inner.switch_neighbors(shape);
+    pub fn switch_neighbors(&mut self, shape: String, chosen_type: String, range: i32) {
+        self.inner.switch_neighbors(shape, chosen_type, range);
     }
 
     pub fn get_bounds(&self) -> Vec<i32> {
