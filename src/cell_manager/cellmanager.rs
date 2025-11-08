@@ -59,7 +59,7 @@ impl CellManager {
 
     pub fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 {
         let mut count = 0;
-        for &(dq, dr, ds) in self.neighbor_manager.get_neighbor_offsets() {
+        for &(dq, dr, ds) in self.neighbor_manager.get_neighbor_offsets(s) {
             count += self.get_cell(q + dq, r + dr, s + ds);
         }
         count
