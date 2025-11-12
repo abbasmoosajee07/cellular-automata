@@ -1,13 +1,3 @@
-use std::collections::HashMap;
-
-pub fn get_shape_neighborhoods() -> HashMap<&'static str, Vec<&'static str>> {
-    let mut map = HashMap::new();
-    map.insert("hex", vec!["hexagonal", "tripod", "asterix"]);
-    map.insert("square", vec!["vonNeumann", "cross", "checkerboard", "moore", "star"]);
-    map.insert("rhombus", vec!["Qbert"]);
-    map.insert("triangle", vec!["vonNeumann", "biohazard", "inner", "vertices", "moore"]);
-    map
-}
 
 pub struct Neighborhood {
     pub shape: String,
@@ -58,69 +48,28 @@ impl Neighborhood {
     fn get_neighbors_for_shape(shape: &str, chosen_type: &str, range: i32) -> Vec<Vec<(i32,i32,i32)>> {
         match shape {
             "hexagon" => vec![Self::get_hexagon_neighborhood(chosen_type, range)],
-            "rhombus" => Self::get_rhombus_neighborhood(chosen_type),
-
             "square" => vec![Self::get_square_neighborhood(chosen_type, range)],
-            "triangle" => Self::expand_range(Self::get_triangle_neighborhood(chosen_type), range),
+            "rhombus" => Self::get_rhombus_neighborhood(chosen_type),
+            "triangle" => Self::get_triangle_neighborhood(chosen_type, range),
             _ => vec![vec![(0, 0, 0)]],
         }
-    }
-
-    fn expand_range(all_neighborhoods: Vec<Vec<(i32, i32, i32)>>, range: i32
-    ) -> Vec<Vec<(i32, i32, i32)>> {
-        let mut expanded_sets = Vec::new();
-
-        for base_set in all_neighborhoods.into_iter() {
-            let mut expanded = Vec::new();
-
-            // include base neighbors scaled by 1..range
-            for n1 in 1..=range {
-                for n in 1..=range {
-                    for &(dq, dr, ds) in &base_set {
-                        expanded.push((dq * n1, dr * n, ds));
-                    }
-                }
-            }
-            expanded_sets.push(expanded);
-        }
-        return expanded_sets;
-    }
-
-    fn _get_square_neighborhood(chosen_type: &str, _range: i32) -> Vec<(i32, i32, i32)> {
-        let base_neighborhood = match chosen_type {
-            "vonNeumann" => vec![
-                (0, -1, 0), (0, 1, 0), (1, 0, 0), (-1, 0, 0),
-            ],
-            "cross" => vec![
-                (0, -1, 0), (0, 1, 0), (1, 0, 0), (-1, 0, 0),
-            ],
-            "moore" => vec![
-                (0, -1, 0), (0, 1, 0), (1, 0, 0), (-1, 0, 0),
-                (1, -1, 0), (-1, 1, 0), (1, 1, 0), (-1, -1, 0),
-            ],
-            "star" => vec![
-                (0, -1, 0), (0, 1, 0), (1, 0, 0), (-1, 0, 0),
-                (1, -1, 0), (-1, 1, 0), (1, 1, 0), (-1, -1, 0),
-            ],
-            _ => vec![
-                (0, -1, 0), (0, 1, 0),
-            ],
-        };
-        base_neighborhood
     }
 
     fn get_square_neighborhood(chosen_type: &str, range: i32) -> Vec<(i32, i32, i32)> {
         let mut neigh = Vec::new();
 
         match chosen_type {
-            // Manhattan radius — orthogonal only
             "vonNeumann" => {
-                for d in 1..=range {
-                    neigh.push(( d, 0, 0)); neigh.push((-d, 0, 0));
-                    neigh.push((0,  d, 0)); neigh.push((0, -d, 0));
-                    neigh.push((1, d-1, 0)); neigh.push((d - 1, 1, 0));
-                    // neigh.push((-d, d, 0));
-                    // neigh.push((d-1,  -d-1, 0)); neigh.push((-d-1, -d-1, 0));
+                for dx in -range..=range {
+                    for dy in -range..=range {
+                        // L1 distance check
+                        if (dx.abs() + dy.abs()) <= range {
+                            // optionally exclude the center if you want
+                            if dx != 0 || dy != 0 {
+                                neigh.push((dx, dy, 0));
+                            }
+                        }
+                    }
                 }
             }
             "cross" => {
@@ -139,7 +88,6 @@ impl Neighborhood {
                     }
                 }
             }
-
             // Orthogonal + diagonal rays extending outward
             "star" => {
                 for d in 1..=range {
@@ -152,7 +100,6 @@ impl Neighborhood {
                     neigh.push((-d,  d, 0)); neigh.push((-d, -d, 0));
                 }
             }
-
             // Fallback — minimal neighborhood
             _ => {
                 for d in 1..=range {
@@ -165,7 +112,7 @@ impl Neighborhood {
     }
 
     fn get_hexagon_neighborhood(chosen_type: &str, range: i32) -> Vec<(i32, i32, i32)> {
-        let mut neigh = Vec::new();
+        let mut neigh: Vec<(i32, i32, i32)> = Vec::new();
         match chosen_type {
             "tripod" => {
                 for d in 1..=range {
@@ -196,7 +143,7 @@ impl Neighborhood {
         neigh
     }
 
-    fn get_triangle_neighborhood(chosen_type: &str) -> Vec<Vec<(i32, i32, i32)>> {
+    fn get_triangle_neighborhood(chosen_type: &str, range: i32) -> Vec<Vec<(i32, i32, i32)>> {
         match chosen_type {
             "vonNeumann" => vec![
                 vec![   // Left/Upper triangle
@@ -244,7 +191,8 @@ impl Neighborhood {
                 ],
             ],
 
-            "moore" => vec![
+            // NEED TO FIX MOORE NEIGHBORHOOD FOR TRIANGULAR CELLS
+            "moore0" => vec![
                 vec![
                     (-1, 1, 1),  (0, -1, 0),  (1, 0, 0),
                     (0, 0, 1),   (0, 1, 1),   (-1, 0, 1),
@@ -258,6 +206,32 @@ impl Neighborhood {
                     (1, 1, -1),  (-1, -1, -1), (1, -1, -1),
                 ],
             ],
+
+            "moore" => {
+                let mut layers: Vec<Vec<(i32,i32,i32)>> = Vec::new();
+
+
+                let mut upper = Vec::new();
+                for dq in -range..=range {
+                    for dr in -range..=range {
+                        upper.push((dq, dr,  0)); // upwards triangle
+                        upper.push((dq, dr,  1)); // downwards triangle
+
+                    }
+                }
+                layers.push(upper);
+
+                let mut lower = Vec::new();
+                for dq in -range..=range {
+                    for dr in -range..=range {
+                        lower.push((dq, dr, -1)); // upwards triangle
+                        lower.push((dq, dr, 0)); // downwards triangle
+                    }
+                }
+                layers.push(lower);
+
+                layers
+            }
 
             _ => vec![vec![(0, 0, 0)]],
         }

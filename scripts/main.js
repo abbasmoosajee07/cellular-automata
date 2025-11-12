@@ -191,7 +191,7 @@ class SimulatorController{
             },
             moore: {
                 label: "Moore",
-                desc: "Includes all eight surrounding cells."
+                desc: "Includes all surrounding cells, vertice and edges.(Square Moore)"
             },
             hexagonal: {
                 label: "Hexagonal",
@@ -219,19 +219,19 @@ class SimulatorController{
             },
             Qbert: {
                 label: "Q*bert",
-                desc: "Isometric rhombus layout, 6 diagonal neighbors."
+                desc: "Isometric rhombus layout, all 10 Neighbors touching. (MAX Range : 1)"
             },
             biohazard: {
                 label: "Biohazard",
-                desc: "Triangular neighborhood with alternating diagonals."
+                desc: "Triangular neighborhood with alternating diagonals. (MAX Range : 1)"
             },
             inner: {
                 label: "Inner",
-                desc: "Three closest neighbors forming a compact core."
+                desc: "Three closest neighbors forming a compact core. (MAX Range : 1)"
             },
             vertices: {
                 label: "Vertices",
-                desc: "Triangular vertex-based neighborhood."
+                desc: "Vertex-based neighborhood. (MAX Range : 1)"
             }
         };
 
