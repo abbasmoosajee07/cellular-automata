@@ -1,57 +1,67 @@
 use crate::CellManager;
 
-/// Runs a sequence of native tests for CellManager implementations
-/// (both Flat and Chunked if the threshold is crossed)
+/// Runs a naive/native test sequence for the current CellManager
 pub fn run_native_tests() {
-    println!("=== Running Native CellManager Tests ===\n");
+    println!("=== Running Naive CellManager Tests ===\n");
 
-    // 1️⃣ Create initial small manager (Flat backend)
-    let mut cm = CellManager::new(20, 20, 1, None);
+    // 1️⃣ Create a small manager
+    let mut cm = CellManager::new(10, 10, 1, None);
     println!("Initial bounds: {:?}", cm.get_bounds());
 
-    // 2️⃣ Create boundary walls
-    cm.create_boundary();
-    println!("Boundary created (small grid):");
-    for chunk in cm.for_each_cell().chunks(4) {
+    // 2️⃣ Print all active cells (none initially)
+    let cells = cm.for_each_cell();
+    println!("Active cells initially: {}", cells.len() / 4);
+    for chunk in cells.chunks(4) {
         print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
     }
-    println!("\nTotal active cells: {}", cm.for_each_cell().len() / 4);
+    println!("\n");
 
     // 3️⃣ Randomize some cells
     cm.random_cells();
-    println!("Added random cells (density 0.42):");
-    println!("\nTotal active cells: {}", cm.for_each_cell().len() / 4);
-    for chunk in cm.for_each_cell().chunks(4) {
+    let cells = cm.for_each_cell();
+    println!("After random fill:");
+    println!("Active cells: {}", cells.len() / 4);
+    for chunk in cells.chunks(4) {
         print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
     }
     println!("\n");
 
-    // 4️⃣ Resize to larger dimensions → should switch backend if above threshold
-    println!("--- Resizing to larger grid ---");
-    cm.resize(30, 30, 1);
-    println!("New bounds after resize: {:?}", cm.get_bounds());
+    // 4️⃣ Resize to a larger grid
+    println!("--- Resizing grid to 20x20 ---");
+    cm.resize(20, 20, 1);
+    println!("New bounds: {:?}", cm.get_bounds());
 
-    // 5️⃣ Recreate boundary
-    cm.create_boundary();
-    println!("Boundary recreated after resize:");
-    for chunk in cm.for_each_cell().chunks(4) {
+    // 5️⃣ Show all cells after resize
+    let cells = cm.for_each_cell();
+    println!("Cells after resize: {}", cells.len() / 4);
+    for chunk in cells.chunks(4) {
         print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
     }
     println!("\n");
 
-    // 6️⃣ Verify live neighbor count for a random cell
-    let test_q = 0;
-    let test_r = 0;
-    let test_s = 0;
-    let live_neighbors = cm.count_live_neighbors(test_q, test_r, test_s);
+    // 6️⃣ Count live neighbors of a random cell
+    let q = 0;
+    let r = 0;
+    let s = 0;
+    let neighbors = cm.count_live_neighbors(q, r, s);
+    println!("Live neighbors of ({},{},{}) = {}", q, r, s, neighbors);
+
+    // 7️⃣ Flood fill from live cells
+    cm.floodfill();
+    let cells = cm.for_each_cell();
+    println!("Cells after floodfill: {}", cells.len() / 4);
+
+    // 8️⃣ Clear everything
+    cm.clear();
+    cm.random_cells();
+    println!("Cleared all cells. Random Func. cActive cells: {}", cm.for_each_cell().len() / 4);
+
+    // 9️⃣ Change grid properties
+    cm.change_grid_properties("hex".to_string(), "hex".to_string(), 1, "torus".to_string());
     println!(
-        "Live neighbors around ({},{},{}) = {}\n",
-        test_q, test_r, test_s, live_neighbors
+        "Changed grid: shape={}, neighbors={}, range={}, topology={}",
+        cm.config.shape, cm.config.neighbor_type, cm.config.range, cm.config.topology_type
     );
 
-    // 7️⃣ Clear everything
-    cm.clear();
-    println!("Cleared all cells. Active cell count: {}", cm.for_each_cell().len() / 4);
-
-    println!("\n=== Native Tests Completed ===");
+    println!("\n=== Naive Tests Completed ===");
 }

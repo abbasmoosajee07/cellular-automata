@@ -38,7 +38,7 @@ impl Neighborhood {
         &self.adj_neighbors[use_state as usize]
     }
 
-    pub fn switch_neighbors(&mut self, shape: &str, chosen_type: &str, range: i32) {
+    pub fn change_cell_properties(&mut self, shape: &str, chosen_type: &str, range: i32) {
         self.shape = shape.to_string();
         self.chosen_type = chosen_type.to_string();
         self.range = range;
@@ -72,6 +72,20 @@ impl Neighborhood {
                     }
                 }
             }
+
+            "checkerboard" => {
+                for dx in -range..=range {
+                    for dy in -range..=range {
+                        // Check parity to alternate like a chessboard
+                        if (dx + dy) % 2 != 0 {  // only even-sum cells
+                            if dx != 0 || dy != 0 {
+                                neigh.push((dx, dy, 0));
+                            }
+                        }
+                    }
+                }
+            }
+
             "cross" => {
                 for d in 1..=range {
                     neigh.push(( d, 0, 0)); neigh.push((-d, 0, 0));
@@ -79,6 +93,7 @@ impl Neighborhood {
                 }
             }
             // Full Chebyshev neighborhood: all cells within a square of radius "range"
+
             "moore" => {
                 for dx in -range..=range {
                     for dy in -range..=range {
@@ -88,6 +103,7 @@ impl Neighborhood {
                     }
                 }
             }
+
             // Orthogonal + diagonal rays extending outward
             "star" => {
                 for d in 1..=range {
@@ -102,8 +118,8 @@ impl Neighborhood {
             }
             // Fallback — minimal neighborhood
             _ => {
-                for d in 1..=range {
-                    neigh.push((0,  d, 0)); neigh.push((0, -d, 0));
+                for d in -range..=range {
+                    neigh.push((0,  d, 0)); neigh.push((d, 0, 0));
                 }
             }
         }

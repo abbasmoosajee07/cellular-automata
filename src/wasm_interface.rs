@@ -43,17 +43,13 @@ impl WasmCellManager {
         self.inner.random_cells();
     }
 
-    pub fn create_boundary(&mut self) {
-        self.inner.create_boundary();
-    }
-
     pub fn resize(&mut self, w: usize, h: usize, d: usize) {
         self.inner.resize(w, h, d);
     }
 
     #[wasm_bindgen]
-    pub fn switch_neighbors(&mut self, shape: String, chosen_type: String, range: i32) {
-        self.inner.switch_neighbors(shape, chosen_type, range);
+    pub fn change_grid_properties(&mut self, shape: String, neighbor_type: String, range: i32, topology_type: String) {
+        self.inner.change_grid_properties(shape, neighbor_type, range, topology_type);
     }
 
     pub fn get_bounds(&self) -> Vec<i32> {

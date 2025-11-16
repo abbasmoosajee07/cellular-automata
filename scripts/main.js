@@ -33,7 +33,10 @@ class SimulatorController{
         this.setupMenuControls();
         // this.randomCells();
         this.gridManager.changeCell(0,0,0,1);
+        this.gridManager.changeCell(9,9,0,1);
+        this.gridManager.changeCell(-10,-10,0,1);
         this.gridManager.drawGrid();
+        switchThemes();
     }
 
     initElements() {
@@ -83,11 +86,11 @@ class SimulatorController{
             : new WasmCellManager(cols, rows, activeState);
 
         if (preserveState == true) {
-            console.log("switch_neighbors:", this.neighborhoodType, this.rangeValue)
-            this.cells.switch_neighbors(shape, this.neighborhoodType, this.rangeValue);
+            console.log("switch_neighbors:", this.neighborhoodType, this.rangeValue||1, this.topologyType)
+            this.cells.change_grid_properties(shape, this.neighborhoodType, this.rangeValue||1, this.topologyType);
         }
 
-        switchThemes();
+
         // Always create a new GridManager — safer for WebGL + camera reinit
         this.gridManager = new GridManager(
             shape, this.gridCanvas, cellManager, this.useWebgl
@@ -152,8 +155,8 @@ class SimulatorController{
         });
 
         this.clearGrid.addEventListener('click', () => {
-            // use existing API so texture and internal state both cleared
             this.gridManager.clearAll();
+            this.gridManager.syncCellsToTexture();
             this.gridManager.drawGrid();
         });
 
@@ -173,10 +176,34 @@ class SimulatorController{
             descId: 'topology-desc',
             defaultValue: 'infinite',
             types: {
-                infinite: { label: "Infinite", desc: "Infinitely expands grid in all directions." },
-                wrap: { label: "Wrap-around", desc: "Connects opposite sides of the grids" },
-                finite: { label: "Finite", desc: "Forms a virtual cliff for grid" },
-                bounded: { label: "Bounded", desc: "Adds walls to each side of grid" },
+                infinite: {
+                    label: "Infinite plane",
+                    desc: "Infinitely expands grid in all directions."
+                },
+                finite: {
+                    label: "Finite plane",
+                    desc: "Cells outside of the plane are always considered to be dead"
+                },
+                cylinder: {
+                    label: "Cylinder",
+                    desc: "'rolling' the plane and connecting the opposite sides marked '1'."
+                },
+                torus: {
+                    label: "Torus",
+                    desc: "'rolling' the cylinder and connecting the opposite circles marked '2'."
+                },
+                klein_bottle: {
+                    label: "Klein bottle",
+                    desc: "'rolling' the cylinder, 'twisting' it in the fourth dimension and connecting the opposite circles marked '2' and '5'; note that the '5' becomes a '2' after twisting."
+                },
+                cross_surface: {
+                    label: "Cross-surface",
+                    desc: "like the Klein bottle, but 'twisting' the opposite sides while creating the cylinder and then 'twisting' the opposite circles when creating the cross-surface."
+                },
+                sphere: {
+                    label: "Sphere",
+                    desc: "joining adjacent sides, rather than opposite sides as is done for the torus."
+                },
             }
         };
         this.setupDropdown(TOPOLOGY, 'topologyType');
@@ -285,10 +312,14 @@ class SimulatorController{
         const MAX_ZOOM = 0.0001;
 
         const getPointer = (e) => {
-            if (e.touches && e.touches.length > 0) {
-                return { x: e.touches[0].clientX, y: e.touches[0].clientY, touches: e.touches.length };
+            if (e.touches) {
+                const pointer = { 
+                    x: e.touches[0].clientX, 
+                    y: e.touches[0].clientY, 
+                    touches: e.touches.length 
+                };
+                return pointer;
             }
-            this.updateStatusBar(e.clientX, e.clientY);
             return { x: e.clientX, y: e.clientY, touches: 1 };
         };
 
@@ -302,6 +333,7 @@ class SimulatorController{
                 }
                 lastX = pointer.x;
                 lastY = pointer.y;
+
             } else if (pointer.touches === 2) {
                 painting = false;
                 draggingCam = false;
@@ -310,24 +342,33 @@ class SimulatorController{
         };
 
         const handleMove = (e) => {
+
+            // --- TOUCH PINCH ZOOM ---
             if (e.touches && e.touches.length === 2) {
-                // Pinch zoom
                 const [t1, t2] = e.touches;
                 const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
                 if (lastTouchDistance) {
                     const zoomFactor = dist / lastTouchDistance;
                     const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
                     this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
+                    this.updateStatusBar(t1.clientX, t1.clientY);
                     this.gridManager.drawGrid();
                 }
                 lastTouchDistance = dist;
                 return;
             }
 
+            // --- ALWAYS UPDATE POINTER + STATUS BAR ---
             const pointer = getPointer(e);
+            this.updateStatusBar(pointer.x, pointer.y);
+
+            // --- PAINTING ---
             if (painting) {
                 this.toggleAt(pointer.x, pointer.y);
             }
+
+            // --- CAMERA DRAG ---
             if (draggingCam) {
                 this.gridManager.cameraView.camX += pointer.x - lastX;
                 this.gridManager.cameraView.camY -= pointer.y - lastY;
@@ -359,10 +400,11 @@ class SimulatorController{
             e.preventDefault(); 
             handleMove(e); 
         }, { passive: false });
+
         this.gridCanvas.addEventListener('touchend', handleUp);
         this.gridCanvas.addEventListener('touchcancel', handleUp);
 
-        // Context menu disable
+        // Disable right-click menu
         this.gridCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // Wheel zoom
@@ -371,12 +413,20 @@ class SimulatorController{
             const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
             const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
             this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
-            this.updateStatusBar(this.gridManager.cameraView.camX, this.gridManager.cameraView.camY);
+            this.updateStatusBar(e.clientX, e.clientY);
             this.gridManager.drawGrid();
         }, { passive: false });
 
-        // Prevent elastic scrolling
+        // Prevent elastic scrolling on mobile
         this.gridCanvas.style.touchAction = 'none';
+    }
+
+    updateStatusBar(px, py) {
+        this.status_gen.textContent = 0;
+        this.status_popl.textContent = 0;
+        this.status_zoom.textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
+        const [q, r, s] = this.gridManager.screenToCell(px, py)
+        this.status_camera.textContent = `(${q},${r},${s})`;
     }
 
     toggleAt(px, py) {
@@ -387,14 +437,6 @@ class SimulatorController{
             this.gridManager.infiniteGrid,
         );
         this.gridManager.drawGrid();
-    }
-
-    updateStatusBar(px, py) {
-        this.status_gen.textContent = 0;
-        this.status_popl.textContent = 0;
-        this.status_zoom.textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
-        const [q, r, s] = this.gridManager.screenToCell(px, py)
-        this.status_camera.textContent = `${q},${r},${s}`;
     }
 
     randomCells() {

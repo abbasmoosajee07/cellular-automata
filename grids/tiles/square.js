@@ -26,9 +26,9 @@ class SquareGrid extends BaseGrid {
     }
 
     cubeToTextureCoords(q, r, s) {
-        // Convert centered coordinates to texture coordinates with 1-cell boundary offset
-        const minQ = -Math.floor(this.gridCols / 2) - 1; // -1 for boundary
-        const minR = -Math.floor(this.gridRows / 2) - 1; // -1 for boundary
+        // Convert centered coordinates to texture coordinates
+        const minQ = -Math.floor(this.gridCols / 2);
+        const minR = -Math.floor(this.gridRows / 2);
 
         const texX = q - minQ;
         const texY = r - minR;
@@ -63,7 +63,7 @@ class SquareGrid extends BaseGrid {
                 this.textureData[index + 3]
             ]);
             gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
-            
+
             return true;
         }
         return false;
@@ -80,6 +80,7 @@ class SquareGrid extends BaseGrid {
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
                 uniform sampler2D uGridTexture;
+                uniform vec4 uBackgroundColor;
                 in vec2 vTexCoord;
                 out vec4 outColor;
 
@@ -90,22 +91,22 @@ class SquareGrid extends BaseGrid {
                     vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
 
                     // Calculate bounds including boundary (centered around 0)
-                    float minQ = -float(uGridCols) * 0.5 - 1.0;  // -1 for boundary
-                    float maxQ = float(uGridCols) * 0.5;
-                    float minR = -float(uGridRows) * 0.5 - 1.0;  // -1 for boundary
-                    float maxR = float(uGridRows) * 0.5;
+                    float minQ = -float(uGridCols) * 0.5;  //
+                    float maxQ = float(uGridCols) * 0.5 - 1.0;
+                    float minR = -float(uGridRows) * 0.5;
+                    float maxR = float(uGridRows) * 0.5 - 1.0;
 
                     if (cellCoord.x >= minQ && cellCoord.x <= maxQ && 
                         cellCoord.y >= minR && cellCoord.y <= maxR) {
 
                         // Convert to texture coordinates for the grid (with boundary offset)
-                        vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols + 2.0, uGridRows + 2.0);
+                        vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
                         vec4 cellColor = texture(uGridTexture, texCoord);
 
                         outColor = cellColor;
                     } else {
-                        // Outside extended bounds - use transparent
-                        outColor = vec4(0.0);
+                        outColor = uBackgroundColor; // outside area
+
                     }
                 }
             `;
@@ -119,6 +120,7 @@ class SquareGrid extends BaseGrid {
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
                 uniform sampler2D uGridTexture;
+                uniform vec4 uBackgroundColor;
                 varying vec2 vTexCoord;
 
                 void main() {
@@ -126,20 +128,20 @@ class SquareGrid extends BaseGrid {
 
                     vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
 
-                    float minQ = -float(uGridCols) * 0.5 - 1.0;
-                    float maxQ = float(uGridCols) * 0.5;
-                    float minR = -float(uGridRows) * 0.5 - 1.0;
-                    float maxR = float(uGridRows) * 0.5;
+                    float minQ = -float(uGridCols) * 0.5 ;
+                    float maxQ = float(uGridCols) * 0.5- 1.0;
+                    float minR = -float(uGridRows) * 0.5 ;
+                    float maxR = float(uGridRows) * 0.5- 1.0;
 
-                    if (cellCoord.x >= minQ && cellCoord.x <= maxQ && 
+                    if (cellCoord.x >= minQ && cellCoord.x <= maxQ &&
                         cellCoord.y >= minR && cellCoord.y <= maxR) {
 
-                        vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols + 2.0, uGridRows + 2.0);
+                        vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
                         vec4 cellColor = texture2D(uGridTexture, texCoord);
 
                         gl_FragColor = cellColor;
                     } else {
-                        gl_FragColor = vec4(0.0);
+                        gl_FragColor = uBackgroundColor;
                     }
                 }
             `;

@@ -97,8 +97,8 @@ class RhomboidalGrid extends BaseGrid {
         // Convert centered coordinates to texture coordinates
         const centerCol = Math.floor(this.gridCols / 2);
         const centerRow = Math.floor(this.gridRows / 2);
-        const minCol = -centerCol - 1;
-        const minRow = -centerRow - 1;
+        const minCol = -centerCol;
+        const minRow = -centerRow;
 
         // Use different texture columns for different rhombus types
         const texX = (q - minCol) * 3 + rhombusIndex; // *3 for three rhombus types
@@ -109,8 +109,8 @@ class RhomboidalGrid extends BaseGrid {
 
     setCellState(gl, q, r, rhombusIndex, state) {
         const [texX, texY] = this.cubeToTextureCoords(q, r, rhombusIndex);
-        const textureWidth = (this.gridCols + 2) * this.colMult; // +2 for boundaries
-        const textureHeight = (this.gridRows + 2); // +2 for boundaries
+        const textureWidth = this.gridCols * this.colMult;
+        const textureHeight = this.gridRows;
 
         if (texX >= 0 && texX < textureWidth && texY >= 0 && texY < textureHeight) {
             const index = (texY * textureWidth + texX) * 4;
@@ -158,6 +158,7 @@ class RhomboidalGrid extends BaseGrid {
                 uniform float uGridRows;
                 uniform float uRadius;
                 uniform sampler2D uGridTexture;
+                uniform vec4 uBackgroundColor;
 
                 // Flat-topped hexagon to cube coordinates
                 vec2 worldToHex(vec2 pos, float r) {
@@ -207,7 +208,7 @@ class RhomboidalGrid extends BaseGrid {
                 // Determine which rhombus using the proper cube-to-hex split
                 int getRhombusIndex(vec2 localPos, float radius) {
                     vec2 center = vec2(0.0);
-                    
+
                     // Get hex vertices (flat-topped)
                     vec2 v0 = getHexVertex(0, radius); // Right
                     vec2 v1 = getHexVertex(1, radius); // Bottom-right
@@ -223,7 +224,7 @@ class RhomboidalGrid extends BaseGrid {
                     if (pointInTriangle(localPos, center, v3, v4)) return 1;
                     if (pointInTriangle(localPos, center, v4, v5)) return 2;
                     if (pointInTriangle(localPos, center, v5, v0)) return 2;
-                    
+
                     return 0;
                 }
 
@@ -255,31 +256,31 @@ class RhomboidalGrid extends BaseGrid {
 
                     // Skip if outside hexagon
                     if (length(localPos) > uRadius * 1.0) {
-                        outColor = vec4(0.0);
+                        outColor = uBackgroundColor;
                         return;
                     }
 
                     // Determine rhombus type
                     int rhombusType = getRhombusIndex(localPos, uRadius);
 
-                    // Convert to texture coordinates - account for boundaries
-                    float minQ = -float(uGridCols) * 0.5 - 1.0;
-                    float minR = -float(uGridRows) * 0.5 - 1.0;
-                    
-                    float texX = (float(hexCell.x) - minQ) * 3.0 + float(rhombusType);
-                    float texY = (float(hexCell.y) - minR);
-                    
-                    // Normalize texture coordinates with boundary accounting
-                    float texCoordX = texX / ((float(uGridCols) + 2.0) * 3.0);
-                    float texCoordY = texY / (float(uGridRows) + 2.0);
+                    // Convert to texture coordinates
+                    float minQ = -float(uGridCols) * 0.5;
+                    float minR = -float(uGridRows) * 0.5;
 
-                    if (texCoordX >= 0.0 && texCoordX < 1.0 && texCoordY >= 0.0 && texCoordY < 1.0) {
+                    float texX = ((float(hexCell.x) - minQ) * 3.0) + float(rhombusType);
+                    float texY = (float(hexCell.y) - minR);
+
+                    // Normalize texture coordinates with boundary accounting
+                    float texCoordX = texX / ((float(uGridCols)) * 3.0);
+                    float texCoordY = texY / (float(uGridRows));
+
+                    if (texCoordX >= 0.0 && texCoordX < 0.9999 && texCoordY >= 0.0 && texCoordY < 1.0) {
                         vec4 cellColor = texture(uGridTexture, vec2(texCoordX, texCoordY));
                         // Apply shade multiplier based on rhombus type and use texture color
                         outColor = applyRhombusShade(cellColor, rhombusType);
                     } else {
                         // Outside grid bounds - use transparent
-                        outColor = vec4(0.0);
+                        outColor = uBackgroundColor;
                     }
                 }`;
         } else {
@@ -292,6 +293,7 @@ class RhomboidalGrid extends BaseGrid {
                 uniform float uGridRows;
                 uniform float uRadius;
                 uniform sampler2D uGridTexture;
+                uniform vec4 uBackgroundColor;
                 varying vec2 vTexCoord;
 
                 vec2 worldToHex(vec2 pos, float r) {
@@ -338,7 +340,7 @@ class RhomboidalGrid extends BaseGrid {
 
                 float getRhombusIndex(vec2 localPos, float radius) {
                     vec2 center = vec2(0.0);
-                    
+
                     vec2 v0 = getHexVertex(0.0, radius);
                     vec2 v1 = getHexVertex(1.0, radius);
                     vec2 v2 = getHexVertex(2.0, radius);
@@ -352,7 +354,7 @@ class RhomboidalGrid extends BaseGrid {
                     if (pointInTriangle(localPos, center, v3, v4)) return 1.0;
                     if (pointInTriangle(localPos, center, v4, v5)) return 2.0;
                     if (pointInTriangle(localPos, center, v5, v0)) return 2.0;
-                    
+
                     return 0.0;
                 }
 
@@ -378,27 +380,27 @@ class RhomboidalGrid extends BaseGrid {
                     vec2 localPos = worldPos - hexCenter;
 
                     if (length(localPos) > uRadius * 1.05) {
-                        gl_FragColor = vec4(0.0);
+                        gl_FragColor = uBackgroundColor;
                         return;
                     }
 
                     float rhombusType = getRhombusIndex(localPos, uRadius);
 
-                    float minQ = -float(uGridCols) * 0.5 - 1.0;
-                    float minR = -float(uGridRows) * 0.5 - 1.0;
-                    
+                    float minQ = -float(uGridCols) * 0.5;
+                    float minR = -float(uGridRows) * 0.5;
+
                     float texX = (hexCell.x - minQ) * 3.0 + rhombusType;
                     float texY = (hexCell.y - minR);
-                    
-                    vec2 texCoord = vec2(texX / ((float(uGridCols) + 2.0) * 3.0), texY / (float(uGridRows) + 2.0));
 
-                    if (texCoord.x >= 0.0 && texCoord.x < 1.0 && texCoord.y >= 0.0 && texCoord.y < 1.0) {
+                    vec2 texCoord = vec2(texX / (float(uGridCols) * 3.0), texY / float(uGridRows));
+
+                    if (texCoord.x >= 0.0 && texCoord.x < 0.9999 && texCoord.y >= 0.0 && texCoord.y < 1.0) {
                         vec4 cellColor = texture2D(uGridTexture, texCoord);
                         // Apply shade multiplier based on rhombus type and use texture color
                         gl_FragColor = applyRhombusShade(cellColor, rhombusType);
                     } else {
-                        // Outside grid bounds - use transparent
-                        gl_FragColor = vec4(0.0);
+                        // Outside grid bounds
+                        gl_FragColor = uBackgroundColor;
                     }
                 }`;
         }
