@@ -9,16 +9,13 @@ import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 class GridManager {
     constructor(shape, canvas, init_cells, useWebGL = false) {
         this.shape = shape || "square";
-        this.canvas = canvas;
         this.useWebGL = useWebGL;
         this.cells = init_cells;
+        this.canvas = canvas;
 
         // Grid configuration
         this.gridCols = 20;
         this.gridRows = 20;
-        this.infiniteGrid = false;
-        this.boundaryType = "wrap";
-        this.neighborType = "adjacent";
 
         // Camera & rendering
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
@@ -26,22 +23,22 @@ class GridManager {
 
         // Initialize components
         this.shapeGrid = this.createShapeGrid(this.shape);
+        this.grid_bounds = this.cells.get_bounds();
         this.initializeRenderer(this.useWebGL);
         this.updateCanvasSize();
         this.syncCellsToTexture();
-        // this.createBoundary();
-        this.grid_bounds = this.cells.get_bounds();
-
         // this.startRendering();
     }
 
     createDefaultColorSchema() {
-        return {
-            canvas: [0.0, 0.0, 0.0, 1.0],
-            bg: [0.1, 0.1, 0.1, 0.0],
+        const schema  = {
+            grid: [1.1, 0.1, 0.1, 0.75],
+            canvas: [0.0, 0.0, 0.0, 0.0],
+            canvasColor: [0.0, 0.0, 0.0, 0.0],
             1: this.hexToRgb("#32cd32"),
             11: this.hexToRgb("#ff3700"),
         };
+        return schema;
     }
 
     createShapeGrid(shape) {
@@ -117,15 +114,6 @@ class GridManager {
     screenToCell(px, py) {
         const world = this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
         return this.shapeGrid.worldToCell(world);
-    }
-
-    setBoundaryType(boundaryType) {
-        this.boundaryType = boundaryType;
-        this.infiniteGrid = (boundaryType === "infinite");
-    }
-
-    createBoundary() {
-        this.syncCellsToTexture();
     }
 
     changeCell(q, r, s, state) {
@@ -216,13 +204,16 @@ class GridManager {
     resizeGrid(newCols, newRows, newStates) {
         this.gridCols = newCols;
         this.gridRows = newRows;
+        this.shapeGrid.gridRows = newRows;
+        this.shapeGrid.gridCols = newCols;
         this.cells.resize(newCols, newRows, newStates);
         this.grid_bounds = this.cells.get_bounds();
         if (this.useWebGL && this.renderer.gl) {
             this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, this.cells);
+        } else {
+            this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells)
         }
 
-        // this.createBoundary();
         this.centerView();
     }
 

@@ -8,6 +8,7 @@ class SimulatorController{
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_gen", "status_popl", "status_zoom", "status_camera",
+        "themeIcon", "themeToggle"
     ];
 
     shapeProps = {
@@ -23,6 +24,7 @@ class SimulatorController{
         this.selectedShape = "square";
         this.selectNeighbor();
         this.selectTopology();
+        switchThemes();
         await init(); // <-- wait for WASM to finish loading
 
         this.initElements();
@@ -33,10 +35,9 @@ class SimulatorController{
         this.setupMenuControls();
         // this.randomCells();
         this.gridManager.changeCell(0,0,0,1);
-        this.gridManager.changeCell(9,9,0,1);
+        this.gridManager.changeCell(9,7,0,1);
         this.gridManager.changeCell(-10,-10,0,1);
         this.gridManager.drawGrid();
-        switchThemes();
     }
 
     initElements() {
@@ -81,15 +82,14 @@ class SimulatorController{
         const oldGrid = this.gridManager || null;
 
         // If we preserve, reuse old cells; otherwise make new
-        const cellManager = preserveState && oldGrid
-            ? oldGrid.cells
+        const cellManager = preserveState && oldGrid ? oldGrid.cells
             : new WasmCellManager(cols, rows, activeState);
 
         if (preserveState == true) {
-            console.log("switch_neighbors:", this.neighborhoodType, this.rangeValue||1, this.topologyType)
-            this.cells.change_grid_properties(shape, this.neighborhoodType, this.rangeValue||1, this.topologyType);
+            this.rangeValue = this.rangeValue || 1
+            console.log("change grid props:", this.neighborhoodType, this.rangeValue, this.topologyType)
+            this.cells.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
         }
-
 
         // Always create a new GridManager — safer for WebGL + camera reinit
         this.gridManager = new GridManager(
@@ -99,8 +99,6 @@ class SimulatorController{
         // Restore camera and view if requested
         if (preserveState && oldGrid) {
             Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
-            this.gridManager.setBoundaryType(this.boundsType);
-            this.gridManager.neighborType = this.topologyType;
         }
 
         // Sync grid sizes and texture

@@ -26,7 +26,7 @@ class Canvas2DRenderer {
         // --- Full reset before drawing ---
         ctx.setTransform(1, 0, 0, 1, 0, 0);  // reset any previous transforms
         ctx.clearRect(0, 0, this.width, this.height); // clear the buffer
-        const bgColor = colorSchema.bg || [0.5, 0.5, 0.5, 1];
+        const bgColor = colorSchema.canvas;
 
         // --- Background fill ---
         ctx.fillStyle = `rgba(
@@ -56,13 +56,13 @@ class Canvas2DRenderer {
         ctx.restore();
     }
 
-    drawCanvasTest(cameraView, colorSchema, cells) {
+    drawCanvas(cameraView, colorSchema, cells) {
         const ctx = this.ctx;
 
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, this.width, this.height);
 
-        const bgColor = colorSchema.bg || [0.1, 0.1, 0.1, 1.0];
+        const bgColor = colorSchema.canvas;
 
         ctx.fillStyle = `rgba(
             ${Math.round(bgColor[0] * 255)},
@@ -79,18 +79,14 @@ class Canvas2DRenderer {
         ctx.translate(cameraView.camX, -cameraView.camY);
 
         // --- NEW: Grid area background ---
-        const gridBg = colorSchema.canvas || [0.1, 0.1, 0.1, 1.0];
+        const gridBg = colorSchema.grid;
         ctx.fillStyle = `rgba(
             ${Math.round(gridBg[0] * 255)},
             ${Math.round(gridBg[1] * 255)},
             ${Math.round(gridBg[2] * 255)},
             ${gridBg[3]}
         )`;
-
-        const w = this.shapeGrid.gridCols * this.shapeGrid.cellSize;
-        const h = this.shapeGrid.gridRows * this.shapeGrid.cellSize;
-
-        ctx.fillRect(-w / 2, -h / 2, w, h);
+        this.shapeGrid.drawGridShape(ctx);
 
         // --- Draw active cells ---
         const arr = cells.for_each_cell();

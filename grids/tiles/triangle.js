@@ -93,56 +93,64 @@ class TriangleGrid extends BaseGrid {
         if (isWebGL2) {
             return `#version 300 es
                 precision mediump float;
-                uniform vec2 uResolution;
-                uniform vec2 uOffset;
+
+                uniform vec2  uResolution;
+                uniform vec2  uOffset;
                 uniform float uScale;
                 uniform float uGridCols;
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
+
                 uniform sampler2D uGridTexture;
-                uniform vec4 uBackgroundColor;
+                uniform vec4 uCanvasColor;
+                uniform vec4 uGridColor;
+
                 in vec2 vTexCoord;
                 out vec4 outColor;
 
                 void main() {
-                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
 
-                    // Convert world to cell coordinates - match the drawing logic
+                    // ------- World position -------
+                    vec2 worldPos =
+                        (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+
                     float cellSize = uBaseCellSize;
+
+                    // ------- cell coordinate (in square space) -------
                     float col = floor(worldPos.x / cellSize);
                     float row = floor(worldPos.y / cellSize);
 
-                    // Get position within cell
+                    // ------- local pos inside cell -------
                     float localX = (worldPos.x - col * cellSize) / cellSize;
                     float localY = (worldPos.y - row * cellSize) / cellSize;
 
-                    // Determine triangle type - match the drawing logic
-                    float s = localY < localX ? 1.0 : 0.0;
+                    // upper/lower triangle selector
+                    float tri = (localY < localX) ? 1.0 : 0.0;
 
-                    // Calculate bounds (centered around 0)
-                    float centerCol = float(uGridCols) * 0.5;
-                    float centerRow = float(uGridRows) * 0.5;
-                    float minCol = -centerCol;
-                    float maxCol = centerCol - 1.0;
-                    float minRow = -centerRow;
-                    float maxRow = centerRow - 1.0;
+                    // ------- grid bounds -------
+                    float minQ = -uGridCols * 0.5;
+                    float maxQ =  uGridCols * 0.5 - 1.0;
+                    float minR = -uGridRows * 0.5;
+                    float maxR =  uGridRows * 0.5 - 1.0;
 
-                    if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) {
-                        // Convert to texture coordinates
-                        float texMinCol = -centerCol;
-                        float texMinRow = -centerRow;
+                    // outside → canvas color
+                    if (col < minQ || col > maxQ || row < minR || row > maxR) {
+                        outColor = uCanvasColor;
+                        return;
+                    }
 
-                        float texX = (col - texMinCol);
-                        float texY = (row - texMinRow) + (s * uGridRows);
+                    // ------- texture lookup for triangle grid -------
+                    // triangles stored as two rows
+                    float texX = (col - minQ) / uGridCols;
+                    float texY = ( (row - minR) + tri * uGridRows ) / (uGridRows * 2.0);
 
-                        // Normalize texture coordinates
-                        float texCoordX = texX / uGridCols;
-                        float texCoordY = texY / (uGridRows * 2.0);
+                    vec4 cellColor = texture(uGridTexture, vec2(texX, texY));
 
-                        vec4 cellColor = texture(uGridTexture, vec2(texCoordX, texCoordY));
-                        outColor = cellColor;
+                    // empty → grid color
+                    if (cellColor.a <= 0.0) {
+                        outColor = uGridColor;
                     } else {
-                        outColor = uBackgroundColor;
+                        outColor = cellColor;
                     }
                 }
             `;
@@ -155,47 +163,58 @@ class TriangleGrid extends BaseGrid {
                 uniform float uGridCols;
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
+
                 uniform sampler2D uGridTexture;
-                uniform vec4 uBackgroundColor;
+                uniform vec4 uCanvasColor;
+                uniform vec4 uGridColor;
+
                 varying vec2 vTexCoord;
 
                 void main() {
-                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+
+                    vec2 worldPos =
+                        (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
 
                     float cellSize = uBaseCellSize;
+
                     float col = floor(worldPos.x / cellSize);
                     float row = floor(worldPos.y / cellSize);
 
                     float localX = (worldPos.x - col * cellSize) / cellSize;
                     float localY = (worldPos.y - row * cellSize) / cellSize;
 
-                    float s = localY < localX ? 1.0 : 0.0;
+                    float tri = (localY < localX) ? 1.0 : 0.0;
 
-                    float centerCol = float(uGridCols) * 0.5;
-                    float centerRow = float(uGridRows) * 0.5;
-                    float minCol = -centerCol;
-                    float maxCol = centerCol - 1.0;
-                    float minRow = -centerRow;
-                    float maxRow = centerRow - 1.0;
+                    float minQ = -uGridCols * 0.5;
+                    float maxQ =  uGridCols * 0.5 - 1.0;
+                    float minR = -uGridRows * 0.5;
+                    float maxR =  uGridRows * 0.5 - 1.0;
 
-                    if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) {
-                        float texMinCol = -centerCol;
-                        float texMinRow = -centerRow;
+                    if (col < minQ || col > maxQ || row < minR || row > maxR) {
+                        gl_FragColor = uCanvasColor;
+                        return;
+                    }
 
-                        float texX = (col - texMinCol);
-                        float texY = (row - texMinRow) + (s * uGridRows);
+                    float texX = (col - minQ) / uGridCols;
+                    float texY = ((row - minR) + tri * uGridRows) / (uGridRows * 2.0);
 
-                        float texCoordX = texX / uGridCols;
-                        float texCoordY = texY / (uGridRows * 2.0);
+                    vec2 texCoord = vec2(texX, texY);
+                    vec4 cellColor = texture2D(uGridTexture, texCoord);
 
-                        vec4 cellColor = texture2D(uGridTexture, vec2(texCoordX, texCoordY));
-                        gl_FragColor = cellColor;
+                    if (cellColor.a <= 0.0) {
+                        gl_FragColor = uGridColor;
                     } else {
-                        gl_FragColor = uBackgroundColor;
+                        gl_FragColor = cellColor;
                     }
                 }
             `;
         }
+    }
+
+    drawGridShape(ctx) {
+        const w = this.gridCols * this.cellSize;
+        const h = this.gridRows * this.cellSize;
+        ctx.fillRect(-w / 2, -h / 2, w, h);
     }
 
     drawShapeCell(ctx, q, r, s, state) {

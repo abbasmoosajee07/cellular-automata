@@ -31,10 +31,6 @@ class WebGLRenderer {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.clearColor(0, 0, 0, 0);
 
-        // --- Background fill (match canvas logic) ---
-        const bgColor = this.shapeGrid.colorSchema.bg || [0.5, 0.5, 0.5, 1];
-        gl.clearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
-        gl.clear(gl.COLOR_BUFFER_BIT);
         return gl;
     }
 

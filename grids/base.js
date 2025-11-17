@@ -80,7 +80,8 @@ class BaseGrid {
             radius: gl.getUniformLocation(program, "uRadius"),
             baseCellSize: gl.getUniformLocation(program, 'uBaseCellSize'),
             gridTexture: gl.getUniformLocation(program, "uGridTexture"),
-            background: gl.getUniformLocation(program, "uBackgroundColor")
+            gridColor: gl.getUniformLocation(program, "uGridColor"),
+            canvasColor: gl.getUniformLocation(program, "uCanvasColor"),
         };
 
         gl.uniform2f(uniformLocations.resolution, width, height);
@@ -94,8 +95,11 @@ class BaseGrid {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
         gl.uniform1i(uniformLocations.gridTexture, 0);
+
         const c = this.colorSchema.canvas;
-        gl.uniform4f(uniformLocations.background, c[0], c[1], c[2], c[3]);
+        gl.uniform4f(uniformLocations.canvasColor, c[0], c[1], c[2], c[3]); // OK
+        const g = this.colorSchema.grid;
+        gl.uniform4f(uniformLocations.gridColor, g[0], g[1], g[2], g[3]); // NEW
 
         return uniformLocations;
     }
@@ -123,7 +127,6 @@ class BaseGrid {
         this.gridCols = gridCols;
         this.gridRows = gridRows;
 
-        // Add 2 extra cells for boundaries (1 on each side)
         this.textureWidth = gridCols * this.colMult;
         this.textureHeight = gridRows * this.rowMult;
         this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
@@ -176,27 +179,31 @@ class BaseGrid {
 
     // Abstract methods
     worldToCell(world) {
-        throw new Error("Method 'worldToCell()' must be implemented.");
+        throw new Error("Method 'worldToCell(world)' must be implemented.");
     }
 
     calculateBounds(bounds) {
-        throw new Error("Method 'calculateBounds()' must be implemented.");
+        throw new Error("Method 'calculateBounds(bounds)' must be implemented.");
     }
 
     cubeToTextureCoords(q, r, s) {
-        throw new Error("Method 'cubeToTextureCoords()' must be implemented.");
+        throw new Error("Method 'cubeToTextureCoords(q, r, s)' must be implemented.");
     }
 
     setCellState(gl, q, r, s, state) {
-        throw new Error("Method 'setCellState()' must be implemented.");
+        throw new Error("Method 'setCellState(gl, q, r, s, state)' must be implemented.");
     }
 
     getFragmentShaderSource() {
         throw new Error("Method 'getFragmentShaderSource()' must be implemented.");
     }
 
+    drawGridShape(ctx) {
+        throw new Error("Method 'drawGridShape(ctx)' must be implemented.");
+    }
+
     drawShapeCell(ctx, q, r, s, state) {
-        throw new Error("Method 'drawShapeCell()' must be implemented.");
+        throw new Error("Method 'drawShapeCell(ctx, q, r, s, state)' must be implemented.");
     }
 }
 

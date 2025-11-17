@@ -73,79 +73,121 @@ class SquareGrid extends BaseGrid {
         if (isWebGL2) {
             return `#version 300 es
                 precision mediump float;
-                uniform vec2 uResolution;
-                uniform vec2 uOffset;
+
+                uniform vec2  uResolution;
+                uniform vec2  uOffset;
                 uniform float uScale;
                 uniform float uGridCols;
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
+
                 uniform sampler2D uGridTexture;
-                uniform vec4 uBackgroundColor;
+                uniform vec4 uCanvasColor;
+                uniform vec4 uGridColor;
+
                 in vec2 vTexCoord;
                 out vec4 outColor;
 
                 void main() {
+
+                    // convert screen → world
                     vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
 
-                    // Direct world to cell conversion - centered coordinates
+                    // world → cell index
                     vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
 
-                    // Calculate bounds including boundary (centered around 0)
-                    float minQ = -float(uGridCols) * 0.5;  //
-                    float maxQ = float(uGridCols) * 0.5 - 1.0;
-                    float minR = -float(uGridRows) * 0.5;
-                    float maxR = float(uGridRows) * 0.5 - 1.0;
+                    // grid bounds centered around 0
+                    float minQ = -uGridCols * 0.5;
+                    float maxQ =  uGridCols * 0.5 - 1.0;
+                    float minR = -uGridRows * 0.5;
+                    float maxR =  uGridRows * 0.5 - 1.0;
 
-                    if (cellCoord.x >= minQ && cellCoord.x <= maxQ && 
-                        cellCoord.y >= minR && cellCoord.y <= maxR) {
+                    // check inside grid
+                    if (cellCoord.x < minQ || cellCoord.x > maxQ ||
+                        cellCoord.y < minR || cellCoord.y > maxR) {
 
-                        // Convert to texture coordinates for the grid (with boundary offset)
-                        vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
-                        vec4 cellColor = texture(uGridTexture, texCoord);
+                        outColor = uCanvasColor;
+                        return;
+                    }
 
-                        outColor = cellColor;
+                    // convert cell → texture uv
+                    vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
+                    vec4 cellColor = texture(uGridTexture, texCoord);
+
+                    // if cell empty → use grid color
+                    if (cellColor.a <= 0.0) {
+                        outColor = uGridColor;
                     } else {
-                        outColor = uBackgroundColor; // outside area
-
+                        outColor = cellColor;
                     }
                 }
             `;
         } else {
             return `
                 precision mediump float;
+
                 uniform vec2 uResolution;
                 uniform vec2 uOffset;
                 uniform float uScale;
                 uniform float uGridCols;
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
+
                 uniform sampler2D uGridTexture;
-                uniform vec4 uBackgroundColor;
+                uniform vec4 uCanvasColor;
+                uniform vec4 uGridColor;     // NEW! color used when texel is empty
+
                 varying vec2 vTexCoord;
 
                 void main() {
+
+                    // World → grid conversion
                     vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
 
+                    // Snap to cell grid
                     vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
 
-                    float minQ = -float(uGridCols) * 0.5 ;
-                    float maxQ = float(uGridCols) * 0.5- 1.0;
-                    float minR = -float(uGridRows) * 0.5 ;
-                    float maxR = float(uGridRows) * 0.5- 1.0;
+                    // Grid bounds centered on (0,0)
+                    float minQ = -uGridCols * 0.5;
+                    float maxQ =  uGridCols * 0.5 - 1.0;
+                    float minR = -uGridRows * 0.5;
+                    float maxR =  uGridRows * 0.5 - 1.0;
 
-                    if (cellCoord.x >= minQ && cellCoord.x <= maxQ &&
-                        cellCoord.y >= minR && cellCoord.y <= maxR) {
+                    // Outside grid → background color
+                    if (cellCoord.x < minQ || cellCoord.x > maxQ ||
+                        cellCoord.y < minR || cellCoord.y > maxR) {
 
-                        vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
-                        vec4 cellColor = texture2D(uGridTexture, texCoord);
+                        gl_FragColor = uCanvasColor;
+                        return;
+                    }
 
-                        gl_FragColor = cellColor;
+                    // Convert cell to texture lookup
+                    vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
+
+                    // Read texture
+                    vec4 cellColor = texture2D(uGridTexture, texCoord);
+
+                    // If alpha == 0 → empty cell → use grid color instead
+                    if (cellColor.a <= 0.0) {
+                        gl_FragColor = uGridColor;
                     } else {
-                        gl_FragColor = uBackgroundColor;
+                        gl_FragColor = cellColor;
                     }
                 }
             `;
         }
+    }
+
+    drawGridShape(ctx) {
+        const w = this.gridCols * this.cellSize;
+        const h = this.gridRows * this.cellSize;
+
+        ctx.fillRect(
+            -w / 2 - this.cellSize / 2,
+            -h / 2 - this.cellSize / 2,
+            w + this.cellSize,
+            h + this.cellSize
+        );
     }
 
     drawShapeCell(ctx, q, r, s, state) {
