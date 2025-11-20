@@ -16,10 +16,13 @@ class GridManager {
         // Grid configuration
         this.gridCols = 20;
         this.gridRows = 20;
+        this.gridSize = [20, 20, 1]
+        this.gridLimits = [16384, 16384]
 
         // Camera & rendering
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
         this.colorSchema = this.createDefaultColorSchema();
+        // this.changeTopology("infinite");
 
         // Initialize components
         this.shapeGrid = this.createShapeGrid(this.shape);
@@ -32,7 +35,7 @@ class GridManager {
 
     createDefaultColorSchema() {
         const schema  = {
-            grid: [1.1, 0.1, 0.1, 0.75],
+            grid: [0.1, 0.1, 1.1, 0.75],
             canvas: [0.0, 0.0, 0.0, 0.0],
             canvasColor: [0.0, 0.0, 0.0, 0.0],
             1: this.hexToRgb("#32cd32"),
@@ -59,7 +62,7 @@ class GridManager {
         try {
             if (useWebGL) {
                 this.renderer = new WebGLRenderer(this.canvas, this.shapeGrid);
-                this.shapeGrid.initGridTexture(this.renderer.gl, this.gridCols, this.gridRows);
+                this.shapeGrid.initGridTexture(this.renderer.gl, this.gridSize[0], this.gridSize[1]);
                 this.useWebGL = true;
                 console.log("Using WebGL texture-based renderer");
             } else {
@@ -202,8 +205,9 @@ class GridManager {
     }
 
     resizeGrid(newCols, newRows, newStates) {
-        this.gridCols = newCols;
-        this.gridRows = newRows;
+        this.gridSize[0] = newCols;
+        this.gridSize[1] = newRows;
+        this.gridSize[2] = newStates;
         this.shapeGrid.gridRows = newRows;
         this.shapeGrid.gridCols = newCols;
         this.cells.resize(newCols, newRows, newStates);
@@ -221,15 +225,19 @@ class GridManager {
         this.colorSchema = newSchema;
         this.shapeGrid.colorSchema = newSchema;
 
-        for (const [key, state] of this.cells.cells) {
-            const [q, r, s] = this.cells.parseCubeKey(key);
+        const arr = this.cells.for_each_cell();
+        for (let i = 0; i < arr.length; i += 4) {
+            const q = arr[i];
+            const r = arr[i + 1];
+            const s = arr[i + 2];
+            const state = arr[i + 3];
             this.renderer.renderCell(this.cameraView, q, r, s, state);
         }
     }
 
     drawGrid() {
         if (this.useWebGL) {
-            const geometry = this.shapeGrid.getGridGeometry(this.gridCols, this.gridRows, null);
+            const geometry = this.shapeGrid.getGridGeometry(this.gridSize[0], this.gridSize[1], null);
             this.renderer.uploadGeometry(geometry);
             this.renderer.draw(this.cameraView, geometry);
         } else {
@@ -237,6 +245,16 @@ class GridManager {
         }
     }
 
+    changeTopology(topology) {
+        if (topology === "infinite") {
+            this.colorSchema.canvas = this.colorSchema.grid;
+        } else {
+            this.colorSchema.canvas = this.colorSchema.canvasColor;
+        }
+        // this.resizeGrid(10000, 10000, this.gridSize[2]);
+        this.setColorSchema(this.colorSchema);
+        console.log(topology, this.shapeGrid.colorSchema);
+    }
 }
 
 export { GridManager };

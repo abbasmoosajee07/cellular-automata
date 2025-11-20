@@ -159,10 +159,11 @@ impl CellManager {
     pub fn random_cells(&mut self) {
         let [min_q, max_q, min_r, max_r, min_s, max_s] = self.get_bounds();
         let density: f32 = 0.42;
-
+        // Clamp bounds to ±1000
+        let max_bounds: i32 = 2500;
         for s in min_s..=max_s {
-            for q in min_q..=max_q {
-                for r in min_r..=max_r {
+            for q in min_q.max(-max_bounds)..=max_q.min(max_bounds) {
+                for r in min_r.max(-max_bounds)..=max_r.min(max_bounds) {
                     let status = if fastrand::f32() < density { 1 } else { 0 };
                     self.set_cell(q, r, s, status);
                 }

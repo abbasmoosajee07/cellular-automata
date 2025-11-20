@@ -184,9 +184,9 @@ class SquareGrid extends BaseGrid {
 
         ctx.fillRect(
             -w / 2 - this.cellSize / 2,
-            -h / 2 - this.cellSize / 2,
-            w + this.cellSize,
-            h + this.cellSize
+            -h / 2 + this.cellSize / 2,
+            w,
+            h,
         );
     }
 
@@ -194,7 +194,7 @@ class SquareGrid extends BaseGrid {
         const cellSize = this.cellSize;
         const worldX = q * cellSize;
         const worldY = -r * cellSize;
-        // console.log("", q, r, state);
+
         const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
         ctx.fillStyle = `rgba(
             ${Math.round(drawColor[0] * 255)},
