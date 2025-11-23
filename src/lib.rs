@@ -4,13 +4,15 @@ pub mod cell_manager {
     pub mod flat_cells;
     pub mod chunk_cells;
     pub mod cell_backend;
-    pub mod neighbourhood;
+    pub mod neighborhood;
+    pub mod topology;
     pub mod cellmanager;
 
     pub use cell_backend::CellBackend;
     pub use chunk_cells::ChunkedCellManager;
     pub use flat_cells::FlatCellManager;
-    pub use neighbourhood::Neighborhood;
+    pub use neighborhood::Neighborhood;
+    pub use topology::Topology;
 }
 
 pub use cell_manager::cellmanager::CellManager;

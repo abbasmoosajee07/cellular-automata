@@ -32,8 +32,18 @@ impl WasmCellManager {
     }
 
     pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
-        self.inner.get_neighbors(q, r, s)
+        let nb = self.inner.get_neighbors(q, r, s);
+        let mut flat = Vec::with_capacity(nb.len() * 3);
+
+        for (nq, nr, ns) in nb {
+            flat.push(nq);
+            flat.push(nr);
+            flat.push(ns);
+        }
+
+        flat
     }
+
 
     pub fn for_each_cell(&self) -> Vec<i32> {
         self.inner.for_each_cell()

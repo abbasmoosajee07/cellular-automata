@@ -14,15 +14,11 @@ class GridManager {
         this.canvas = canvas;
 
         // Grid configuration
-        this.gridCols = 20;
-        this.gridRows = 20;
         this.gridSize = [20, 20, 1]
-        this.gridLimits = [16384, 16384]
 
         // Camera & rendering
         this.cameraView = { camX: 0, camY: 0, zoom: 1 };
         this.colorSchema = this.createDefaultColorSchema();
-        // this.changeTopology("infinite");
 
         // Initialize components
         this.shapeGrid = this.createShapeGrid(this.shape);
@@ -251,9 +247,7 @@ class GridManager {
         } else {
             this.colorSchema.canvas = this.colorSchema.canvasColor;
         }
-        // this.resizeGrid(10000, 10000, this.gridSize[2]);
         this.setColorSchema(this.colorSchema);
-        console.log(topology, this.shapeGrid.colorSchema);
     }
 }
 

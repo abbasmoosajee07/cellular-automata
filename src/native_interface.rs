@@ -63,5 +63,7 @@ pub fn run_native_tests() {
         cm.config.shape, cm.config.neighbor_type, cm.config.range, cm.config.topology_type
     );
 
+    let new_pos = cm.topology_manager.check_bounds(-11, -10, 1);
+    println!("{:?}", new_pos);
     println!("\n=== Naive Tests Completed ===");
 }

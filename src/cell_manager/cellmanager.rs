@@ -1,5 +1,6 @@
 use crate::cell_manager::{
-    CellBackend, FlatCellManager, ChunkedCellManager, Neighborhood
+    CellBackend, FlatCellManager, ChunkedCellManager,
+    Neighborhood, Topology,
 };
 use fastrand;
 // CONFIG STRUCT
@@ -17,13 +18,15 @@ pub struct CellConfig {
     pub range: i32,
 
     pub topology_type: String,
+    pub bounds: [i32; 6],
 }
 
 // CELL MANAGER
 pub struct CellManager {
     pub config: CellConfig,
     inner: CellBackend,
-    neighbor_manager: Neighborhood,
+    pub neighbor_manager: Neighborhood,
+    pub topology_manager: Topology,
 }
 
 impl CellManager {
@@ -53,6 +56,7 @@ impl CellManager {
             range: 1,
 
             topology_type: "none".to_string(),
+            bounds: [-10, 9, -10, 9, 0, 1]
         };
 
         let neighbor_manager = Neighborhood::new(
@@ -61,10 +65,16 @@ impl CellManager {
             config.range,
         );
 
+        let topology_manager = Topology::new(
+            &config.topology_type,
+            config.bounds,
+        );
+
         Self {
             config,
             inner,
             neighbor_manager,
+            topology_manager,
         }
     }
 
@@ -97,8 +107,47 @@ impl CellManager {
     }
 
     // NEIGHBORHOOD
-    pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
-        self.neighbor_manager.get_neighbors(q, r, s)
+    pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<(i32, i32, i32)> {
+        let mut all_neighbors = Vec::new();
+        let use_neighbors = self.neighbor_manager.get_neighbor_offsets(s);
+
+        for &(dq, dr, ds) in use_neighbors {
+            if let Some([nq, nr, ns]) =
+                self.topology_manager.check_bounds(q + dq, r + dr, s + ds)
+            {
+                all_neighbors.push((nq, nr, ns));
+            }
+        }
+
+        all_neighbors
+    }
+
+
+    // FLOOD FILL
+    pub fn floodfill(&mut self) {
+        let arr = self.for_each_cell();
+        let mut neighbors_to_activate = Vec::new();
+
+        let mut i = 0;
+        while i + 3 < arr.len() {
+            let q = arr[i];
+            let r = arr[i + 1];
+            let s = arr[i + 2];
+            let state = arr[i + 3];
+
+            if state == 1 {
+                neighbors_to_activate.extend(
+                    self.get_neighbors(q, r, s)
+                );
+            }
+
+            i += 4;
+        }
+
+        // Activate neighbors
+        for (nq, nr, ns) in neighbors_to_activate {
+            self.set_cell(nq, nr, ns, 1);
+        }
     }
 
     pub fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 {
@@ -136,6 +185,9 @@ impl CellManager {
         self.config.width = new_width;
         self.config.height = new_height;
         self.config.depth = new_depth;
+        let new_bounds = self.get_bounds();
+        self.config.bounds = new_bounds.clone();
+        self.topology_manager.change_bounds(new_bounds.clone());
     }
 
     // BOUNDS
@@ -157,45 +209,16 @@ impl CellManager {
 
     // RANDOM FILL
     pub fn random_cells(&mut self) {
-        let [min_q, max_q, min_r, max_r, min_s, max_s] = self.get_bounds();
+        let [min_q, max_q, min_r, max_r, min_s, max_s] = self.config.bounds;
+        let rand_limit: i32 = 1000;
         let density: f32 = 0.42;
-        // Clamp bounds to ±1000
-        let max_bounds: i32 = 2500;
         for s in min_s..=max_s {
-            for q in min_q.max(-max_bounds)..=max_q.min(max_bounds) {
-                for r in min_r.max(-max_bounds)..=max_r.min(max_bounds) {
+            for q in min_q.max(-rand_limit)..=max_q.min(rand_limit) {
+                for r in min_r.max(-rand_limit)..=max_r.min(rand_limit) {
                     let status = if fastrand::f32() < density { 1 } else { 0 };
                     self.set_cell(q, r, s, status);
                 }
             }
-        }
-    }
-
-    // FLOOD FILL
-    pub fn floodfill(&mut self) {
-        let arr = self.for_each_cell();
-        let mut neighbors_to_activate = Vec::new();
-
-        let mut i = 0;
-        while i + 3 < arr.len() {
-            let q = arr[i];
-            let r = arr[i + 1];
-            let s = arr[i + 2];
-            let state = arr[i + 3];
-
-            if state == 1 {
-                let nb_cells = self.get_neighbors(q, r, s);
-                let mut j = 0;
-                while j + 2 < nb_cells.len() {
-                    neighbors_to_activate.push((nb_cells[j], nb_cells[j + 1], nb_cells[j + 2]));
-                    j += 3;
-                }
-            }
-            i += 4;
-        }
-
-        for (nq, nr, ns) in neighbors_to_activate {
-            self.set_cell(nq, nr, ns, 1);
         }
     }
 
@@ -213,5 +236,6 @@ impl CellManager {
         self.config.topology_type = topology_type.clone();
 
         self.neighbor_manager.change_cell_properties(&shape, &neighbor_type, range);
+        self.topology_manager.change_topology(&topology_type);
     }
 }

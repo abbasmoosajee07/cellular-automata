@@ -34,7 +34,6 @@ impl Neighborhood {
         } else {
             state
         };
-
         &self.adj_neighbors[use_state as usize]
     }
 

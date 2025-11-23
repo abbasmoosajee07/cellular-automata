@@ -15,6 +15,7 @@ class SimulatorController{
         rhombus: [3, ["Qbert"]],
         triangle: [2, ["vonNeumann", "biohazard", "inner", "vertices", "moore"]],
     };
+    gridLimits = [16384, 16384]
 
     async initSim(useWebgl = true) {
         this.useWebgl = useWebgl;
@@ -75,8 +76,8 @@ class SimulatorController{
     async setupGrid({ preserveState = false } = {}) {
         const shape = this.selectedShape || "square";
         const activeState = this.shapeProps[shape][0] || 1;
-        const [cols, rows] = this.gridSize;
         const oldGrid = this.gridManager || null;
+        let [cols, rows] = this.gridSize;
 
         // If we preserve, reuse old cells; otherwise make new
         const cellManager = preserveState && oldGrid ? oldGrid.cells
@@ -97,10 +98,12 @@ class SimulatorController{
         if (preserveState && oldGrid) {
             Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
         }
+        if (this.topologyType == "infinite") {
+            [cols, rows] = this.gridLimits;
+        }
 
         // Sync grid sizes and texture
         this.gridManager.resizeGrid(cols, rows, activeState);
-        this.gridManager.changeTopology(this.topologyType || "finite");
         this.gridManager.syncCellsToTexture();
 
         this.cells = this.gridManager.cells;
@@ -179,13 +182,13 @@ class SimulatorController{
                     label: "Finite plane",
                     desc: "Cells outside of the plane are always considered to be dead"
                 },
-                cylinder: {
-                    label: "Cylinder",
-                    desc: "'rolling' the plane and connecting the opposite sides marked '1'."
-                },
                 torus: {
                     label: "Torus",
                     desc: "'rolling' the cylinder and connecting the opposite circles marked '2'."
+                },
+                cylinder: {
+                    label: "Cylinder",
+                    desc: "'rolling' the plane and connecting the opposite sides marked '1'."
                 },
                 klein_bottle: {
                     label: "Klein bottle",
