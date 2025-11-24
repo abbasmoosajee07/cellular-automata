@@ -176,7 +176,7 @@ class SimulatorController{
             types: {
                 infinite: {
                     label: "Infinite plane",
-                    desc: "Infinitely expands grid in all directions."
+                    desc: "Infinitely expands grid in all directions. (MAX GRID SIZE: 16384)"
                 },
                 finite: {
                     label: "Finite plane",
@@ -190,7 +190,7 @@ class SimulatorController{
                     label: "Cylinder",
                     desc: "'rolling' the plane and connecting the opposite sides marked '1'."
                 },
-                klein_bottle: {
+                klein: {
                     label: "Klein bottle",
                     desc: "'rolling' the cylinder, 'twisting' it in the fourth dimension and connecting the opposite circles marked '2' and '5'; note that the '5' becomes a '2' after twisting."
                 },
@@ -200,7 +200,7 @@ class SimulatorController{
                 },
                 sphere: {
                     label: "Sphere",
-                    desc: "joining adjacent sides, rather than opposite sides as is done for the torus."
+                    desc: "joining adjacent sides, rather than opposite sides as is done for the torus. (For optimum results Rows == Cols)"
                 },
             }
         };

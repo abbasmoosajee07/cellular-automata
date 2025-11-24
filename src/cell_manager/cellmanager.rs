@@ -185,7 +185,7 @@ impl CellManager {
         self.config.width = new_width;
         self.config.height = new_height;
         self.config.depth = new_depth;
-        let new_bounds = self.get_bounds();
+        let new_bounds: [i32; 6] = self.get_bounds();
         self.config.bounds = new_bounds.clone();
         self.topology_manager.change_bounds(new_bounds.clone());
     }
