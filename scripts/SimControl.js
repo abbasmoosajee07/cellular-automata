@@ -1,5 +1,5 @@
 import {  GridManager  } from '../grids/gridManager.js';
-import init, { WasmCellManager  } from "../pkg/cell_manager.js";
+import init, { WasmInterface  } from "../pkg/cellular_automata.js";
 
 class SimulatorController{
     docIDs = [
@@ -81,7 +81,7 @@ class SimulatorController{
 
         // If we preserve, reuse old cells; otherwise make new
         const cellManager = preserveState && oldGrid ? oldGrid.cells
-            : new WasmCellManager(cols, rows, activeState);
+            : new WasmInterface(cols, rows, activeState);
 
         if (preserveState == true) {
             this.rangeValue = this.rangeValue || 1

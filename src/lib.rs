@@ -6,7 +6,7 @@ pub mod cell_manager {
     pub mod cell_backend;
     pub mod neighborhood;
     pub mod topology;
-    pub mod cellmanager;
+    pub mod cellmesh;
 
     pub use cell_backend::CellBackend;
     pub use chunk_cells::ChunkedCellManager;
@@ -15,17 +15,15 @@ pub mod cell_manager {
     pub use topology::Topology;
 }
 
-pub use cell_manager::cellmanager::CellManager;
-
-// Include wasm interface only when compiling for wasm32
-#[cfg(target_arch = "wasm32")]
-pub mod wasm_interface;
+pub use cell_manager::cellmesh::CellMesh;
 
 // Include native interface for normal Rust builds
 #[cfg(not(target_arch = "wasm32"))]
 pub mod native_interface;
 
-
+// Include wasm interface only when compiling for wasm32
+#[cfg(target_arch = "wasm32")]
+pub mod wasm_interface;
 
 // Re-export wasm interface (so wasm-bindgen can see it)
 #[cfg(target_arch = "wasm32")]

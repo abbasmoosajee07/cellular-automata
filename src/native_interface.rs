@@ -1,11 +1,11 @@
-use crate::CellManager;
+use crate::CellMesh;
 
 /// Runs a naive/native test sequence for the current CellManager
 pub fn run_native_tests() {
     println!("=== Running Naive CellManager Tests ===\n");
 
     // 1️⃣ Create a small manager
-    let mut cm = CellManager::new(10, 10, 1, None);
+    let mut cm = CellMesh::new(10, 10, 1, None);
     println!("Initial bounds: {:?}", cm.get_bounds());
 
     // 2️⃣ Print all active cells (none initially)

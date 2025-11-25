@@ -1,17 +1,17 @@
 use wasm_bindgen::prelude::*;
-use crate::CellManager;
+use crate::CellMesh;
 
 #[wasm_bindgen]
-pub struct WasmCellManager {
-    inner: CellManager,
+pub struct WasmInterface {
+    inner: CellMesh,
 }
 
 #[wasm_bindgen]
-impl WasmCellManager {
+impl WasmInterface {
     #[wasm_bindgen(constructor)]
-    pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> WasmCellManager {
-        WasmCellManager {
-            inner: CellManager::new(width, height, depth, chunk_size),
+    pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> WasmInterface {
+        WasmInterface {
+            inner: CellMesh::new(width, height, depth, chunk_size),
         }
     }
 
@@ -43,7 +43,6 @@ impl WasmCellManager {
 
         flat
     }
-
 
     pub fn for_each_cell(&self) -> Vec<i32> {
         self.inner.for_each_cell()

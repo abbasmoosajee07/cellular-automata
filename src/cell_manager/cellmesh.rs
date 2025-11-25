@@ -22,14 +22,14 @@ pub struct CellConfig {
 }
 
 // CELL MANAGER
-pub struct CellManager {
+pub struct CellMesh {
     pub config: CellConfig,
     inner: CellBackend,
     pub neighbor_manager: Neighborhood,
     pub topology_manager: Topology,
 }
 
-impl CellManager {
+impl CellMesh {
 
     // CONSTRUCTOR
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> Self {
