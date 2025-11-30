@@ -535,6 +535,34 @@ class RhomboidalGrid extends BaseGrid {
         ctx.closePath();
         ctx.fill();
     }
+
+    screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS) {
+        let minX, maxX, minY, maxY;
+
+        const radius = this.radius;
+        // World-space corners in axial coords
+        const corners = [
+            { q: minQ, r: minR },
+            { q: maxQ, r: minR},
+            { q: maxQ, r: maxR },
+            { q: minQ , r: maxR }
+        ];
+
+        // Convert axial → world
+        const pts = corners.map(({ q, r }) => ({
+            x: radius * Math.sqrt(3) * (q + r * 0.5),
+            y: radius * -1.5 * r
+        }));
+
+        // Bounding box
+        minX = Math.min(...pts.map(p => p.x));
+        maxX = Math.max(...pts.map(p => p.x));
+        minY = Math.min(...pts.map(p => p.y)) * 1.2;
+        maxY = Math.max(...pts.map(p => p.y)) ;
+
+        return [minX, maxX, minY, maxY];
+    }
+
 }
 
 export { RhomboidalGrid };

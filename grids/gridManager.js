@@ -9,6 +9,7 @@ import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 class GridManager {
     constructor(shape, canvas, init_cells, useWebGL = false) {
         this.shape = shape || "square";
+        this.topology = "finite";
         this.useWebGL = useWebGL;
         this.cells = init_cells;
         this.canvas = canvas;
@@ -154,12 +155,6 @@ class GridManager {
         }
     }
 
-    centerView() {
-        this.cameraView.camX = 0;
-        this.cameraView.camY = 0;
-        this.cameraView.zoom = 1;
-    }
-
     toggleAt(px, py, drawMode, eraseMode) {
         const world = this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
         const cell = this.shapeGrid.worldToCell(world);
@@ -241,14 +236,40 @@ class GridManager {
         }
     }
 
-    changeTopology(topology) {
-        if (topology === "infinite") {
-            this.colorSchema.canvas = this.colorSchema.grid;
-        } else {
-            this.colorSchema.canvas = this.colorSchema.canvasColor;
-        }
-        this.setColorSchema(this.colorSchema);
+    centerView() {
+        this.cameraView.camX = 0;
+        this.cameraView.camY = 0;
+        this.cameraView.zoom = 1;
     }
+
+    fitGrid() {
+
+        const [minQ, maxQ, minR, maxR, minS, maxS] = this.grid_bounds;
+        // const [minQ, maxQ, minR, maxR, minS, maxS] = this.cells.get_cell_extremes();
+
+        let [minX, maxX, minY, maxY] = this.shapeGrid.screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS);
+        console.log(minX, maxX, minY, maxY);
+
+        // --- Dimensions ---
+        const worldW = maxX - minX;
+        const worldH = maxY - minY;
+
+        // --- Zoom ---
+        const zoomX = this.width  / worldW;
+        const zoomY = this.height / worldH;
+        const zoom  = Math.min(zoomX, zoomY);
+
+        this.cameraView.zoom = zoom;
+
+        // --- Center ---
+        const centerX = (minX + maxX) * 0.5;
+        const centerY = (minY + maxY) * 0.5;
+
+        // --- Camera offset ---
+        this.cameraView.camX = -centerX * zoom;
+        this.cameraView.camY = -centerY * zoom;
+    }
+
 }
 
 export { GridManager };

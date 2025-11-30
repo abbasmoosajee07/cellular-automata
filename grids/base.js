@@ -7,7 +7,7 @@ class BaseGrid {
 
         // Common properties
         this.radius = 30;
-        this.cellSize = 60;
+        this.cellSize = 50;
 
         this.gridCols = 20;
         this.gridRows = 20;
@@ -205,6 +205,11 @@ class BaseGrid {
     drawShapeCell(ctx, q, r, s, state) {
         throw new Error("Method 'drawShapeCell(ctx, q, r, s, state)' must be implemented.");
     }
+
+    screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS) {
+        throw new Error("Method 'screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS)' must be implemented.");
+    }
+
 }
 
 export {BaseGrid};

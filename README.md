@@ -5,10 +5,10 @@ A web-based simulation of different variations of Cellular Automata
 ## Features to add
 ### 🔧 Simulation Controls
 - Custom rules editor (users define survival/birth rules, e.g. Life-like automata, Wolfram rules).
-- Randomized initial states (seeded randomness for reproducibility).
+- ~~Randomized initial states (seeded randomness for reproducibility)~~.
 - Step backward / undo (navigate history easily).
-- Variable neighborhood sizes (Moore, Von Neumann, Hex grids).
-- Toroidal / bounded edges (wrap-around vs finite world).
+- ~~Variable neighborhood sizes (Moore, Von Neumann, Hex grids)~~.
+- ~~Toroidal / bounded edges (wrap-around vs finite world)~~.
 - Adjustable simulation speed (slow-motion vs. fast-forward).
 - Multi-layered grids (stacked CA worlds that interact).
 

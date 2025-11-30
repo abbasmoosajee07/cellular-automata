@@ -122,7 +122,6 @@ impl CellMesh {
         all_neighbors
     }
 
-
     // FLOOD FILL
     pub fn floodfill(&mut self) {
         let arr = self.for_each_cell();
@@ -206,6 +205,40 @@ impl CellMesh {
 
         [min_q, max_q, min_r, max_r, min_s, max_s]
     }
+
+    pub fn get_cell_extremes(&self) -> [i32; 6] {
+        let arr = self.for_each_cell();
+
+        // Initialize with opposite extremes
+        let mut min_q = i32::MAX;
+        let mut max_q = i32::MIN;
+        let mut min_r = i32::MAX;
+        let mut max_r = i32::MIN;
+        let mut min_s = i32::MAX;
+        let mut max_s = i32::MIN;
+
+        let mut i = 0;
+        while i + 3 < arr.len() {
+            let q = arr[i];
+            let r = arr[i + 1];
+            let s = arr[i + 2];
+            let _state = arr[i + 3];
+
+            min_q = min_q.min(q);
+            max_q = max_q.max(q);
+
+            min_r = min_r.min(r);
+            max_r = max_r.max(r);
+
+            min_s = min_s.min(s);
+            max_s = max_s.max(s);
+
+            i += 4;
+        }
+
+        [min_q, max_q, min_r, max_r, min_s, max_s]
+    }
+
 
     // RANDOM FILL
     pub fn random_cells(&mut self) {

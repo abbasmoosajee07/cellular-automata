@@ -65,6 +65,10 @@ impl WasmInterface {
         self.inner.get_bounds().to_vec()
     }
 
+    pub fn get_cell_extremes(&self) -> Vec<i32> {
+        self.inner.get_cell_extremes().to_vec()
+    }
+
     pub fn floodfill(&mut self) {
         self.inner.floodfill();
     }

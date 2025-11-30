@@ -35,6 +35,7 @@ class SimulatorController{
         this.gridManager.changeCell(0,0,0,1);
         this.gridManager.changeCell(9,7,0,1);
         this.gridManager.changeCell(-10,-10,0,1);
+        this.gridManager.fitGrid();
         this.gridManager.drawGrid();
     }
 
@@ -149,7 +150,9 @@ class SimulatorController{
         });
 
         this.pinLoc.addEventListener('click', () => {
+            this.gridManager.fitGrid();
             this.savedView = { ...this.gridManager.cameraView };
+            this.gridManager.drawGrid();
         });
 
         this.clearGrid.addEventListener('click', () => {
