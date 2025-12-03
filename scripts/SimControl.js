@@ -3,7 +3,7 @@ import init, { WasmInterface  } from "../pkg/cellular_automata.js";
 
 class SimulatorController{
     docIDs = [
-        "gridCanvas", "menuPanel", "menuToggle", "reMap",
+        "gridCanvas", "menuPanel", "menuToggle", "reMap", "autoFit",
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_gen", "status_popl", "status_zoom", "status_camera",
@@ -79,6 +79,17 @@ class SimulatorController{
         const activeState = this.shapeProps[shape][0] || 1;
         const oldGrid = this.gridManager || null;
         let [cols, rows] = this.gridSize;
+        const cfg = {
+            width: 20,
+            height: 20,
+            depth: 1,
+            shape: "square",
+            neighbor_type: "vonNeumann",
+            range: 2,
+            topology_type: "finite",
+        };
+
+        // let sim = new WasmInterface(JSON.stringify(cfg));
 
         // If we preserve, reuse old cells; otherwise make new
         const cellManager = preserveState && oldGrid ? oldGrid.cells
@@ -102,6 +113,7 @@ class SimulatorController{
         if (this.topologyType == "infinite") {
             [cols, rows] = this.gridLimits;
         }
+        this.gridManager.topology = this.topologyType;
 
         // Sync grid sizes and texture
         this.gridManager.resizeGrid(cols, rows, activeState);
@@ -144,13 +156,17 @@ class SimulatorController{
     }
 
     setupEventListeners() {
+        this.autoFit.addEventListener('click', () => {
+            this.gridManager.fitGrid();
+            this.gridManager.drawGrid();
+        });
+
         this.resetView.addEventListener('click', () => {
             this.gridManager.cameraView = { ...this.savedView };
             this.gridManager.drawGrid();
         });
 
         this.pinLoc.addEventListener('click', () => {
-            this.gridManager.fitGrid();
             this.savedView = { ...this.gridManager.cameraView };
             this.gridManager.drawGrid();
         });

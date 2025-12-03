@@ -18,7 +18,7 @@ class GridManager {
         this.gridSize = [20, 20, 1]
 
         // Camera & rendering
-        this.cameraView = { camX: 0, camY: 0, zoom: 1 };
+        this.cameraView = { camX: 0, camY: 0, zoom: 0 };
         this.colorSchema = this.createDefaultColorSchema();
 
         // Initialize components
@@ -209,7 +209,7 @@ class GridManager {
             this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells)
         }
 
-        this.centerView();
+        this.fitGrid();
     }
 
     setColorSchema(newSchema) {
@@ -236,16 +236,25 @@ class GridManager {
         }
     }
 
-    centerView() {
-        this.cameraView.camX = 0;
-        this.cameraView.camY = 0;
-        this.cameraView.zoom = 1;
+    showGridLimits() {
+        let [minQ, maxQ, minR, maxR, minS, maxS] =
+            this.topology === "infinite"
+                ? this.cells.get_cell_extremes()
+                : this.grid_bounds;
+
+        // Clamp lower bounds
+        minQ = Math.min(minQ, -10);
+        minR = Math.min(minR, -10);
+
+        // Clamp upper bounds
+        maxS = Math.max(maxS, 9);
+        maxR = Math.max(maxR, 9);
+
+        return [minQ, maxQ, minR, maxR, minS, maxS];
     }
 
     fitGrid() {
-
-        const [minQ, maxQ, minR, maxR, minS, maxS] = this.grid_bounds;
-        // const [minQ, maxQ, minR, maxR, minS, maxS] = this.cells.get_cell_extremes();
+        const [minQ, maxQ, minR, maxR, minS, maxS] = this.showGridLimits();
 
         let [minX, maxX, minY, maxY] = this.shapeGrid.screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS);
         console.log(minX, maxX, minY, maxY);
