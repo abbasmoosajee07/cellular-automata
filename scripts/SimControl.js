@@ -3,14 +3,14 @@ import init, { WasmInterface  } from "../pkg/cellular_automata.js";
 
 class SimulatorController{
     docIDs = [
-        "gridCanvas", "menuPanel", "menuToggle", "reMap", "autoFit",
+        "gridCanvas", "menuPanel", "menuToggle", "reMap", "autoFit", "simCtrl",
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_gen", "status_popl", "status_zoom", "status_camera",
     ];
 
     shapeProps = {
-        square: [1, ["vonNeumann", "cross", "checkerboard", "moore", "star"]],
+        square: [1, ["moore", "vonNeumann", "cross", "checkerboard", "star"]],
         hexagon: [1, ["hexagonal", "tripod", "asterix"]],
         rhombus: [3, ["Qbert"]],
         triangle: [2, ["vonNeumann", "biohazard", "inner", "vertices", "moore"]],
@@ -33,8 +33,10 @@ class SimulatorController{
         this.setupMenuControls();
         // this.randomCells();
         this.gridManager.changeCell(0,0,0,1);
-        this.gridManager.changeCell(9,7,0,1);
-        this.gridManager.changeCell(-10,-10,0,1);
+        this.gridManager.changeCell(0,1,0,1);
+        this.gridManager.changeCell(-1,0,0,1);
+        this.gridManager.changeCell(0,-1,0,1);
+        this.gridManager.changeCell(1,0,0,1);
         this.gridManager.fitGrid();
         this.gridManager.drawGrid();
     }
@@ -79,17 +81,6 @@ class SimulatorController{
         const activeState = this.shapeProps[shape][0] || 1;
         const oldGrid = this.gridManager || null;
         let [cols, rows] = this.gridSize;
-        const cfg = {
-            width: 20,
-            height: 20,
-            depth: 1,
-            shape: "square",
-            neighbor_type: "vonNeumann",
-            range: 2,
-            topology_type: "finite",
-        };
-
-        // let sim = new WasmInterface(JSON.stringify(cfg));
 
         // If we preserve, reuse old cells; otherwise make new
         const cellManager = preserveState && oldGrid ? oldGrid.cells
@@ -178,6 +169,7 @@ class SimulatorController{
         });
 
         this.randomFill.addEventListener('click', () => this.randomCells());
+        this.simCtrl.addEventListener('click', () => this.simulate_step());
 
         window.addEventListener('resize', () => {
             this.gridManager.updateCanvasSize();
@@ -460,6 +452,45 @@ class SimulatorController{
         this.gridManager.cells.random_cells();
         this.gridManager.syncCellsToTexture();
         this.gridManager.drawGrid();
+    }
+
+    simulate_step() {
+        // const before = this.cells.count_live_cells();
+        this.gridManager.cells.step_game_of_life();
+        // const after = this.cells.count_live_cells();
+        // console.log(`before = ${before} | after ${after}`);
+        console.log("step done");
+        this.gridManager.renderer.clearAll();
+        this.gridManager.syncCellsToTexture();
+        this.gridManager.drawGrid();
+        console.log("render done");
+    }
+
+    simulate_step() {
+        // Start timer for entire step
+        const stepStartTime = performance.now();
+        
+        // Step 1: Run Game of Life simulation
+        const simStartTime = performance.now();
+        this.gridManager.cells.step_game_of_life();
+        const simEndTime = performance.now();
+        const simulationTime = simEndTime - simStartTime;
+        
+        // Step 2: Clear and render
+        const renderStartTime = performance.now();
+        this.gridManager.renderer.clearAll();
+        this.gridManager.syncCellsToTexture();
+        this.gridManager.drawGrid();
+        const renderEndTime = performance.now();
+        const renderTime = renderEndTime - renderStartTime;
+        
+        // Total time
+        const stepEndTime = performance.now();
+        const totalTime = stepEndTime - stepStartTime;
+        
+        console.log(`Simulation: ${simulationTime.toFixed(2)}ms | ` +
+                    `Render: ${renderTime.toFixed(2)}ms | ` +
+                    `Total: ${totalTime.toFixed(2)}ms`);
     }
 
     fillNeighbors() {

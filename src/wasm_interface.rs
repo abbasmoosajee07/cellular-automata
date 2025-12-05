@@ -27,8 +27,8 @@ impl WasmInterface {
         self.inner.clear();
     }
 
-    pub fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 {
-        self.inner.count_live_neighbors(q, r, s)
+    pub fn count_live_cells(&self) -> i32 {
+        self.inner.count_live_cells()
     }
 
     pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
@@ -44,8 +44,8 @@ impl WasmInterface {
         flat
     }
 
-    pub fn for_each_cell(&self) -> Vec<i32> {
-        self.inner.for_each_cell()
+    pub fn each_live_cell(&self) -> Vec<i32> {
+        self.inner.each_live_cell()
     }
 
     pub fn random_cells(&mut self) {
@@ -71,6 +71,10 @@ impl WasmInterface {
 
     pub fn floodfill(&mut self) {
         self.inner.floodfill();
+    }
+
+    pub fn step_game_of_life(&mut self) {
+        self.inner.step_game_of_life();
     }
 
 }

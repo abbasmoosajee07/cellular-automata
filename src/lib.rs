@@ -17,6 +17,10 @@ pub mod cell_manager {
 
 pub use cell_manager::cellmesh::CellMesh;
 
+pub mod automata {
+    pub mod conway_life;
+    pub use conway_life::ConwayLife;
+}
 // Include native interface for normal Rust builds
 #[cfg(not(target_arch = "wasm32"))]
 pub mod native_interface;

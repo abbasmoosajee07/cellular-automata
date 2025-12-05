@@ -2,9 +2,10 @@ use crate::cell_manager::{
     CellBackend, FlatCellManager, ChunkedCellManager,
     Neighborhood, Topology,
 };
+use crate::automata::{ConwayLife};
 use fastrand;
 // CONFIG STRUCT
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CellConfig {
     pub width: usize,
     pub height: usize,
@@ -24,7 +25,7 @@ pub struct CellConfig {
 // CELL MANAGER
 pub struct CellMesh {
     pub config: CellConfig,
-    inner: CellBackend,
+    pub inner: CellBackend,
     pub neighbor_manager: Neighborhood,
     pub topology_manager: Topology,
 }
@@ -33,7 +34,7 @@ impl CellMesh {
 
     // CONSTRUCTOR
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> Self {
-        let threshold = 2500;
+        let threshold = 10_000;
         let use_chunked = width > threshold || height > threshold;
 
         let cs = chunk_size.unwrap_or(256);
@@ -52,10 +53,10 @@ impl CellMesh {
             chunk_size: cs,
 
             shape: "square".to_string(),
-            neighbor_type: "vonNeumann".to_string(),
+            neighbor_type: "moore".to_string(),
             range: 1,
 
-            topology_type: "none".to_string(),
+            topology_type: "finite".to_string(),
             bounds: [-10, 9, -10, 9, 0, 1]
         };
 
@@ -102,8 +103,8 @@ impl CellMesh {
         }
     }
 
-    pub fn for_each_cell(&self) -> Vec<i32> {
-        self.inner.for_each_cell()
+    pub fn each_live_cell(&self) -> Vec<i32> {
+        self.inner.each_live_cell()
     }
 
     // NEIGHBORHOOD
@@ -124,7 +125,7 @@ impl CellMesh {
 
     // FLOOD FILL
     pub fn floodfill(&mut self) {
-        let arr = self.for_each_cell();
+        let arr = self.each_live_cell();
         let mut neighbors_to_activate = Vec::new();
 
         let mut i = 0;
@@ -149,10 +150,19 @@ impl CellMesh {
         }
     }
 
-    pub fn count_live_neighbors(&self, q: i32, r: i32, s: i32) -> u32 {
+    // CONWAY GAME OF LIFE UPDATE
+    pub fn step_game_of_life(&mut self) {
+        ConwayLife::step_game_of_life(self);
+    }
+    pub fn count_live_cells(&self) -> i32 {
         let mut count = 0;
-        for &(dq, dr, ds) in self.neighbor_manager.get_neighbor_offsets(s) {
-            count += self.get_cell(q + dq, r + dr, s + ds);
+        let arr = self.each_live_cell();
+
+        let mut i = 0;
+        while i + 3 < arr.len() {
+            let state = arr[i + 3] as i32;
+            count += state;
+            i += 4;
         }
         count
     }
@@ -161,7 +171,7 @@ impl CellMesh {
     pub fn resize(&mut self, new_width: usize, new_height: usize, new_depth: usize) {
         let use_chunked = new_width > self.config.threshold || new_height > self.config.threshold;
 
-        let old_cells = self.inner.for_each_cell();
+        let old_cells = self.inner.each_live_cell();
 
         self.inner = if use_chunked {
             let mut cm = ChunkedCellManager::new(self.config.chunk_size, new_depth);
@@ -207,7 +217,7 @@ impl CellMesh {
     }
 
     pub fn get_cell_extremes(&self) -> [i32; 6] {
-        let arr = self.for_each_cell();
+        let arr = self.each_live_cell();
 
         // Initialize with opposite extremes
         let mut min_q = i32::MAX;
@@ -238,7 +248,6 @@ impl CellMesh {
 
         [min_q, max_q, min_r, max_r, min_s, max_s]
     }
-
 
     // RANDOM FILL
     pub fn random_cells(&mut self) {

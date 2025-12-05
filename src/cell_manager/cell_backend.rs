@@ -30,12 +30,24 @@ impl CellBackend {
         }
     }
 
+    pub fn each_live_cell(&self) -> Vec<i32> {
+        match self {
+            CellBackend::Flat(fm) => fm.each_live_cell(),
+            CellBackend::Chunked(cm) => cm.each_live_cell(),
+        }
+    }
+
+    pub fn iter_cell(&self) -> Box<dyn Iterator<Item = [i32; 4]> + '_> {
+        match self {
+            CellBackend::Flat(fm) => Box::new(fm.iter_cell()),
+            CellBackend::Chunked(cm) => Box::new(cm.iter_cell()),
+        }
+    }
+
     pub fn for_each_cell(&self) -> Vec<i32> {
         match self {
             CellBackend::Flat(fm) => fm.for_each_cell(),
             CellBackend::Chunked(cm) => cm.for_each_cell(),
         }
     }
-
-
 }

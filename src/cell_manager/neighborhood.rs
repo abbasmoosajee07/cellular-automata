@@ -141,13 +141,19 @@ impl Neighborhood {
                     neigh.push((0,  d, 0)); neigh.push((0, -d, 0));
                 }
             }
+            "hexagonal0" => {
+                for d in -range..=range {
+                    neigh.push((-d,  d, 0));
+                    neigh.push(( d, 0, 0));
+                    neigh.push((0,  d, 0));
+                }
+            }
             "hexagonal" => {
                 for dx in -range..=range {
                     for dy in -range..=range {
-                        if dx != 0 || dy != 0 {
-                            neigh.push((-dx,  dy, 0)); neigh.push(( dx, -dy, 0));
-                            neigh.push(( dx, 0, 0)); neigh.push((-dx, 0, 0));
-                            neigh.push((0,  dy, 0)); neigh.push((0, -dy, 0));                        }
+                        if dx != 0 || dy != 0 || dx.abs() != dy.abs() {
+                            neigh.push(( dx, dy, 0));
+                        }
                     }
                 }
             }
@@ -207,7 +213,7 @@ impl Neighborhood {
             ],
 
             // NEED TO FIX MOORE NEIGHBORHOOD FOR TRIANGULAR CELLS
-            "moore0" => vec![
+            "moore" => vec![
                 vec![
                     (-1, 1, 1),  (0, -1, 0),  (1, 0, 0),
                     (0, 0, 1),   (0, 1, 1),   (-1, 0, 1),
@@ -222,7 +228,7 @@ impl Neighborhood {
                 ],
             ],
 
-            "moore" => {
+            "moore1" => {
                 let mut layers: Vec<Vec<(i32,i32,i32)>> = Vec::new();
 
 

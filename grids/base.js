@@ -152,7 +152,7 @@ class BaseGrid {
         this.initGridTexture(gl, newCols, newRows);
 
         if (oldCells) {
-        const arr = oldCells.for_each_cell();
+        const arr = oldCells.each_live_cell();
         for (let i = 0; i < arr.length; i += 4) {
             const q = arr[i];
             const r = arr[i + 1];

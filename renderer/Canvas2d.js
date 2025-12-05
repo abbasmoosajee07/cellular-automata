@@ -45,7 +45,7 @@ class Canvas2DRenderer {
 
         // --- Draw cells via shape-specific logic ---
         ctx.save();
-        const arr = cells.for_each_cell();
+        const arr = cells.each_live_cell();
         for (let i = 0; i < arr.length; i += 4) {
             const q = arr[i];
             const r = arr[i + 1];
@@ -89,7 +89,7 @@ class Canvas2DRenderer {
         this.shapeGrid.drawGridShape(ctx);
 
         // --- Draw active cells ---
-        const arr = cells.for_each_cell();
+        const arr = cells.each_live_cell();
         for (let i = 0; i < arr.length; i += 4) {
             const q = arr[i];
             const r = arr[i + 1];

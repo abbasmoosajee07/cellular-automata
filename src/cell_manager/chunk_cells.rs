@@ -64,7 +64,7 @@ impl ChunkedCellManager {
         self.chunks.clear();
     }
 
-    pub fn for_each_cell(&self) -> Vec<i32> {
+    pub fn each_live_cell(&self) -> Vec<i32> {
         let mut out = Vec::new();
         for (&(cx, cy, cz), chunk) in &self.chunks {
             for lz in 0..self.depth {
@@ -83,6 +83,51 @@ impl ChunkedCellManager {
             }
         }
         out
+    }
+
+    pub fn for_each_cell(&self) -> Vec<i32> {
+        let mut out = Vec::new();
+        for (&(cx, cy, cz), chunk) in &self.chunks {
+            for lz in 0..self.depth {
+                for ly in 0..self.chunk_size {
+                    for lx in 0..self.chunk_size {
+                        let idx = local_index(self.chunk_size, lx, ly, lz);
+                        let val = chunk[idx];
+                        // if val != 0 {
+                            out.push(cx * self.chunk_size as i32 + lx as i32);
+                            out.push(cy * self.chunk_size as i32 + ly as i32);
+                            out.push(cz * self.depth as i32 + lz as i32);
+                            out.push(val as i32);
+                        // }
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    pub fn iter_cell(&self) -> impl Iterator<Item = [i32; 4]> + '_ {
+        self.chunks.iter().flat_map(|(&(cx, cy, cz), chunk)| {
+            let cs = self.chunk_size;
+            let depth = self.depth;
+
+            (0..depth).flat_map(move |lz| {
+                (0..cs).flat_map(move |ly| {
+                    (0..cs).filter_map(move |lx| {
+                        let idx = local_index(cs, lx, ly, lz);
+                        let val = chunk[idx];
+
+                        // Each yield is one [q, r, s, val]
+                        Some([
+                            cx * cs as i32 + lx as i32,
+                            cy * cs as i32 + ly as i32,
+                            cz * depth as i32 + lz as i32,
+                            val as i32,
+                        ])
+                    })
+                })
+            })
+        })
     }
 
     pub fn resize(&mut self, _new_width: usize, _new_height: usize, new_depth: usize) {

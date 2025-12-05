@@ -59,7 +59,7 @@ impl FlatCellManager {
         self.cells.fill(0);
     }
 
-    pub fn for_each_cell(&self) -> Vec<i32> {
+    pub fn each_live_cell(&self) -> Vec<i32> {
         let mut out = Vec::new();
         for s in 0..self.depth {
             for r in 0..self.height {
@@ -77,6 +77,47 @@ impl FlatCellManager {
         }
         out
     }
+
+    pub fn for_each_cell(&self) -> Vec<i32> {
+        let mut out = Vec::new();
+        for s in 0..self.depth {
+            for r in 0..self.height {
+                for q in 0..self.width {
+                    let idx = q + r * self.width + s * self.width * self.height;
+                    let val = self.cells[idx];
+                    // if val != 0 {
+                        out.push(q as i32 - self.origin.0);
+                        out.push(r as i32 - self.origin.1);
+                        out.push(s as i32 - self.origin.2);
+                        out.push(val as i32);
+                    // }
+                }
+            }
+        }
+        out
+    }
+
+    pub fn iter_cell(&self) -> impl Iterator<Item = [i32; 4]> + '_ {
+        (0..self.depth).flat_map(move |s| {
+            (0..self.height).flat_map(move |r| {
+                (0..self.width).filter_map(move |q| {
+                    let idx = q + r * self.width + s * self.width * self.height;
+                    let val = self.cells[idx];
+                    // if val != 0 {
+                        Some([
+                            q as i32 - self.origin.0,
+                            r as i32 - self.origin.1,
+                            s as i32 - self.origin.2,
+                            val as i32,
+                        ])
+                    // } else {
+                    //     None
+                    // }
+                })
+            })
+        })
+    }
+
 
     pub fn resize(&mut self, new_width: usize, new_height: usize, new_depth: usize) {
         let new_origin = (

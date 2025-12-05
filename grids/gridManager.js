@@ -35,6 +35,7 @@ class GridManager {
             grid: [0.1, 0.1, 1.1, 0.75],
             canvas: [0.0, 0.0, 0.0, 0.0],
             canvasColor: [0.0, 0.0, 0.0, 0.0],
+            0: [0.1, 0.1, 1.1, 0.75],
             1: this.hexToRgb("#32cd32"),
             11: this.hexToRgb("#ff3700"),
         };
@@ -81,7 +82,7 @@ class GridManager {
     }
 
     syncCellsToTexture() {
-        const arr = this.cells.for_each_cell();
+        const arr = this.cells.each_live_cell();
         for (let i = 0; i < arr.length; i += 4) {
             const q = arr[i];
             const r = arr[i + 1];
@@ -89,6 +90,12 @@ class GridManager {
             const state = arr[i + 3];
             this.renderer.renderCell(this.cameraView, q, r, s, state);
         }
+    }
+
+    syncCellsToTexture1() {
+        this.cells.for_each_live_cell((q, r, s, state) => {
+            this.renderer.renderCell(this.cameraView, q, r, s, state);
+        });
     }
 
     updateCanvasSize() {
@@ -216,7 +223,7 @@ class GridManager {
         this.colorSchema = newSchema;
         this.shapeGrid.colorSchema = newSchema;
 
-        const arr = this.cells.for_each_cell();
+        const arr = this.cells.each_live_cell();
         for (let i = 0; i < arr.length; i += 4) {
             const q = arr[i];
             const r = arr[i + 1];
