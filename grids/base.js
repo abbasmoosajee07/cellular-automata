@@ -110,6 +110,28 @@ class BaseGrid {
         return { x: worldX, y: worldY };
     }
 
+    setCellState(q, r, s, state) {
+        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
+
+        if (texX < 0 || texX >= this.textureWidth ||
+            texY < 0 || texY >= this.textureHeight) return;
+
+        const index = (texY * this.textureWidth + texX) * 4;
+
+        if (state) {
+            const c = this.colorSchema[state];
+            this.textureData[index]     = c[0] * 255;
+            this.textureData[index + 1] = c[1] * 255;
+            this.textureData[index + 2] = c[2] * 255;
+            this.textureData[index + 3] = 255;
+        } else {
+            this.textureData[index]     = 0;
+            this.textureData[index + 1] = 0;
+            this.textureData[index + 2] = 0;
+            this.textureData[index + 3] = 0;
+        }
+    }
+
     getGridGeometry(gridCols, gridRows, gl) {
         return {
             texture: this.gridTexture,
@@ -188,10 +210,6 @@ class BaseGrid {
 
     cubeToTextureCoords(q, r, s) {
         throw new Error("Method 'cubeToTextureCoords(q, r, s)' must be implemented.");
-    }
-
-    setCellState(gl, q, r, s, state) {
-        throw new Error("Method 'setCellState(gl, q, r, s, state)' must be implemented.");
     }
 
     getFragmentShaderSource() {

@@ -12,6 +12,10 @@ A web-based simulation of different variations of Cellular Automata
 - Adjustable simulation speed (slow-motion vs. fast-forward).
 - Multi-layered grids (stacked CA worlds that interact).
 
+### Performance Changes
+- instead of multiple loops, create new grid and swap, (improve step speed)
+- track changing cells, and then change only them
+
 ### 🎨 Visualization
 - ~~Different grid geometries (hexagons, triangles, squares)~~.
 - ~~Zoom & pan (explore large universes)~~.

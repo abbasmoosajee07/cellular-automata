@@ -449,23 +449,31 @@ class SimulatorController{
     }
 
     randomCells() {
+        // Start timer for entire step
+        const stepStartTime = performance.now();
+        
+        // Step 1: Run Game of Life simulation
+        const simStartTime = performance.now();
         this.gridManager.cells.random_cells();
-        this.gridManager.syncCellsToTexture();
-        this.gridManager.drawGrid();
-    }
-
-    simulate_step() {
-        // const before = this.cells.count_live_cells();
-        this.gridManager.cells.step_game_of_life();
-        // const after = this.cells.count_live_cells();
-        // console.log(`before = ${before} | after ${after}`);
-        console.log("step done");
+        const simEndTime = performance.now();
+        const simulationTime = simEndTime - simStartTime;
+        
+        // Step 2: Clear and render
+        const renderStartTime = performance.now();
         this.gridManager.renderer.clearAll();
         this.gridManager.syncCellsToTexture();
         this.gridManager.drawGrid();
-        console.log("render done");
+        const renderEndTime = performance.now();
+        const renderTime = renderEndTime - renderStartTime;
+        
+        // Total time
+        const stepEndTime = performance.now();
+        const totalTime = stepEndTime - stepStartTime;
+        
+        console.log(`Random Fill: ${simulationTime.toFixed(2)}ms | ` +
+                    `Render: ${renderTime.toFixed(2)}ms | ` +
+                    `Total: ${totalTime.toFixed(2)}ms`);
     }
-
     simulate_step() {
         // Start timer for entire step
         const stepStartTime = performance.now();

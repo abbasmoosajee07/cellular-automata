@@ -163,10 +163,28 @@ class WebGLRenderer {
         this.shapeGrid.clearGrid(this.gl);
     }
 
-    renderCell(cameraView, q, r, s, state) {
-        this.shapeGrid.setCellState(this.gl, q, r, s, state);
+    renderCell(q, r, s, state) {
+        this.shapeGrid.setCellState(q, r, s, state);
+        this.uploadTexture();
     }
-}
 
+    uploadTexture() {
+        const gl = this.gl;
+
+        gl.bindTexture(gl.TEXTURE_2D, this.shapeGrid.gridTexture);
+
+        gl.texSubImage2D(
+            gl.TEXTURE_2D,
+            0,
+            0, 0,
+            this.shapeGrid.textureWidth,
+            this.shapeGrid.textureHeight,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            this.shapeGrid.textureData
+        );
+    }
+
+}
 
 export { WebGLRenderer };

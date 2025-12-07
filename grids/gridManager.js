@@ -82,20 +82,24 @@ class GridManager {
     }
 
     syncCellsToTexture() {
-        const arr = this.cells.each_live_cell();
-        for (let i = 0; i < arr.length; i += 4) {
-            const q = arr[i];
-            const r = arr[i + 1];
-            const s = arr[i + 2];
-            const state = arr[i + 3];
-            this.renderer.renderCell(this.cameraView, q, r, s, state);
-        }
-    }
+        if (this.useWebGL && this.renderer.gl) {
 
-    syncCellsToTexture1() {
-        this.cells.for_each_live_cell((q, r, s, state) => {
-            this.renderer.renderCell(this.cameraView, q, r, s, state);
-        });
+            const arr = this.cells.each_live_cell();
+
+            // OPTIONAL: clear texture first
+            this.shapeGrid.textureData.fill(0);
+
+            for (let i = 0; i < arr.length; i += 4) {
+                const q = arr[i];
+                const r = arr[i + 1];
+                const s = arr[i + 2];
+                const state = arr[i + 3];
+
+                // IMPORTANT: CPU update only
+                this.shapeGrid.setCellState(q, r, s, state);
+            }
+            this.renderer.uploadTexture();
+        }
     }
 
     updateCanvasSize() {
@@ -125,7 +129,7 @@ class GridManager {
 
     changeCell(q, r, s, state) {
         this.cells.set_cell(q, r, s, state);
-        this.renderer.renderCell(this.cameraView, q, r, s, state);
+        this.renderer.renderCell(q, r, s, state);
     }
 
     checkBounds(q, r, s) {
@@ -229,7 +233,7 @@ class GridManager {
             const r = arr[i + 1];
             const s = arr[i + 2];
             const state = arr[i + 3];
-            this.renderer.renderCell(this.cameraView, q, r, s, state);
+            this.renderer.renderCell(q, r, s, state);
         }
     }
 

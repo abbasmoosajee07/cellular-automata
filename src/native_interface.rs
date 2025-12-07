@@ -1,4 +1,5 @@
 use crate::CellMesh;
+use std::time::Instant;
 
 /// Runs a native test of a single Game of Life step
 pub fn run_native_tests() {
@@ -6,33 +7,28 @@ pub fn run_native_tests() {
 
     // 1️⃣ Create a test mesh
     let mut cm = CellMesh::new(20, 20, 1, None);
-    println!("Initial bounds: {:?}", cm.get_bounds());
-    println!("{:?}", cm.config);
+    cm.resize(2000, 2000, 1);
+    println!("{:?}\n", cm.config);
 
-    // 2️⃣ Randomize cells so we have something to evolve
+    // 2️⃣ Randomize cells (TIMED)
+    let start_rand = Instant::now();
     cm.random_cells();
+    let rand_elapsed = start_rand.elapsed();
+
     let cells = cm.each_live_cell();
     println!("Initial active cell count: {}", cells.len() / 4);
+    println!("Random fill time: {:?}", rand_elapsed);
 
-    // print!("Initial live cells: ");
-    // for chunk in cells.chunks(4) {
-    //     print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
-    // }
-    // println!("\n");
-
-    // 3️⃣ Run one step of Game of Life
+    // 3️⃣ Run one step of Game of Life (TIMED)
     println!("--- Running one GoL step ---");
+    let start_step = Instant::now();
     cm.step_game_of_life();
+    let step_elapsed = start_step.elapsed();
 
     // 4️⃣ Show the new set of live cells
     let cells_after = cm.each_live_cell();
     println!("Cells after GoL step: {}", cells_after.len() / 4);
-
-    // print!("Updated live cells: ");
-    // for chunk in cells_after.chunks(4) {
-    //     print!("({},{},{},{}) ", chunk[0], chunk[1], chunk[2], chunk[3]);
-    // }
-    // println!("\n");
+    println!("GoL step time: {:?}", step_elapsed);
 
     println!("=== GoL Test Completed ===");
 }

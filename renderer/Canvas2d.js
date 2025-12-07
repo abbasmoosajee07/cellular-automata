@@ -102,7 +102,7 @@ class Canvas2DRenderer {
         ctx.restore();
     }
 
-    renderCell(cameraView, q, r, s, state) {
+    renderCell(q, r, s, state) {
         return
     }
 }

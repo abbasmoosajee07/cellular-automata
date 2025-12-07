@@ -107,43 +107,6 @@ class RhomboidalGrid extends BaseGrid {
         return [Math.floor(texX), Math.floor(texY)];
     }
 
-    setCellState(gl, q, r, rhombusIndex, state) {
-        const [texX, texY] = this.cubeToTextureCoords(q, r, rhombusIndex);
-        const textureWidth = this.gridCols * this.colMult;
-        const textureHeight = this.gridRows;
-
-        if (texX >= 0 && texX < textureWidth && texY >= 0 && texY < textureHeight) {
-            const index = (texY * textureWidth + texX) * 4;
-
-            if (state) {
-                const color = this.colorSchema[state] || [1, 1, 1, 1];
-                this.textureData[index] = color[0] * 255;
-                this.textureData[index + 1] = color[1] * 255;
-                this.textureData[index + 2] = color[2] * 255;
-                this.textureData[index + 3] = 255;
-            } else {
-                this.textureData[index] = 0;
-                this.textureData[index + 1] = 0;
-                this.textureData[index + 2] = 0;
-                this.textureData[index + 3] = 0;
-            }
-
-            if (gl && this.gridTexture) {
-                gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-                const pixelData = new Uint8Array([
-                    this.textureData[index],
-                    this.textureData[index + 1],
-                    this.textureData[index + 2],
-                    this.textureData[index + 3]
-                ]);
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, texX, texY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
-            }
-            
-            return true;
-        }
-        return false;
-    }
-
     getFragmentShaderSource(isWebGL2 = false) {
     if (isWebGL2) {
         return `#version 300 es
