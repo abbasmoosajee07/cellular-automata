@@ -16,48 +16,41 @@ class Canvas2DRenderer {
         this.height = height;
     }
 
+    uploadGeometry(geometry) {
+        this.cachedGeometry = geometry;
+    }
+
     clearAll() {
         return;
     }
 
-    drawCanvas(cameraView, colorSchema, cells) {
+    renderCell(cameraView, q, r, s, state) {
         const ctx = this.ctx;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-        // --- Full reset before drawing ---
-        ctx.setTransform(1, 0, 0, 1, 0, 0);  // reset any previous transforms
-        ctx.clearRect(0, 0, this.width, this.height); // clear the buffer
-        const bgColor = colorSchema.canvas;
-
-        // --- Background fill ---
-        ctx.fillStyle = `rgba(
-            ${Math.round(bgColor[0] * 255)},
-            ${Math.round(bgColor[1] * 255)},
-            ${Math.round(bgColor[2] * 255)},
-            ${bgColor[3]}
-        )`;
-        ctx.fillRect(0, 0, this.width, this.height);
-
-        // --- Camera transform (match WebGL logic) ---
+        // --- Camera transform ---
         ctx.save();
         ctx.translate(this.width / 2, this.height / 2);
         ctx.scale(cameraView.zoom, cameraView.zoom);
         ctx.translate(cameraView.camX, -cameraView.camY);
+        this.shapeGrid.drawShapeCell(ctx, q, r, s, state)
+    }
 
-        // --- Draw cells via shape-specific logic ---
-        ctx.save();
+    syncCellsToCanvas(ctx, cells) {
         const arr = cells.each_live_cell();
         for (let i = 0; i < arr.length; i += 4) {
             const q = arr[i];
             const r = arr[i + 1];
             const s = arr[i + 2];
             const state = arr[i + 3];
+
             this.shapeGrid.drawShapeCell(ctx, q, r, s, state);
         }
-        ctx.restore();
     }
 
-    drawCanvas(cameraView, colorSchema, cells) {
+    renderGrid(cameraView, cells, updateCells) {
         const ctx = this.ctx;
+        const colorSchema = this.colorSchema;
 
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, this.width, this.height);
@@ -78,7 +71,6 @@ class Canvas2DRenderer {
         ctx.scale(cameraView.zoom, cameraView.zoom);
         ctx.translate(cameraView.camX, -cameraView.camY);
 
-        // --- NEW: Grid area background ---
         const gridBg = colorSchema.grid;
         ctx.fillStyle = `rgba(
             ${Math.round(gridBg[0] * 255)},
@@ -87,25 +79,14 @@ class Canvas2DRenderer {
             ${gridBg[3]}
         )`;
         this.shapeGrid.drawGridShape(ctx);
-
-        // --- Draw active cells ---
-        const arr = cells.each_live_cell();
-        for (let i = 0; i < arr.length; i += 4) {
-            const q = arr[i];
-            const r = arr[i + 1];
-            const s = arr[i + 2];
-            const state = arr[i + 3];
-
-            this.shapeGrid.drawShapeCell(ctx, q, r, s, state);
-        }
-
+        this.syncCellsToCanvas(ctx, cells);
         ctx.restore();
     }
 
-    renderCell(q, r, s, state) {
-        return
+    updateView(cameraView) {
+        return;
     }
+
 }
 
 export { Canvas2DRenderer };
-

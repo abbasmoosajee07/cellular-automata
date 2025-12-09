@@ -507,8 +507,8 @@ class RhomboidalGrid extends BaseGrid {
         const corners = [
             { q: minQ, r: minR },
             { q: maxQ, r: minR},
-            { q: maxQ, r: maxR },
-            { q: minQ , r: maxR }
+            { q: maxQ, r: maxR + 2},
+            { q: minQ, r: maxR + 2}
         ];
 
         // Convert axial → world
@@ -520,8 +520,8 @@ class RhomboidalGrid extends BaseGrid {
         // Bounding box
         minX = Math.min(...pts.map(p => p.x));
         maxX = Math.max(...pts.map(p => p.x));
-        minY = Math.min(...pts.map(p => p.y)) * 1.2;
-        maxY = Math.max(...pts.map(p => p.y)) ;
+        minY = Math.min(...pts.map(p => p.y));
+        maxY = Math.max(...pts.map(p => p.y));
 
         return [minX, maxX, minY, maxY];
     }

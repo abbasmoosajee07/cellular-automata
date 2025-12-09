@@ -121,8 +121,56 @@ class WebGLRenderer {
         this.cachedGeometry = geometry;
     }
 
-    draw(cameraView, gridGeometry) {
+    uploadTexture() {
         const gl = this.gl;
+
+        gl.bindTexture(gl.TEXTURE_2D, this.shapeGrid.gridTexture);
+
+        gl.texSubImage2D(
+            gl.TEXTURE_2D,
+            0,
+            0, 0,
+            this.shapeGrid.textureWidth,
+            this.shapeGrid.textureHeight,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            this.shapeGrid.textureData
+        );
+    }
+
+    clearAll() {
+        this.shapeGrid.clearGrid(this.gl);
+    }
+
+    renderCell(cameraView, q, r, s, state) {
+        this.shapeGrid.setCellState(q, r, s, state);
+        this.uploadTexture();
+    }
+
+    syncCellsToTexture(cells) {
+        const arr = cells.each_live_cell();
+        this.shapeGrid.textureData.fill(0);
+        for (let i = 0; i < arr.length; i += 4) {
+            const q = arr[i];
+            const r = arr[i + 1];
+            const s = arr[i + 2];
+            const state = arr[i + 3];
+
+            this.shapeGrid.setCellState(q, r, s, state);
+        }
+        this.uploadTexture();
+    }
+
+    renderGrid(cameraView, cells, updateCells) {
+        if (updateCells) {
+            this.syncCellsToTexture(cells);
+        }
+        this.updateView(cameraView);
+    }
+
+    updateView(cameraView) {
+        const gl = this.gl;
+        const gridGeometry = this.cachedGeometry;
 
         if (!gridGeometry || !gridGeometry.texture) {
             gl.clear(gl.COLOR_BUFFER_BIT);
@@ -157,32 +205,6 @@ class WebGLRenderer {
         if (this.vao) {
             gl.bindVertexArray(null);
         }
-    }
-
-    clearAll() {
-        this.shapeGrid.clearGrid(this.gl);
-    }
-
-    renderCell(q, r, s, state) {
-        this.shapeGrid.setCellState(q, r, s, state);
-        this.uploadTexture();
-    }
-
-    uploadTexture() {
-        const gl = this.gl;
-
-        gl.bindTexture(gl.TEXTURE_2D, this.shapeGrid.gridTexture);
-
-        gl.texSubImage2D(
-            gl.TEXTURE_2D,
-            0,
-            0, 0,
-            this.shapeGrid.textureWidth,
-            this.shapeGrid.textureHeight,
-            gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            this.shapeGrid.textureData
-        );
     }
 
 }

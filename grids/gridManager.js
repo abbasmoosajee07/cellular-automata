@@ -25,8 +25,8 @@ class GridManager {
         this.shapeGrid = this.createShapeGrid(this.shape);
         this.grid_bounds = this.cells.get_bounds();
         this.initializeRenderer(this.useWebGL);
+        this.renderer.colorSchema = this.colorSchema;
         this.updateCanvasSize();
-        this.syncCellsToTexture();
         // this.startRendering();
     }
 
@@ -34,7 +34,6 @@ class GridManager {
         const schema  = {
             grid: [0.1, 0.1, 1.1, 0.75],
             canvas: [0.0, 0.0, 0.0, 0.0],
-            canvasColor: [0.0, 0.0, 0.0, 0.0],
             0: [0.1, 0.1, 1.1, 0.75],
             1: this.hexToRgb("#32cd32"),
             11: this.hexToRgb("#ff3700"),
@@ -81,27 +80,6 @@ class GridManager {
         renderLoop();
     }
 
-    syncCellsToTexture() {
-        if (this.useWebGL && this.renderer.gl) {
-
-            const arr = this.cells.each_live_cell();
-
-            // OPTIONAL: clear texture first
-            this.shapeGrid.textureData.fill(0);
-
-            for (let i = 0; i < arr.length; i += 4) {
-                const q = arr[i];
-                const r = arr[i + 1];
-                const s = arr[i + 2];
-                const state = arr[i + 3];
-
-                // IMPORTANT: CPU update only
-                this.shapeGrid.setCellState(q, r, s, state);
-            }
-            this.renderer.uploadTexture();
-        }
-    }
-
     updateCanvasSize() {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
@@ -129,7 +107,7 @@ class GridManager {
 
     changeCell(q, r, s, state) {
         this.cells.set_cell(q, r, s, state);
-        this.renderer.renderCell(q, r, s, state);
+        this.renderer.renderCell(this.cameraView, q, r, s, state);
     }
 
     checkBounds(q, r, s) {
@@ -183,6 +161,8 @@ class GridManager {
         }
 
         this.changeCell(q, r, s, newState);
+
+        this.renderer.updateView(this.cameraView);
         return true;
     }
 
@@ -206,45 +186,11 @@ class GridManager {
         osc.stop(audioCtx.currentTime + 0.1);
     }
 
-    resizeGrid(newCols, newRows, newStates) {
-        this.gridSize[0] = newCols;
-        this.gridSize[1] = newRows;
-        this.gridSize[2] = newStates;
-        this.shapeGrid.gridRows = newRows;
-        this.shapeGrid.gridCols = newCols;
-        this.cells.resize(newCols, newRows, newStates);
-        this.grid_bounds = this.cells.get_bounds();
-        if (this.useWebGL && this.renderer.gl) {
-            this.shapeGrid.resizeGridTexture(this.renderer.gl, newCols, newRows, this.cells);
-        } else {
-            this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells)
-        }
-
-        this.fitGrid();
-    }
-
     setColorSchema(newSchema) {
         this.colorSchema = newSchema;
+        this.renderer.colorSchema = newSchema
         this.shapeGrid.colorSchema = newSchema;
-
-        const arr = this.cells.each_live_cell();
-        for (let i = 0; i < arr.length; i += 4) {
-            const q = arr[i];
-            const r = arr[i + 1];
-            const s = arr[i + 2];
-            const state = arr[i + 3];
-            this.renderer.renderCell(q, r, s, state);
-        }
-    }
-
-    drawGrid() {
-        if (this.useWebGL) {
-            const geometry = this.shapeGrid.getGridGeometry(this.gridSize[0], this.gridSize[1], null);
-            this.renderer.uploadGeometry(geometry);
-            this.renderer.draw(this.cameraView, geometry);
-        } else {
-            this.renderer.drawCanvas(this.cameraView, this.colorSchema, this.cells);
-        }
+        this.renderer.renderGrid(this.cameraView, this.cells);
     }
 
     showGridLimits() {
@@ -268,7 +214,6 @@ class GridManager {
         const [minQ, maxQ, minR, maxR, minS, maxS] = this.showGridLimits();
 
         let [minX, maxX, minY, maxY] = this.shapeGrid.screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS);
-        console.log(minX, maxX, minY, maxY);
 
         // --- Dimensions ---
         const worldW = maxX - minX;
@@ -288,6 +233,23 @@ class GridManager {
         // --- Camera offset ---
         this.cameraView.camX = -centerX * zoom;
         this.cameraView.camY = -centerY * zoom;
+    }
+
+    resizeGrid(newCols, newRows, newStates) {
+        this.gridSize = [newCols, newRows, newStates];
+        this.shapeGrid.gridRows = newRows;
+        this.shapeGrid.gridCols = newCols;
+        this.cells.resize(newCols, newRows, newStates);
+        this.grid_bounds = this.cells.get_bounds();
+        if (this.useWebGL && this.renderer.gl) {
+            this.shapeGrid.initGridTexture(this.renderer.gl, newCols, newRows);
+        }
+    }
+
+    renderGrid(updateCells = false) {
+        const geometry = this.shapeGrid.getGridGeometry(this.gridSize);
+        this.renderer.uploadGeometry(geometry);
+        this.renderer.renderGrid(this.cameraView, this.cells, updateCells);
     }
 
 }

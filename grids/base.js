@@ -132,13 +132,13 @@ class BaseGrid {
         }
     }
 
-    getGridGeometry(gridCols, gridRows, gl) {
+    getGridGeometry(gridSize) {
         return {
             texture: this.gridTexture,
             textureWidth: this.textureWidth * this.colMult,
             textureHeight: this.textureHeight * this.rowMult,
-            gridCols: gridCols,
-            gridRows: gridRows,
+            gridCols: gridSize[0],
+            gridRows: gridSize[1],
             baseCellSize: this.cellSize || this.radius || 50,
             vertexCount: 4,
             indexCount: 6
@@ -168,21 +168,6 @@ class BaseGrid {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
-    }
-
-    resizeGridTexture(gl, newCols, newRows, oldCells) {
-        this.initGridTexture(gl, newCols, newRows);
-
-        if (oldCells) {
-        const arr = oldCells.each_live_cell();
-        for (let i = 0; i < arr.length; i += 4) {
-            const q = arr[i];
-            const r = arr[i + 1];
-            const s = arr[i + 2];
-            const state = arr[i + 3];
-            this.setCellState(gl, q, r, s, state);
-            };
-        }
     }
 
     clearGrid(gl) {

@@ -31,14 +31,13 @@ class SimulatorController{
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
-        // this.randomCells();
+
         this.gridManager.changeCell(0,0,0,1);
-        this.gridManager.changeCell(0,1,0,1);
-        this.gridManager.changeCell(-1,0,0,1);
-        this.gridManager.changeCell(0,-1,0,1);
         this.gridManager.changeCell(1,0,0,1);
-        this.gridManager.fitGrid();
-        this.gridManager.drawGrid();
+        this.gridManager.changeCell(0,-1,0,1);
+        this.gridManager.changeCell(-1,1,0,1);
+        this.gridManager.changeCell(-1,-1,0,1);
+        this.gridManager.renderGrid();
     }
 
     initElements() {
@@ -108,12 +107,13 @@ class SimulatorController{
 
         // Sync grid sizes and texture
         this.gridManager.resizeGrid(cols, rows, activeState);
-        this.gridManager.syncCellsToTexture();
 
-        this.cells = this.gridManager.cells;
+        this.gridManager.fitGrid();
         this.savedView = { ...this.gridManager.cameraView };
 
-        this.gridManager.drawGrid();
+        this.cells = this.gridManager.cells;
+        this.gridManager.renderGrid(true);
+
     }
 
     setupGridControls() {
@@ -149,23 +149,22 @@ class SimulatorController{
     setupEventListeners() {
         this.autoFit.addEventListener('click', () => {
             this.gridManager.fitGrid();
-            this.gridManager.drawGrid();
+            this.gridManager.renderGrid();
         });
 
         this.resetView.addEventListener('click', () => {
             this.gridManager.cameraView = { ...this.savedView };
-            this.gridManager.drawGrid();
+            this.gridManager.renderGrid();
         });
 
         this.pinLoc.addEventListener('click', () => {
             this.savedView = { ...this.gridManager.cameraView };
-            this.gridManager.drawGrid();
+            this.gridManager.renderGrid();
         });
 
         this.clearGrid.addEventListener('click', () => {
             this.gridManager.clearAll();
-            this.gridManager.syncCellsToTexture();
-            this.gridManager.drawGrid();
+            this.gridManager.renderGrid();
         });
 
         this.randomFill.addEventListener('click', () => this.randomCells());
@@ -173,7 +172,7 @@ class SimulatorController{
 
         window.addEventListener('resize', () => {
             this.gridManager.updateCanvasSize();
-            this.gridManager.drawGrid();
+            this.gridManager.renderGrid();
         });
 
         this.neighborTiles.addEventListener('click', () => {this.fillNeighbors()});
@@ -362,7 +361,7 @@ class SimulatorController{
                     const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
                     this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
                     this.updateStatusBar(t1.clientX, t1.clientY);
-                    this.gridManager.drawGrid();
+                    this.gridManager.renderGrid();
                 }
                 lastTouchDistance = dist;
                 return;
@@ -383,7 +382,7 @@ class SimulatorController{
                 this.gridManager.cameraView.camY -= pointer.y - lastY;
                 lastX = pointer.x;
                 lastY = pointer.y;
-                this.gridManager.drawGrid();
+                this.gridManager.renderGrid();
             }
         };
 
@@ -423,7 +422,7 @@ class SimulatorController{
             const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
             this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
             this.updateStatusBar(e.clientX, e.clientY);
-            this.gridManager.drawGrid();
+            this.gridManager.renderGrid();
         }, { passive: false });
 
         // Prevent elastic scrolling on mobile
@@ -445,7 +444,6 @@ class SimulatorController{
             this.eraseTiles.checked,
             this.gridManager.infiniteGrid,
         );
-        this.gridManager.drawGrid();
     }
 
     randomCells() {
@@ -460,9 +458,7 @@ class SimulatorController{
         
         // Step 2: Clear and render
         const renderStartTime = performance.now();
-        this.gridManager.renderer.clearAll();
-        this.gridManager.syncCellsToTexture();
-        this.gridManager.drawGrid();
+        this.gridManager.renderGrid(true);
         const renderEndTime = performance.now();
         const renderTime = renderEndTime - renderStartTime;
         
@@ -474,6 +470,7 @@ class SimulatorController{
                     `Render: ${renderTime.toFixed(2)}ms | ` +
                     `Total: ${totalTime.toFixed(2)}ms`);
     }
+
     simulate_step() {
         // Start timer for entire step
         const stepStartTime = performance.now();
@@ -484,11 +481,10 @@ class SimulatorController{
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
         
-        // Step 2: Clear and render
+        // Step 2: Render
         const renderStartTime = performance.now();
-        this.gridManager.renderer.clearAll();
-        this.gridManager.syncCellsToTexture();
-        this.gridManager.drawGrid();
+        this.gridManager.renderGrid(true);
+
         const renderEndTime = performance.now();
         const renderTime = renderEndTime - renderStartTime;
         
@@ -503,8 +499,7 @@ class SimulatorController{
 
     fillNeighbors() {
         this.gridManager.cells.floodfill();
-        this.gridManager.syncCellsToTexture();
-        this.gridManager.drawGrid();
+        this.gridManager.renderGrid(true);
     }
 }
 
