@@ -15,6 +15,7 @@ class SimulatorController{
         rhombus: [3, ["Qbert"]],
         triangle: [2, ["vonNeumann", "biohazard", "inner", "vertices", "moore"]],
     };
+
     gridLimits = [16384, 16384]
 
     async initSim(useWebgl = true) {
@@ -81,14 +82,14 @@ class SimulatorController{
         const oldGrid = this.gridManager || null;
         let [cols, rows] = this.gridSize;
 
-        // If we preserve, reuse old cells; otherwise make new
-        const cellManager = preserveState && oldGrid ? oldGrid.cells
+        // If we preserve, reuse old grid_mesh; otherwise make new
+        const cellManager = preserveState && oldGrid ? oldGrid.grid_mesh
             : new WasmInterface(cols, rows, activeState);
 
         if (preserveState == true) {
             this.rangeValue = this.rangeValue || 1
             console.log("change grid props:", this.neighborhoodType, this.rangeValue, this.topologyType)
-            this.cells.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
+            this.grid_mesh.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
         }
 
         // Always create a new GridManager — safer for WebGL + camera reinit
@@ -111,8 +112,10 @@ class SimulatorController{
         this.gridManager.fitGrid();
         this.savedView = { ...this.gridManager.cameraView };
 
-        this.cells = this.gridManager.cells;
+        this.grid_mesh = this.gridManager.grid_mesh;
         this.gridManager.renderGrid(true);
+        this.configJson = this.grid_mesh.config_string();
+        console.log("Grid Config:\n", JSON.stringify(JSON.parse(this.configJson), null, 2));
 
     }
 
@@ -452,7 +455,7 @@ class SimulatorController{
         
         // Step 1: Run Game of Life simulation
         const simStartTime = performance.now();
-        this.gridManager.cells.random_cells();
+        this.gridManager.grid_mesh.random_cells();
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
         
@@ -474,10 +477,10 @@ class SimulatorController{
     simulate_step() {
         // Start timer for entire step
         const stepStartTime = performance.now();
-        
+
         // Step 1: Run Game of Life simulation
         const simStartTime = performance.now();
-        this.gridManager.cells.step_game_of_life();
+        this.gridManager.grid_mesh.step_game_of_life();
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
         
@@ -498,7 +501,7 @@ class SimulatorController{
     }
 
     fillNeighbors() {
-        this.gridManager.cells.floodfill();
+        this.gridManager.grid_mesh.floodfill();
         this.gridManager.renderGrid(true);
     }
 }

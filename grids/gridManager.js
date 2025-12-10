@@ -11,7 +11,7 @@ class GridManager {
         this.shape = shape || "square";
         this.topology = "finite";
         this.useWebGL = useWebGL;
-        this.cells = init_cells;
+        this.grid_mesh = init_cells;
         this.canvas = canvas;
 
         // Grid configuration
@@ -23,7 +23,7 @@ class GridManager {
 
         // Initialize components
         this.shapeGrid = this.createShapeGrid(this.shape);
-        this.grid_bounds = this.cells.get_bounds();
+        this.grid_bounds = this.grid_mesh.get_bounds();
         this.initializeRenderer(this.useWebGL);
         this.renderer.colorSchema = this.colorSchema;
         this.updateCanvasSize();
@@ -106,7 +106,7 @@ class GridManager {
     }
 
     changeCell(q, r, s, state) {
-        this.cells.set_cell(q, r, s, state);
+        this.grid_mesh.set_cell(q, r, s, state);
         this.renderer.renderCell(this.cameraView, q, r, s, state);
     }
 
@@ -117,7 +117,7 @@ class GridManager {
     }
 
     clearAll() {
-        this.cells.clear();
+        this.grid_mesh.clear();
         this.renderer.clearAll();
     }
 
@@ -190,13 +190,13 @@ class GridManager {
         this.colorSchema = newSchema;
         this.renderer.colorSchema = newSchema
         this.shapeGrid.colorSchema = newSchema;
-        this.renderer.renderGrid(this.cameraView, this.cells);
+        this.renderer.renderGrid(this.cameraView, this.grid_mesh);
     }
 
     showGridLimits() {
         let [minQ, maxQ, minR, maxR, minS, maxS] =
             this.topology === "infinite"
-                ? this.cells.get_cell_extremes()
+                ? this.grid_mesh.get_cell_extremes()
                 : this.grid_bounds;
 
         // Clamp lower bounds
@@ -239,8 +239,8 @@ class GridManager {
         this.gridSize = [newCols, newRows, newStates];
         this.shapeGrid.gridRows = newRows;
         this.shapeGrid.gridCols = newCols;
-        this.cells.resize(newCols, newRows, newStates);
-        this.grid_bounds = this.cells.get_bounds();
+        this.grid_mesh.resize(newCols, newRows, newStates);
+        this.grid_bounds = this.grid_mesh.get_bounds();
         if (this.useWebGL && this.renderer.gl) {
             this.shapeGrid.initGridTexture(this.renderer.gl, newCols, newRows);
         }
@@ -249,7 +249,7 @@ class GridManager {
     renderGrid(updateCells = false) {
         const geometry = this.shapeGrid.getGridGeometry(this.gridSize);
         this.renderer.uploadGeometry(geometry);
-        this.renderer.renderGrid(this.cameraView, this.cells, updateCells);
+        this.renderer.renderGrid(this.cameraView, this.grid_mesh, updateCells);
     }
 
 }

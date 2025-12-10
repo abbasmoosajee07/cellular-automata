@@ -1,9 +1,9 @@
 use wasm_bindgen::prelude::*;
-use crate::CellMesh;
+use crate::GridMesh;
 
 #[wasm_bindgen]
 pub struct WasmInterface {
-    inner: CellMesh,
+    inner: GridMesh,
 }
 
 #[wasm_bindgen]
@@ -11,7 +11,7 @@ impl WasmInterface {
     #[wasm_bindgen(constructor)]
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> WasmInterface {
         WasmInterface {
-            inner: CellMesh::new(width, height, depth, chunk_size),
+            inner: GridMesh::new(width, height, depth, chunk_size),
         }
     }
 
@@ -29,19 +29,6 @@ impl WasmInterface {
 
     pub fn count_live_cells(&self) -> i32 {
         self.inner.count_live_cells()
-    }
-
-    pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<i32> {
-        let nb = self.inner.get_neighbors(q, r, s);
-        let mut flat = Vec::with_capacity(nb.len() * 3);
-
-        for (nq, nr, ns) in nb {
-            flat.push(nq);
-            flat.push(nr);
-            flat.push(ns);
-        }
-
-        flat
     }
 
     pub fn each_live_cell(&self) -> Vec<i32> {
@@ -62,7 +49,7 @@ impl WasmInterface {
     }
 
     pub fn get_bounds(&self) -> Vec<i32> {
-        self.inner.get_bounds().to_vec()
+        self.inner.config.bounds.to_vec()
     }
 
     pub fn get_cell_extremes(&self) -> Vec<i32> {
@@ -77,4 +64,8 @@ impl WasmInterface {
         self.inner.step_game_of_life();
     }
 
+    #[wasm_bindgen]
+    pub fn config_string(&self) -> String {
+        serde_json::to_string(&self.inner.config).unwrap()
+    }
 }

@@ -1,12 +1,12 @@
 // simulation.rs
-use crate::CellMesh;
+use crate::GridMesh;
 use std::collections::HashSet;
 
 pub struct ConwayLife;
 
 impl ConwayLife {
     /// Dense mode – used when grid is highly populated
-    fn dense_step(mesh: &mut CellMesh) -> Vec<i32> {
+    fn dense_step(mesh: &mut GridMesh) -> Vec<i32> {
         let mut next_states = Vec::new();
 
         for [q, r, s, state] in mesh.inner.iter_cell() {
@@ -34,7 +34,7 @@ impl ConwayLife {
     }
 
     /// Sparse mode – only evaluate live cells + dead neighbors
-    fn sparse_step(mesh: &mut CellMesh) -> Vec<i32> {
+    fn sparse_step(mesh: &mut GridMesh) -> Vec<i32> {
         let mut next_states = Vec::new();
         let mut potential_cells = Vec::new();
         let mut seen = HashSet::new();
@@ -81,7 +81,7 @@ impl ConwayLife {
     }
 
     /// Unified automatic-mode step
-    pub fn step_game_of_life(mesh: &mut CellMesh) {
+    pub fn step_game_of_life(mesh: &mut GridMesh) {
         // First pass for density
         let mut total = 0usize;
         let mut live = 0usize;

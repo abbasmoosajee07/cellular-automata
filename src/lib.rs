@@ -6,7 +6,7 @@ pub mod cell_manager {
     pub mod cell_backend;
     pub mod neighborhood;
     pub mod topology;
-    pub mod cellmesh;
+    pub mod gridmesh;
 
     pub use cell_backend::CellBackend;
     pub use chunk_cells::ChunkedCellManager;
@@ -15,7 +15,7 @@ pub mod cell_manager {
     pub use topology::Topology;
 }
 
-pub use cell_manager::cellmesh::CellMesh;
+pub use cell_manager::gridmesh::GridMesh;
 
 pub mod automata {
     pub mod conway_life;

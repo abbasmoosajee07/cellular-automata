@@ -1,4 +1,4 @@
-use crate::CellMesh;
+use crate::GridMesh;
 use std::time::Instant;
 
 /// Runs a native test of a single Game of Life step
@@ -6,7 +6,7 @@ pub fn run_native_tests() {
     println!("=== Running Naive Game of Life Test ===\n");
 
     // 1️⃣ Create a test mesh
-    let mut cm = CellMesh::new(20, 20, 1, None);
+    let mut cm = GridMesh::new(20, 20, 1, None);
     cm.resize(2000, 2000, 1);
     println!("{:?}\n", cm.config);
 

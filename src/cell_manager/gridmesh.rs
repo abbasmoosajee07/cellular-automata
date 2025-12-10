@@ -3,15 +3,19 @@ use crate::cell_manager::{
     Neighborhood, Topology,
 };
 use crate::automata::{ConwayLife};
+use serde::{Serialize, Deserialize};
+
 use fastrand;
+
 // CONFIG STRUCT
-#[derive(Clone, Debug)]
-pub struct CellConfig {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GridConfig {
     pub width: usize,
     pub height: usize,
     pub depth: usize,
 
     pub threshold: usize,
+    pub cell_struct: String,
     pub chunk_size: usize,
 
     pub shape: String,
@@ -22,15 +26,15 @@ pub struct CellConfig {
     pub bounds: [i32; 6],
 }
 
-// CELL MANAGER
-pub struct CellMesh {
-    pub config: CellConfig,
+// Grid Mesh
+pub struct GridMesh {
+    pub config: GridConfig,
     pub inner: CellBackend,
     pub neighbor_manager: Neighborhood,
     pub topology_manager: Topology,
 }
 
-impl CellMesh {
+impl GridMesh {
 
     // CONSTRUCTOR
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> Self {
@@ -45,11 +49,12 @@ impl CellMesh {
             CellBackend::Flat(FlatCellManager::new(width , height, depth))
         };
 
-        let config = CellConfig {
+        let config = GridConfig {
             width,
             height,
             depth,
             threshold,
+            cell_struct: "flat".to_string(),
             chunk_size: cs,
 
             shape: "square".to_string(),
