@@ -103,21 +103,16 @@ impl FlatCellManager {
                 (0..self.width).filter_map(move |q| {
                     let idx = q + r * self.width + s * self.width * self.height;
                     let val = self.cells[idx];
-                    // if val != 0 {
-                        Some([
-                            q as i32 - self.origin.0,
-                            r as i32 - self.origin.1,
-                            s as i32 - self.origin.2,
-                            val as i32,
-                        ])
-                    // } else {
-                    //     None
-                    // }
+                    Some([
+                        q as i32 - self.origin.0,
+                        r as i32 - self.origin.1,
+                        s as i32 - self.origin.2,
+                        val as i32,
+                    ])
                 })
             })
         })
     }
-
 
     pub fn resize(&mut self, new_width: usize, new_height: usize, new_depth: usize) {
         let new_origin = (
@@ -143,4 +138,9 @@ impl FlatCellManager {
         self.origin = new_origin;
         self.cells = new_cells;
     }
+
+    pub fn get_cell_struct(&mut self) -> String {
+        "flat_cells".to_string()
+    }
+
 }

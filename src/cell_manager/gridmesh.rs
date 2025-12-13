@@ -54,7 +54,7 @@ impl GridMesh {
             height,
             depth,
             threshold,
-            cell_struct: "flat".to_string(),
+            cell_struct: "flat_cells".to_string(),
             chunk_size: cs,
 
             shape: "square".to_string(),
@@ -199,6 +199,7 @@ impl GridMesh {
         self.config.width = new_width;
         self.config.height = new_height;
         self.config.depth = new_depth;
+        self.config.cell_struct = self.inner.get_cell_struct();
         let new_bounds: [i32; 6] = self.get_bounds();
         self.config.bounds = new_bounds.clone();
         self.topology_manager.change_bounds(new_bounds.clone());

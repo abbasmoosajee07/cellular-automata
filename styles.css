@@ -538,3 +538,25 @@ body.light-mode .control-btn {
     font-size: 0.85rem;
     width: 100%;
 }
+
+/* Editor Styles */
+.tm-rules-editor {
+    width: 100%;
+    min-height: 200px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    background-color: var(--bg);
+    color: var(--text-color);
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+}
+
+.tm-rules-editor:focus {
+    outline: none;
+    border-color: var;
+    box-shadow: 0 0 0 2px var(--dark-color);
+}

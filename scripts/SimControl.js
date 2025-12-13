@@ -7,6 +7,7 @@ class SimulatorController{
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_gen", "status_popl", "status_zoom", "status_camera",
+        "rlePreview",
     ];
 
     shapeProps = {
@@ -27,6 +28,7 @@ class SimulatorController{
         await init(); // <-- wait for WASM to finish loading
 
         this.initElements();
+        this.selecPattern();
         await this.setupGrid(); // make initGrid async as well
         this.setupGridControls();
         this.setupEventListeners();
@@ -88,7 +90,6 @@ class SimulatorController{
 
         if (preserveState == true) {
             this.rangeValue = this.rangeValue || 1
-            console.log("change grid props:", this.neighborhoodType, this.rangeValue, this.topologyType)
             this.grid_mesh.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
         }
 
@@ -114,9 +115,9 @@ class SimulatorController{
 
         this.grid_mesh = this.gridManager.grid_mesh;
         this.gridManager.renderGrid(true);
-        this.configJson = this.grid_mesh.config_string();
-        console.log("Grid Config:\n", JSON.stringify(JSON.parse(this.configJson), null, 2));
 
+        this.configJson = this.grid_mesh.config_string();
+        this.rlePreview.value = JSON.stringify(JSON.parse(this.configJson), null, 2);
     }
 
     setupGridControls() {
@@ -288,6 +289,29 @@ class SimulatorController{
             types: filteredTypes
         };
         this.setupDropdown(NEIGHBORHOOD, "neighborhoodType");
+    }
+
+    selecPattern() {
+        const PATTERN_LIST = {
+            selectId: 'pattern-type',
+            descId: 'pattern-desc',
+            defaultValue: 'glider',
+            types: {
+                glider: {
+                    label: "Glider",
+                    desc: "The smallest, most common, and first discovered spaceship. Diagonal, has period 4 and speed c/4."
+                },
+                gosperglider: {
+                    label: "Gosper Glider",
+                    desc: "A true period 30 glider gun"
+                },
+                blank: {
+                    label: "Blank Template",
+                    desc: "Blank Template to build your own patterns"
+                },
+            }
+        };
+        this.setupDropdown(PATTERN_LIST, 'pattern-type');
     }
 
     setupDropdown(config, propertyName) {

@@ -133,4 +133,9 @@ impl ChunkedCellManager {
     pub fn resize(&mut self, _new_width: usize, _new_height: usize, new_depth: usize) {
         self.depth = new_depth;
     }
+
+        pub fn get_cell_struct(&mut self) -> String {
+        "chunk_cells".to_string()
+    }
+
 }

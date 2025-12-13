@@ -50,4 +50,12 @@ impl CellBackend {
             CellBackend::Chunked(cm) => cm.for_each_cell(),
         }
     }
+
+        pub fn get_cell_struct(&mut self) -> String {
+        match self {
+            CellBackend::Flat(fm) => fm.get_cell_struct(),
+            CellBackend::Chunked(cm) => cm.get_cell_struct(),
+        }
+    }
+
 }
