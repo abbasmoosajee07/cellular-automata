@@ -47,8 +47,8 @@
             <button class="tab-btn" data-panel="statsPanel" title="Statistics">
                 <i class="bi bi-graph-up"></i>
             </button>
-            <button class="tab-btn" data-panel="filePanel" title="Import/Export">
-                <i class="bi bi-bookmark-star-fill"></i>
+            <button class="tab-btn" data-panel="filePanel" title="Share Patterns">
+                <i class="bi bi-share-fill"></i>
             </button>
         </div>
 
@@ -185,16 +185,93 @@
 
             <div class="panel" id="filePanel">
                 <div class="panel-header">
-                    <h3><i class="bi bi-bookmark-star-fill"></i> Import/Export</h3>
+                    <h3>
+                    <i class="bi bi-share-fill"></i>
+                    Share Patterns
+                    </h3>
                 </div>
-                <!-- Select Pattern -->
+
+                <!-- IMPORT -->
+                <label class="block-label">Import Patterns</label>
+
+                <!-- Preset patterns -->
                 <div class="config-group">
-                    <h3>Example Patterns</h3>
-                    <select id="pattern-type" name="f" class="config-select"></select>
+                    <select id="pattern-type" class="config-select"></select>
                     <p id="pattern-desc" class="config-desc"></p>
                 </div>
-                <h5>Pattern Preview</h5>
-                <textarea id="rlePreview" class="tm-rules-editor" placeholder="View your base pattern file here..." readonly></textarea>
+
+                <!-- Upload -->
+                <label for="fileInput" class="io-upload-box">
+                    <span>
+                    <i class="bi bi-upload io-upload-icon"></i>
+                    Upload File
+                    </span>
+                    <small>(.rle, .cells)</small>
+                </label>
+
+                <div class="action-row">
+
+                    <!-- Edit & Load -->
+                    <label class="block-label">Load Simulator</label>
+
+                    <!-- Editor toolbar -->
+                    <div class="editor-toolbar">
+                        <button class="editor-btn" id="editPattern" title="Toggle edit">
+                        <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="editor-btn" id="copyPattern" title="Copy to clipboard">
+                        <i class="bi bi-clipboard"></i>
+                        </button>
+                        <button class="editor-btn danger" id="clearPattern" title="Clear editor">
+                        <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Preview -->
+                <textarea
+                    id="pattern_preview"
+                    class="text-editor"
+                    placeholder="View your model here..."
+                    readonly
+                ></textarea>
+
+                <div class="file-actions">
+                    <div class="action-row">
+                        <button id="update" class="btn btn-update action-btn">
+                        <i class="bi bi-arrow-clockwise"></i> Update
+                        </button>
+
+                        <button id="loadSim" class="btn btn-load action-btn">
+                        <i class="bi bi-play-fill"></i> Load Sim
+                        </button>
+                    </div>
+                </div>
+
+                <label class="block-label">Export Patterns</label>
+
+                <!-- Actions -->
+                <div class="file-actions">
+                    <!-- Name + format -->
+                    <div class="pattern-header">
+                        <input
+                        type="text"
+                        class="pattern-name"
+                        placeholder="pattern_name"
+                        aria-label="Pattern file name"
+                        />
+
+                        <select class="pattern-format" aria-label="Pattern format">
+                        <option value="rle">RLE</option>
+                        <option value="plaintext">Plaintext</option>
+                        </select>
+                    </div>
+
+                    <button id="download" class="btn btn-download action-btn">
+                        <i class="bi bi-download"></i> Download
+                        </button>
+                </div>
             </div>
 
             <!-- Stats Panel -->
@@ -204,7 +281,7 @@
                 </div>
                 <!-- Add your stats panel content here -->
             </div>
-            </div>
+
         </div>
     </div>
 

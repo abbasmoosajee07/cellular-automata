@@ -7,7 +7,7 @@ class SimulatorController{
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_gen", "status_popl", "status_zoom", "status_camera",
-        "rlePreview",
+        "pattern_preview",
     ];
 
     shapeProps = {
@@ -117,7 +117,7 @@ class SimulatorController{
         this.gridManager.renderGrid(true);
 
         this.configJson = this.grid_mesh.config_string();
-        this.rlePreview.value = JSON.stringify(JSON.parse(this.configJson), null, 2);
+        this.pattern_preview.value = JSON.stringify(JSON.parse(this.configJson), null, 2);
     }
 
     setupGridControls() {
@@ -299,15 +299,15 @@ class SimulatorController{
             types: {
                 glider: {
                     label: "Glider",
-                    desc: "The smallest, most common, and first discovered spaceship. Diagonal, has period 4 and speed c/4."
+                    desc: ""
                 },
                 gosperglider: {
                     label: "Gosper Glider",
-                    desc: "A true period 30 glider gun"
+                    desc: ""
                 },
                 blank: {
                     label: "Blank Template",
-                    desc: "Blank Template to build your own patterns"
+                    desc: ""
                 },
             }
         };

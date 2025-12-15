@@ -11,7 +11,10 @@
   --card-border: #333;
   --card-shadow: rgba(0, 0, 0, 0.2);
   --canvas-color: #000000;
-  --remap-bg: #ff4e3a;           /* Vivid red */
+  --remap: #ff4e3a;           /* Vivid red */
+  --load: #eb770b;
+  --update: #4c60e1;
+  --download: #ef34b3;
 
 }
 
@@ -122,7 +125,7 @@ input[type="checkbox"] { width: auto; }
 }
 
 .action-btn {
-  margin: 0.4rem 0;
+  /* margin: 0.4rem 0; */
   background: #333;
   border: none;
   padding: 10px 18px;
@@ -130,21 +133,22 @@ input[type="checkbox"] { width: auto; }
   color: #fff;
   cursor: pointer;
   width: 100%;
-  text-align: left;
-  display: flex;
+  text-align: center;
   align-items: center;
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
   transition: background 0.2s;
   cursor: pointer;
-  width: 90%;
-  max-width: 220px;
+  width: 95%;
 }
 
 .action-btn:hover { background: #555; }
 
-.btn-remap { background-color: var(--remap-bg) !important; }
+.btn-remap { background-color: var(--remap) !important; }
+.btn-load { background-color: var(--load) !important; }
+.btn-update { background-color: var(--update) !important; }
+.btn-download { background-color: var(--download) !important; }
 
 
 /* ==============================
@@ -306,6 +310,36 @@ input[type="checkbox"] { width: auto; }
   color: var(--feature-color);
 }
 
+/* ==============================
+   Sidenav Panel Scrollbar
+============================== */
+
+/* WebKit (Chrome, Edge, Safari) */
+.sidenav-panels::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidenav-panels::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidenav-panels::-webkit-scrollbar-thumb {
+  background-color: var(--card-border);
+  border-radius: 8px;
+  border: 2px solid transparent; /* soft inset look */
+  background-clip: content-box;
+}
+
+.sidenav-panels::-webkit-scrollbar-thumb:hover {
+  background-color: var(--dark-color);
+}
+
+/* Firefox */
+.sidenav-panels {
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-border) transparent;
+}
+
 .config-group {
   margin-bottom: 25px;
 }
@@ -449,26 +483,6 @@ body.light-mode .control-btn {
   color: #fff;
 }
 
-/* 📱 Responsive Layout for Mobile */
-/* @media (max-width: 600px) {
-  .control-panel {
-    flex-direction: row;
-    bottom: 1vmin;
-    left: 50%;
-    transform: translateX(-50%);
-    gap: 0.5rem;
-    padding: 0.4rem 0.6rem;
-  }
-
-  #statusBar {
-    bottom: calc(1vmin + 55px);
-    font-size: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.25rem;
-  }
-} */
-
 /* 🪄 Optional hover highlight for panels */
 .ui-panel:hover {
   background: rgba(26, 26, 26, 0.85);
@@ -539,8 +553,74 @@ body.light-mode .control-btn {
     width: 100%;
 }
 
+/* =========================
+    UPLOAD (INLINE)
+========================= */
+.io-upload-box {
+    /* flex: 1; */
+    border: 2px dashed #2e3442;
+    border-radius: 8px;
+    padding: 0.1rem;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.io-upload-box span {
+    font-size: 1.0rem;
+}
+
+.io-upload-box small {
+    font-size: 0.85rem;
+    color: #9aa0aa;
+}
+
+.io-upload-box:hover {
+    border-color: var(--feature-color);
+    background: rgba(91, 140, 255, 0.08);
+}
+
+.io-upload-icon {
+    font-size:0.9rem;
+    color: var(--feature-color);
+}
+
+.pattern-panel {
+  background: #171a21;
+  border-radius: 12px;
+  padding: 1rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  color: #e6e6e6;
+}
+
+/* Header */
+.pattern-header {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.pattern-name,
+.pattern-format {
+  background: #0f1115;
+  border: 1px solid #2a2f3a;
+  color: #e6e6e6;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.pattern-name {
+  flex: 1;
+}
+
 /* Editor Styles */
-.tm-rules-editor {
+.text-editor {
     width: 100%;
     min-height: 200px;
     padding: 12px;
@@ -555,8 +635,107 @@ body.light-mode .control-btn {
     transition: border-color 0.2s ease;
 }
 
-.tm-rules-editor:focus {
+.text-editor:focus {
     outline: none;
     border-color: var;
     box-shadow: 0 0 0 2px var(--dark-color);
+}
+
+/* Custom scrollbar for text editor */
+.text-editor::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.text-editor::-webkit-scrollbar-track {
+    background: var(--bg);
+    border-radius: 8px;
+}
+
+.text-editor::-webkit-scrollbar-thumb {
+    background-color: var(--card-border);
+    border-radius: 8px;
+    border: 2px solid var(--bg); /* creates padding effect */
+    transition: background-color 0.2s ease;
+}
+
+.text-editor::-webkit-scrollbar-thumb:hover {
+    background-color: var(--dark-color);
+}
+
+/* Firefox */
+.text-editor {
+    scrollbar-width: thin;
+    scrollbar-color: var(--card-border) var(--bg);
+}
+
+/* =========================
+   Editor Toolbar
+========================= */
+.editor-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 6px 0 6px;
+}
+
+.editor-btn {
+  background: #0f1115;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.editor-btn i {
+  pointer-events: none;
+}
+
+.editor-btn:hover {
+  background: var(--feature-color);
+  color: #111;
+  transform: translateY(-1px);
+}
+
+.editor-btn.danger:hover {
+  background: var(--remap);
+  color: #fff;
+}
+
+/* =========================
+   File Actions Group
+========================= */
+.file-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Subtle editor state */
+.text-editor[readonly] {
+  opacity: 0.85;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.action-row .action-btn {
+  width: 100%;
+}
+
+.block-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--feature-color);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: bottom;
+  margin-top: 0.35rem;
 }
