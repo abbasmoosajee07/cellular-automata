@@ -1,4 +1,5 @@
 import {  GridManager  } from '../grids/gridManager.js';
+import {  SharePatterns  } from '../scripts/SharePatterns.js';
 import init, { WasmInterface  } from "../pkg/cellular_automata.js";
 
 class SimulatorController{
@@ -7,7 +8,7 @@ class SimulatorController{
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_gen", "status_popl", "status_zoom", "status_camera",
-        "pattern_preview",
+        "patternPreview", "clearPreview", "editPreview", "copyPreview"
     ];
 
     shapeProps = {
@@ -28,7 +29,7 @@ class SimulatorController{
         await init(); // <-- wait for WASM to finish loading
 
         this.initElements();
-        this.selecPattern();
+        this.patternSharer = new SharePatterns(this);
         await this.setupGrid(); // make initGrid async as well
         this.setupGridControls();
         this.setupEventListeners();
@@ -117,7 +118,7 @@ class SimulatorController{
         this.gridManager.renderGrid(true);
 
         this.configJson = this.grid_mesh.config_string();
-        this.pattern_preview.value = JSON.stringify(JSON.parse(this.configJson), null, 2);
+        // this.patternPreview.value = JSON.stringify(JSON.parse(this.configJson), null, 2);
     }
 
     setupGridControls() {
@@ -289,29 +290,6 @@ class SimulatorController{
             types: filteredTypes
         };
         this.setupDropdown(NEIGHBORHOOD, "neighborhoodType");
-    }
-
-    selecPattern() {
-        const PATTERN_LIST = {
-            selectId: 'pattern-type',
-            descId: 'pattern-desc',
-            defaultValue: 'glider',
-            types: {
-                glider: {
-                    label: "Glider",
-                    desc: ""
-                },
-                gosperglider: {
-                    label: "Gosper Glider",
-                    desc: ""
-                },
-                blank: {
-                    label: "Blank Template",
-                    desc: ""
-                },
-            }
-        };
-        this.setupDropdown(PATTERN_LIST, 'pattern-type');
     }
 
     setupDropdown(config, propertyName) {

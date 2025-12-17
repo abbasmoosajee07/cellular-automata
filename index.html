@@ -203,10 +203,16 @@
                 <!-- Upload -->
                 <label for="fileInput" class="io-upload-box">
                     <span>
-                    <i class="bi bi-upload io-upload-icon"></i>
-                    Upload File
+                        <i class="bi bi-upload io-upload-icon"></i>
+                        Upload File
                     </span>
                     <small>(.rle, .cells)</small>
+                    <input
+                        id="fileInput"
+                        type="file"
+                        accept=".rle,.cells"
+                        hidden
+                    />
                 </label>
 
                 <div class="action-row">
@@ -216,13 +222,13 @@
 
                     <!-- Editor toolbar -->
                     <div class="editor-toolbar">
-                        <button class="editor-btn" id="editPattern" title="Toggle edit">
+                        <button class="editor-btn" id="editPreview" title="Toggle edit">
                         <i class="bi bi-pencil"></i>
                         </button>
-                        <button class="editor-btn" id="copyPattern" title="Copy to clipboard">
+                        <button class="editor-btn" id="copyPreview" title="Copy to clipboard">
                         <i class="bi bi-clipboard"></i>
                         </button>
-                        <button class="editor-btn danger" id="clearPattern" title="Clear editor">
+                        <button class="editor-btn danger" id="clearPreview" title="Clear editor">
                         <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -231,7 +237,7 @@
 
                 <!-- Preview -->
                 <textarea
-                    id="pattern_preview"
+                    id="patternPreview"
                     class="text-editor"
                     placeholder="View your model here..."
                     readonly
