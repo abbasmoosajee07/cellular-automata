@@ -8,7 +8,6 @@ class SimulatorController{
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_gen", "status_popl", "status_zoom", "status_camera",
-        "patternPreview", "clearPreview", "editPreview", "copyPreview"
     ];
 
     shapeProps = {
@@ -118,7 +117,7 @@ class SimulatorController{
         this.gridManager.renderGrid(true);
 
         this.configJson = this.grid_mesh.config_string();
-        // this.patternPreview.value = JSON.stringify(JSON.parse(this.configJson), null, 2);
+        this.patternSharer.updatePreview(JSON.stringify(JSON.parse(this.configJson), null, 2));
     }
 
     setupGridControls() {

@@ -1,0 +1,7 @@
+#N Pattern Name
+#O Author
+#C Description
+x = cols, y = rows, rule = B3/S23
+b	dead cell
+o	alive cell
+$	end of line

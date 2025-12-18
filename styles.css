@@ -310,6 +310,19 @@ input[type="checkbox"] { width: auto; }
   color: var(--feature-color);
 }
 
+.panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 /* ==============================
    Sidenav Panel Scrollbar
 ============================== */
@@ -391,7 +404,43 @@ input[type="checkbox"] { width: auto; }
   box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
 }
 
+.config-group {
+  margin: 1em 0;
+  display: flex;
+  flex-direction: column;
+}
 
+.config-label {
+  font-weight: 600;
+  margin-bottom: 0.4em;
+}
+
+.config-select {
+  padding: 0.5em 0.75em;
+  border-radius: 0.5em;
+  border: 1px solid #ccc;
+  background: var(--card-bg);
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.config-select:hover {
+  border-color: #888;
+}
+
+.config-select:focus {
+  outline: none;
+  border-color: var(--feature-color);
+  box-shadow: 0 0 0 2px var(--dark-color);
+}
+
+.config-desc {
+  font-size: 0.85em;
+  color: #555;
+  margin-top: 0.4em;
+  line-height: 1.4;
+}
 /* 🔹 Shared floating panel style (used by control + status) */
 .ui-panel {
   position: fixed;
@@ -489,45 +538,6 @@ body.light-mode .control-btn {
   transform: translateY(-1px);
 }
 
-.config-group {
-  margin: 1em 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.config-label {
-  font-weight: 600;
-  margin-bottom: 0.4em;
-}
-
-.config-select {
-  padding: 0.5em 0.75em;
-  border-radius: 0.5em;
-  border: 1px solid #ccc;
-  background: var(--card-bg);
-  font-size: 0.95em;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-}
-
-.config-select:hover {
-  border-color: #888;
-}
-
-.config-select:focus {
-  outline: none;
-  border-color: var(--feature-color);
-  box-shadow: 0 0 0 2px var(--dark-color);
-}
-
-.config-desc {
-  font-size: 0.85em;
-  color: #555;
-  margin-top: 0.4em;
-  line-height: 1.4;
-}
-
-
 .size-controls {
     display: flex;
     gap: 10px;
@@ -554,144 +564,86 @@ body.light-mode .control-btn {
 }
 
 /* =========================
-    UPLOAD (INLINE)
+   Labels
 ========================= */
-.io-upload-box {
-    /* flex: 1; */
-    border: 2px dashed #2e3442;
-    border-radius: 8px;
-    padding: 0.1rem;
-    cursor: pointer;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 0.05rem;
-    transition: border-color 0.2s, background 0.2s;
-}
-
-.io-upload-box span {
-    font-size: 1.0rem;
-}
-
-.io-upload-box small {
-    font-size: 0.85rem;
-    color: #9aa0aa;
-}
-
-.io-upload-box:hover {
-    border-color: var(--feature-color);
-    background: rgba(91, 140, 255, 0.08);
-}
-
-.io-upload-icon {
-    font-size:0.9rem;
-    color: var(--feature-color);
-}
-
-.pattern-panel {
-  background: #171a21;
-  border-radius: 12px;
-  padding: 1rem;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-  color: #e6e6e6;
-}
-
-/* Header */
-.pattern-header {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.pattern-name,
-.pattern-format {
-  background: #0f1115;
-  border: 1px solid #2a2f3a;
-  color: #e6e6e6;
-  border-radius: 8px;
-  padding: 0.45rem 0.6rem;
-  font-size: 0.85rem;
-}
-
-.pattern-name {
-  flex: 1;
-}
-
-/* Editor Styles */
-.text-editor {
-    width: 100%;
-    min-height: 200px;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid var(--card-border);
-    background-color: var(--bg);
-    color: var(--text-color);
-    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    font-size: 12px;
-    line-height: 1.5;
-    resize: vertical;
-    transition: border-color 0.2s ease;
-}
-
-.text-editor:focus {
-    outline: none;
-    border-color: var;
-    box-shadow: 0 0 0 2px var(--dark-color);
-}
-
-/* Custom scrollbar for text editor */
-.text-editor::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-
-.text-editor::-webkit-scrollbar-track {
-    background: var(--bg);
-    border-radius: 8px;
-}
-
-.text-editor::-webkit-scrollbar-thumb {
-    background-color: var(--card-border);
-    border-radius: 8px;
-    border: 2px solid var(--bg); /* creates padding effect */
-    transition: background-color 0.2s ease;
-}
-
-.text-editor::-webkit-scrollbar-thumb:hover {
-    background-color: var(--dark-color);
-}
-
-/* Firefox */
-.text-editor {
-    scrollbar-width: thin;
-    scrollbar-color: var(--card-border) var(--bg);
+.block-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--feature-color);
 }
 
 /* =========================
-   Editor Toolbar
+   Upload Box
+========================= */
+.io-upload-box {
+  border: 2px dashed #2e3442;
+  border-radius: 8px;
+  padding: 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.io-upload-box span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.io-upload-box small {
+  font-size: 0.75rem;
+  color: #9aa0aa;
+}
+
+.io-upload-box:hover {
+  border-color: var(--feature-color);
+  background: rgba(91, 140, 255, 0.08);
+}
+
+.io-upload-icon {
+  color: var(--feature-color);
+}
+
+/* =========================
+   Editor
+========================= */
+.text-editor {
+  width: 100%;
+  min-height: 200px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--bg);
+  color: var(--text-color);
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.text-editor[readonly] {
+  opacity: 0.85;
+}
+
+/* =========================
+   Toolbar
 ========================= */
 .editor-toolbar {
   display: flex;
-  justify-content: flex-end;
   gap: 6px;
-  margin: 6px 0 6px;
 }
 
 .editor-btn {
-  background: #0f1115;
+  background: var(--card-bg);
+  color: var(--text-color);
   border: 1px solid var(--card-border);
   border-radius: 6px;
   padding: 4px 8px;
-  font-size: 0.85rem;
-  color: var(--text-color);
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
-}
-
-.editor-btn i {
-  pointer-events: none;
+  transition: background 0.2s, transform 0.15s;
 }
 
 .editor-btn:hover {
@@ -706,36 +658,37 @@ body.light-mode .control-btn {
 }
 
 /* =========================
-   File Actions Group
+   Actions
 ========================= */
-.file-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-/* Subtle editor state */
-.text-editor[readonly] {
-  opacity: 0.85;
-}
-
 .action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
-.action-row .action-btn {
+.action-btn {
   width: 100%;
 }
 
-.block-label {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--feature-color);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  vertical-align: bottom;
-  margin-top: 0.35rem;
+.full-width {
+  width: 100%;
+}
+
+/* =========================
+   Export Header
+========================= */
+.pattern-header {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pattern-name,
+.pattern-format {
+  flex: 1;
+  background: #0f1115;
+  border: 1px solid #2a2f3a;
+  color: #e6e6e6;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
 }
