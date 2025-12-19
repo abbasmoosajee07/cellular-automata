@@ -15,12 +15,16 @@ pub mod cell_manager {
     pub use topology::Topology;
 }
 
-pub use cell_manager::gridmesh::GridMesh;
 
 pub mod automata {
     pub mod conway_life;
     pub use conway_life::ConwayLife;
 }
+
+pub use cell_manager::gridmesh::GridMesh;
+pub mod engine;
+pub use engine::Engine;
+
 // Include native interface for normal Rust builds
 #[cfg(not(target_arch = "wasm32"))]
 pub mod native_interface;

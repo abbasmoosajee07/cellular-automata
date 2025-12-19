@@ -1,9 +1,10 @@
 use wasm_bindgen::prelude::*;
-use crate::GridMesh;
+use crate::Engine;
 
 #[wasm_bindgen]
 pub struct WasmInterface {
-    inner: GridMesh,
+    // inner: GridMesh,
+    engine: Engine,
 }
 
 #[wasm_bindgen]
@@ -11,61 +12,61 @@ impl WasmInterface {
     #[wasm_bindgen(constructor)]
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> WasmInterface {
         WasmInterface {
-            inner: GridMesh::new(width, height, depth, chunk_size),
+            engine: Engine::new(width, height, depth, chunk_size),
         }
     }
 
     pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
-        self.inner.set_cell(q, r, s, value);
+        self.engine.mesh.set_cell(q, r, s, value);
     }
 
     pub fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 {
-        self.inner.get_cell(q, r, s)
+        self.engine.mesh.get_cell(q, r, s)
     }
 
     pub fn clear(&mut self) {
-        self.inner.clear();
+        self.engine.mesh.clear();
     }
 
     pub fn count_live_cells(&self) -> i32 {
-        self.inner.count_live_cells()
+        self.engine.mesh.count_live_cells()
     }
 
     pub fn each_live_cell(&self) -> Vec<i32> {
-        self.inner.each_live_cell()
+        self.engine.mesh.each_live_cell()
     }
 
     pub fn random_cells(&mut self) {
-        self.inner.random_cells();
+        self.engine.mesh.random_cells();
     }
 
     pub fn resize(&mut self, w: usize, h: usize, d: usize) {
-        self.inner.resize(w, h, d);
+        self.engine.mesh.resize(w, h, d);
     }
 
     #[wasm_bindgen]
     pub fn change_grid_properties(&mut self, shape: String, neighbor_type: String, range: i32, topology_type: String) {
-        self.inner.change_grid_properties(shape, neighbor_type, range, topology_type);
+        self.engine.mesh.change_grid_properties(shape, neighbor_type, range, topology_type);
     }
 
     pub fn get_bounds(&self) -> Vec<i32> {
-        self.inner.config.bounds.to_vec()
+        self.engine.mesh.config.bounds.to_vec()
     }
 
     pub fn get_cell_extremes(&self) -> Vec<i32> {
-        self.inner.get_cell_extremes().to_vec()
+        self.engine.mesh.get_cell_extremes().to_vec()
     }
 
     pub fn floodfill(&mut self) {
-        self.inner.floodfill();
+        self.engine.mesh.floodfill();
     }
 
     pub fn step_game_of_life(&mut self) {
-        self.inner.step_game_of_life();
+        self.engine.step_game_of_life();
     }
 
     #[wasm_bindgen]
     pub fn config_string(&self) -> String {
-        serde_json::to_string(&self.inner.config).unwrap()
+        serde_json::to_string(&self.engine.mesh.config).unwrap()
     }
 }

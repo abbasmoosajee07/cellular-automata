@@ -2,7 +2,6 @@ use crate::cell_manager::{
     CellBackend, FlatCellManager, ChunkedCellManager,
     Neighborhood, Topology,
 };
-use crate::automata::{ConwayLife};
 use serde::{Serialize, Deserialize};
 
 use fastrand;
@@ -155,10 +154,6 @@ impl GridMesh {
         }
     }
 
-    // CONWAY GAME OF LIFE UPDATE
-    pub fn step_game_of_life(&mut self) {
-        ConwayLife::step_game_of_life(self);
-    }
     pub fn count_live_cells(&self) -> i32 {
         let mut count = 0;
         let arr = self.each_live_cell();
