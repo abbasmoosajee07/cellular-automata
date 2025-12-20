@@ -1,5 +1,7 @@
-// src/lib.rs
 
+// =========================
+// Cell System
+// =========================
 pub mod cell_manager {
     pub mod flat_cells;
     pub mod chunk_cells;
@@ -13,17 +15,26 @@ pub mod cell_manager {
     pub use flat_cells::FlatCellManager;
     pub use neighborhood::Neighborhood;
     pub use topology::Topology;
+    pub use gridmesh::GridMesh;
 }
-
-
+pub use cell_manager::gridmesh::GridMesh;
+// Automata
 pub mod automata {
-    pub mod conway_life;
+    mod conway_life;
     pub use conway_life::ConwayLife;
 }
 
-pub use cell_manager::gridmesh::GridMesh;
+// Core Engine
 pub mod engine;
 pub use engine::Engine;
+
+// File Manager
+pub mod store {
+    pub mod pattern_io;
+    pub use pattern_io::PatternIO;
+}
+
+pub use store::pattern_io::PatternIO;
 
 // Include native interface for normal Rust builds
 #[cfg(not(target_arch = "wasm32"))]
