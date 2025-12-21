@@ -61,7 +61,11 @@ impl GridMesh {
             range: 1,
 
             topology_type: "finite".to_string(),
-            bounds: [-10, 9, -10, 9, 0, 1]
+            bounds: [
+                -(width as i32 / 2), (width as i32 - 1) / 2, 
+                -(height as i32 / 2), (height as i32 - 1) / 2,
+                0, depth as i32 - 1
+                ]
         };
 
         let neighbor_manager = Neighborhood::new(

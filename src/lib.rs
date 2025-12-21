@@ -29,12 +29,17 @@ pub mod engine;
 pub use engine::Engine;
 
 // File Manager
-pub mod store {
+pub mod formats {
     pub mod pattern_io;
+    pub mod formats;
+    pub mod plaintext;
+
+    pub use formats::PatternConfig;
+    pub use plaintext::Plaintext;
     pub use pattern_io::PatternIO;
 }
 
-pub use store::pattern_io::PatternIO;
+pub use formats::pattern_io::PatternIO;
 
 // Include native interface for normal Rust builds
 #[cfg(not(target_arch = "wasm32"))]
