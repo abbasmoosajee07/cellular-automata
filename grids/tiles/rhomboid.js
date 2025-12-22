@@ -233,10 +233,10 @@ class RhomboidalGrid extends BaseGrid {
                 int rhombusType = getRhombusIndex(localPos, uRadius);
 
                 // Grid bounds expressed as floats
-                float minQ = -uGridCols * 0.5;
-                float minR = -uGridRows * 0.5;
-                float maxQ =  uGridCols * 0.5 - 1.0;
-                float maxR =  uGridRows * 0.5 - 1.0;
+                float minQ = -floor(uGridCols * 0.5);
+                float maxQ =  floor(uGridCols * 0.5);
+                float minR = -floor(uGridRows * 0.5);
+                float maxR =  floor(uGridRows * 0.5);
 
                 // Check if hex is outside grid (convert hex indices to floats)
                 if (hx < minQ || hx > maxQ || hy < minR || hy > maxR) {
@@ -378,10 +378,10 @@ class RhomboidalGrid extends BaseGrid {
 
                 float rhombusType = getRhombusIndex(localPos, uRadius);
 
-                float minQ = -uGridCols * 0.5;
-                float minR = -uGridRows * 0.5;
-                float maxQ =  uGridCols * 0.5 - 1.0;
-                float maxR =  uGridRows * 0.5 - 1.0;
+                float minQ = -floor(uGridCols * 0.5);
+                float maxQ =  floor(uGridCols * 0.5);
+                float minR = -floor(uGridRows * 0.5);
+                float maxR =  floor(uGridRows * 0.5);
 
                 if (hx < minQ || hx > maxQ || hy < minR || hy > maxR) {
                     gl_FragColor = uCanvasColor;

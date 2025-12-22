@@ -91,10 +91,10 @@ class TriangleGrid extends BaseGrid {
                     float tri = (localY < localX) ? 1.0 : 0.0;
 
                     // ------- grid bounds -------
-                    float minQ = -uGridCols * 0.5;
-                    float maxQ =  uGridCols * 0.5 - 1.0;
-                    float minR = -uGridRows * 0.5;
-                    float maxR =  uGridRows * 0.5 - 1.0;
+                    float minQ = -floor(uGridCols * 0.5);
+                    float maxQ =  floor(uGridCols * 0.5);
+                    float minR = -floor(uGridRows * 0.5);
+                    float maxR =  floor(uGridRows * 0.5);
 
                     // outside → canvas color
                     if (col < minQ || col > maxQ || row < minR || row > maxR) {
@@ -148,10 +148,10 @@ class TriangleGrid extends BaseGrid {
 
                     float tri = (localY < localX) ? 1.0 : 0.0;
 
-                    float minQ = -uGridCols * 0.5;
-                    float maxQ =  uGridCols * 0.5 - 1.0;
-                    float minR = -uGridRows * 0.5;
-                    float maxR =  uGridRows * 0.5 - 1.0;
+                    float minQ = -floor(uGridCols * 0.5);
+                    float maxQ =  floor(uGridCols * 0.5);
+                    float minR = -floor(uGridRows * 0.5);
+                    float maxR =  floor(uGridRows * 0.5);
 
                     if (col < minQ || col > maxQ || row < minR || row > maxR) {
                         gl_FragColor = uCanvasColor;

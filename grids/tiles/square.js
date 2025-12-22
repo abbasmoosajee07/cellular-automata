@@ -7,8 +7,9 @@ class SquareGrid extends BaseGrid {
     }
 
     worldToCell(world) {
-        const col = Math.round(world.x / (this.cellSize));
-        const row = Math.round(world.y / (this.cellSize));
+        const col = Math.floor(world.x / this.cellSize + 0.5);
+        const row = Math.floor(world.y / this.cellSize + 0.5);
+
         return [col, row, 0];
     }
 
@@ -64,10 +65,10 @@ class SquareGrid extends BaseGrid {
                     vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
 
                     // grid bounds centered around 0
-                    float minQ = -uGridCols * 0.5;
-                    float maxQ =  uGridCols * 0.5 - 1.0;
-                    float minR = -uGridRows * 0.5;
-                    float maxR =  uGridRows * 0.5 - 1.0;
+                    float minQ = -floor(uGridCols * 0.5);
+                    float maxQ =  floor(uGridCols * 0.5);
+                    float minR = -floor(uGridRows * 0.5);
+                    float maxR =  floor(uGridRows * 0.5);
 
                     // check inside grid
                     if (cellCoord.x < minQ || cellCoord.x > maxQ ||
@@ -115,10 +116,10 @@ class SquareGrid extends BaseGrid {
                     vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
 
                     // Grid bounds centered on (0,0)
-                    float minQ = -uGridCols * 0.5;
-                    float maxQ =  uGridCols * 0.5 - 1.0;
-                    float minR = -uGridRows * 0.5;
-                    float maxR =  uGridRows * 0.5 - 1.0;
+                    float minQ = -floor(uGridCols * 0.5);
+                    float maxQ =  floor(uGridCols * 0.5);
+                    float minR = -floor(uGridRows * 0.5);
+                    float maxR =  floor(uGridRows * 0.5);
 
                     // Outside grid → background color
                     if (cellCoord.x < minQ || cellCoord.x > maxQ ||
@@ -129,7 +130,9 @@ class SquareGrid extends BaseGrid {
                     }
 
                     // Convert cell to texture lookup
-                    vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
+                    // vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
+                    vec2 texCoord = (cellCoord - vec2(minQ, minR) + 0.5)
+                                    / vec2(uGridCols, uGridRows);
 
                     // Read texture
                     vec4 cellColor = texture2D(uGridTexture, texCoord);
@@ -150,8 +153,8 @@ class SquareGrid extends BaseGrid {
         const h = this.gridRows * this.cellSize;
 
         ctx.fillRect(
-            -w / 2 - this.cellSize / 2,
-            -h / 2 + this.cellSize / 2,
+            -w / 2,
+            -h / 2,
             w,
             h,
         );

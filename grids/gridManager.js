@@ -237,8 +237,6 @@ class GridManager {
 
     resizeGrid(newCols, newRows, newStates) {
         this.gridSize = [newCols, newRows, newStates];
-        this.shapeGrid.gridRows = newRows;
-        this.shapeGrid.gridCols = newCols;
         this.grid_mesh.resize(newCols, newRows, newStates);
         this.grid_bounds = this.grid_mesh.get_bounds();
         if (this.useWebGL && this.renderer.gl) {
