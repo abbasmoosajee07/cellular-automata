@@ -23,7 +23,7 @@ impl Plaintext {
         let width = rows.first().map(|r| r.len()).unwrap_or(0) as i32;
 
         cfg.grid_size = [width, height, 1];
-        cfg.top_left = [-width/2, height/2, 1];
+        cfg.top_left = [-width/2, height/2, 0];
         cfg.cells = rows.clone();
 
         for (y, row) in rows.iter().enumerate() {
@@ -57,7 +57,7 @@ impl Plaintext {
             let x = *x as usize;
             let y = *y as usize;
             if y < height && x < width {
-                grid[y][x] = 'O';
+                grid[y][x] = '+';
             }
         }
 

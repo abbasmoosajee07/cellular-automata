@@ -1,8 +1,10 @@
 use serde::{Serialize, Deserialize};
 
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PatternConfig {
+    pub name: String,
+    pub format: String,
+
     pub comments: Vec<String>,
 
     // source representation (optional, but useful)
@@ -26,6 +28,9 @@ pub struct PatternConfig {
 impl Default for PatternConfig {
     fn default() -> Self {
         Self {
+            name: "test".to_string(),
+            format: "cells".to_string(),
+
             comments: Vec::new(),
             cells: Vec::new(),
             alive: Vec::new(),

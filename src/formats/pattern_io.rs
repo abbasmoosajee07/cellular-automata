@@ -2,75 +2,52 @@ use std::{fs, path::{Path, PathBuf}};
 use crate::formats::{PatternConfig, Plaintext};
 
 #[derive(Debug)]
-pub struct PatternIO {
-    pub name: String,
-    pub format: String,
-    pub path: Option<PathBuf>,
-
-    pub file_text: String,
-    pub parsed: PatternConfig,
-}
+pub struct PatternIO;
 
 impl PatternIO {
-    pub fn new() -> Self {
-        Self {
-            name: String::new(),
-            format: String::new(),
-            path: None,
-            file_text: String::new(),
-            parsed: PatternConfig::default(),
-        }
-    }
 
     pub fn read_file<P: AsRef<Path>>(
-        &mut self, path: P,
-    ) -> Result<(), std::io::Error> {
+        path: P,
+    ) -> Result<PatternConfig, std::io::Error> {
+        let path_str = path.as_ref().to_string_lossy().to_string();
         let path = path.as_ref();
 
+        let file_text = fs::read_to_string(path)?;
+
+        Ok(Self::read_pattern(&path_str, &file_text))
+    }
+
+    pub fn read_pattern(
+        pattern_props: &str, pattern_data: &str,
+    ) -> PatternConfig {
+        let path = pattern_props.as_ref();
+
         let (name, format) = Self::parse_filename(path);
-        self.name = name;
-        self.format = format;
-        // self.path = path.parent().map(|p| p.to_path_buf());
 
-        self.file_text = fs::read_to_string(path)?;
-
-        match self.format.as_str() {
-            "cells" | "txt" => {
-                self.parsed = Plaintext::parse(&self.file_text);
-            }
-            _ => {
-                // future: RLE, etc.
-                self.parsed = PatternConfig::default();
-            }
-        }
-        Ok(())
+        let mut cfg = Self::match_format(&format, pattern_data);
+        cfg.name = name;
+        cfg.format = format;
+        cfg
     }
 
-    pub fn read_pattern(&mut self, pattern_data: String) {
-        match self.format.as_str() {
-            "cells" | "txt" => {
-                self.parsed = Plaintext::parse(&pattern_data);
-            }
-            _ => {
-                // future: RLE, etc.
-                // self.parsed = PatternConfig::default();
-                self.parsed = Plaintext::parse(&pattern_data);
-            }
+    pub fn match_format(format: &str, pattern_data: &str) -> PatternConfig {
+        match format {
+            "cells" | "txt" => Plaintext::parse(pattern_data),
+            _ => PatternConfig::default(),
         }
     }
 
-    pub fn save_file(&self) -> Result<(), std::io::Error> {
-        let filename = if self.format.is_empty() {
-            self.name.clone()
+    pub fn save_file(config: PatternConfig) -> Result<(), std::io::Error> {
+        let filename = if config.format.is_empty() {
+            config.name.clone()
         } else {
-            format!("{}.{}", self.name, self.format)
+            format!("{}.{}", config.name, config.format)
         };
 
-        let path = match &self.path {
-            Some(dir) => dir.join(filename),
-            None => PathBuf::from(filename),
-        };
-        let write_text = Plaintext::write(&self.parsed);
+        let path = PathBuf::from(filename);
+        // let print_cfg =  serde_json::to_string(&config).unwrap();
+        // println!("{}", print_cfg);
+        let write_text = Plaintext::write(&config);
         println!("{}", write_text);
 
         fs::write(&path, write_text)?;
