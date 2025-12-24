@@ -8,6 +8,7 @@ class SimulatorController{
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_gen", "status_popl", "status_zoom", "status_camera",
+        "updateSim", "loadSim",
     ];
 
     shapeProps = {
@@ -41,6 +42,17 @@ class SimulatorController{
         this.gridManager.changeCell(-1,1,0,1);
         this.gridManager.changeCell(-1,-1,0,1);
         this.gridManager.renderGrid();
+        // this.setShape("hexagon");
+        // this.selectNeighbor("tripod");
+        // this.selectTopology("infinite");
+    }
+    setShape(value) {
+        document.querySelectorAll('input[name="shape"]').forEach(radio => {
+            radio.checked = radio.value === value;
+        });
+
+        this.selectedShape = value;
+        this.selectNeighbor();
     }
 
     initElements() {
@@ -116,8 +128,10 @@ class SimulatorController{
         this.grid_mesh = this.gridManager.grid_mesh;
         this.gridManager.renderGrid(true);
 
-        this.configJson = this.grid_mesh.config_string();
-        this.patternSharer.updatePreview(JSON.stringify(JSON.parse(this.configJson), null, 2));
+        this.grid_config = JSON.parse(this.grid_mesh.config_string())
+        this.patternSharer.updatePreview(JSON.stringify(this.grid_config, null, 2));
+        console.log("Current Config:", this.grid_config);
+        
     }
 
     setupGridControls() {
@@ -130,7 +144,6 @@ class SimulatorController{
             this.gridSize[1] = parseInt(this.rowInput.value) || 20; // rows
         });
 
-
         this.rangeInput.addEventListener('input', () => {
             this.rangeValue = parseInt(this.rangeInput.value) || 1; // cols
         });
@@ -140,13 +153,16 @@ class SimulatorController{
             radio.addEventListener('change', () => {
                 if (radio.checked) { this.selectedShape = radio.value; }
                 this.selectNeighbor();
-
             });
         });
 
         // --- Rebuild / Remap Grid Button ---
         this.reMap.addEventListener('click', () => {
             this.setupGrid({ preserveState: true });
+        });
+        this.updateSim.addEventListener('click', () => {
+            const previewText = this.grid_mesh.update_preview();
+            this.patternSharer.updatePreview(previewText);
         });
     }
 
@@ -182,11 +198,11 @@ class SimulatorController{
         this.neighborTiles.addEventListener('click', () => {this.fillNeighbors()});
     }
 
-    selectTopology() {
+    selectTopology(preffered = null) {
         const TOPOLOGY = {
             selectId: 'topology-type',
             descId: 'topology-desc',
-            defaultValue: 'finite',
+            defaultValue:  preffered || 'finite',
             types: {
                 infinite: {
                     label: "Infinite plane",
@@ -218,10 +234,11 @@ class SimulatorController{
                 },
             }
         };
+
         this.setupDropdown(TOPOLOGY, 'topologyType');
     }
 
-    selectNeighbor() {
+    selectNeighbor(preferred = null) {
         // All available neighborhood definitions
         const ALL_NEIGHBOR_TYPES = {
             vonNeumann: {
@@ -282,12 +299,18 @@ class SimulatorController{
                 .map(name => [name, ALL_NEIGHBOR_TYPES[name]])
         );
 
+        const defaultValue =
+            preferred && filteredTypes[preferred]
+                ? preferred
+                : usedNeighborhoods[0] || "moore";
+
         const NEIGHBORHOOD = {
             selectId: "neighbor-type",
             descId: "neighbor-desc",
-            defaultValue: usedNeighborhoods[0] || "moore",
+            defaultValue,
             types: filteredTypes
         };
+
         this.setupDropdown(NEIGHBORHOOD, "neighborhoodType");
     }
 

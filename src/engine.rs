@@ -60,22 +60,33 @@ impl Engine {
         ConwayLife::step_game_of_life(&mut self.mesh);
     }
 
-    pub fn update_stroage(&mut self) {
-        let [shift_q, shift_r, shift_s, ] = self.storage.top_left;
+    pub fn update_storage(&mut self) {
+        let mut new_storage = self.storage.clone();
+        let config = self.mesh.config.clone();
+        let [shift_q, _, _, shift_r, _, shift_s]= config.bounds;
+        // let [shift_q, shift_r, shift_s, ] = new_storage.top_left;
+
         let mut new_alive: Vec<(i32, i32, i32, u32)> = Vec::new();
         for [q, r, s, state] in self.mesh.inner.iter_cell() {
             if state != 0 {
                 new_alive.push((q - shift_q, r + shift_r, s + shift_s, state as u32));
             }
         }
-        // for (*q, *r, *s, *state) in self.mesh.each_live_cell().chunks(4) {
-        //     new_alive.push((q, r, s, state as u32));
-        // }
-        self.storage.alive = new_alive;
+        new_storage.grid_size = [config.width, config.height, config.depth];
+        new_storage.top_left  = [shift_q, shift_r, shift_s];
+        new_storage.neighbor_type = config.neighbor_type.clone();
+        new_storage.topology_type = config.topology_type.clone();
+        new_storage.shape = config.shape.clone();
+        new_storage.range = config.range;
+        new_storage.alive = new_alive;
+        self.storage = new_storage.clone();
     }
 
     pub fn snap_pattern(&mut self) {
         let _reader = PatternIO::save_file(self.storage.clone());
+    }
+    pub fn pattern_text(&mut self) -> String {
+        PatternIO::write_text(self.storage.clone())
     }
 
 }

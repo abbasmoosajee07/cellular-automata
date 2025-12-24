@@ -16,6 +16,18 @@ impl WasmInterface {
         }
     }
 
+    #[wasm_bindgen]
+    pub fn new_with_pattern(pattern_props: &str, pattern_data: &str) -> WasmInterface {
+        WasmInterface {
+            engine: Engine::new_with_pattern(pattern_props, pattern_data),
+        }
+    }
+
+    pub fn update_preview(&mut self) -> String {
+        self.engine.update_storage();
+        self.engine.pattern_text()
+    }
+
     pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
         self.engine.mesh.set_cell(q, r, s, value);
     }

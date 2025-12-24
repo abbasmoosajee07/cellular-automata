@@ -8,13 +8,13 @@ pub struct PatternConfig {
     pub comments: Vec<String>,
 
     // source representation (optional, but useful)
-    pub cells: Vec<String>,
+    // pub cells: Vec<String>,
 
     // canonical sparse representation
     pub alive: Vec<(i32, i32, i32, u32)>,
 
     // intrinsic
-    pub grid_size: [i32; 3],
+    pub grid_size: [usize; 3],
     pub top_left: [i32; 3],
 
     // behavioral intent
@@ -32,7 +32,7 @@ impl Default for PatternConfig {
             format: "cells".to_string(),
 
             comments: Vec::new(),
-            cells: Vec::new(),
+            // cells: Vec::new(),
             alive: Vec::new(),
 
             grid_size: [0, 0, 1],

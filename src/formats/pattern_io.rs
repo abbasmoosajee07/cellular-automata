@@ -53,6 +53,9 @@ impl PatternIO {
         fs::write(&path, write_text)?;
         Ok(())
     }
+    pub fn write_text(config: PatternConfig) -> String {
+        Plaintext::write(&config)
+    }
 
     fn parse_filename(path: &Path) -> (String, String) {
         let name = path
