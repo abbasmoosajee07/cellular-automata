@@ -30,21 +30,24 @@ class SimulatorController{
 
         this.initElements();
         this.patternSharer = new SharePatterns(this);
+        console.log("1", this.patternSharer.getPreview());
         await this.setupGrid(); // make initGrid async as well
         this.setupGridControls();
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
 
-        this.gridManager.changeCell(0,0,0,1);
-        this.gridManager.changeCell(1,0,0,1);
-        this.gridManager.changeCell(0,-1,0,1);
-        this.gridManager.changeCell(-1,1,0,1);
-        this.gridManager.changeCell(-1,-1,0,1);
+        // this.gridManager.changeCell(0,0,0,1);
+        // this.gridManager.changeCell(1,0,0,1);
+        // this.gridManager.changeCell(0,-1,0,1);
+        // this.gridManager.changeCell(-1,1,0,1);
+        // this.gridManager.changeCell(-1,-1,0,1);
         this.gridManager.renderGrid();
+
         // this.setShape("hexagon");
         // this.selectNeighbor("tripod");
         // this.selectTopology("infinite");
+        console.log("2", this.patternSharer.getPreview());
     }
     setShape(value) {
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
@@ -97,9 +100,30 @@ class SimulatorController{
         let [cols, rows] = this.gridSize;
 
         // If we preserve, reuse old grid_mesh; otherwise make new
-        const cellManager = preserveState && oldGrid ? oldGrid.grid_mesh
-            : new WasmInterface(cols, rows, activeState);
-
+        // const cellManager = preserveState && oldGrid ? oldGrid.grid_mesh
+        //     : new WasmInterface(cols, rows, activeState);
+        const testText = `Test Comment
+....................
+....................
+....................
+......O.............
+.....OOO............
+......O.............
+....................
+....................
+..........O.........
+...........O........
+.........OOO........
+....................
+....................
+....................
+....................
+....................
+....................
+....................
+....................
+....................`;
+        const cellManager = WasmInterface.from_pattern("test1.cells", testText);
         if (preserveState == true) {
             this.rangeValue = this.rangeValue || 1
             this.grid_mesh.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
@@ -129,9 +153,8 @@ class SimulatorController{
         this.gridManager.renderGrid(true);
 
         this.grid_config = JSON.parse(this.grid_mesh.config_string())
-        this.patternSharer.updatePreview(JSON.stringify(this.grid_config, null, 2));
-        console.log("Current Config:", this.grid_config);
-        
+        // this.patternSharer.updatePreview(JSON.stringify(this.grid_config, null, 2));
+        // console.log("Current Config:", this.grid_config);
     }
 
     setupGridControls() {
@@ -160,9 +183,18 @@ class SimulatorController{
         this.reMap.addEventListener('click', () => {
             this.setupGrid({ preserveState: true });
         });
+
         this.updateSim.addEventListener('click', () => {
             const previewText = this.grid_mesh.update_preview();
             this.patternSharer.updatePreview(previewText);
+        });
+
+        this.loadSim.addEventListener('click', () => {
+            const patternText = this.patternSharer.getPreview();
+            console.log("Loading Pattern:\n", patternText);
+            this.grid_mesh = this.grid_mesh.new_with_pattern("test2.cells", patternText);
+            this.gridManager.grid_mesh = this.grid_mesh;
+            this.gridManager.renderGrid();
         });
     }
 

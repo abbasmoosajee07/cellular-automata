@@ -40,7 +40,7 @@ class SharePatterns {
         };
 
         this.simManager.setupDropdown(PATTERN_LIST, "pattern-type");
-
+        this.patternPreview.value = "random text test";
         const loadPreview = async () => {
             const name = this.patternSelect.value;
             const fileName = `./patterns/${name}.${this.formatSelect.value}`
@@ -161,6 +161,11 @@ class SharePatterns {
 
     updatePreview(newText) {
         this.patternPreview.value = newText;
+    }
+
+    getPreview() {
+        // console.log(this.patternPreview.value);
+        return this.patternPreview.value;
     }
 }
 

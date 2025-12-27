@@ -31,7 +31,7 @@ impl Default for PatternConfig {
             name: "test".to_string(),
             format: "cells".to_string(),
 
-            comments: Vec::new(),
+            comments: vec!["Test Comment".to_string()],
             // cells: Vec::new(),
             alive: Vec::new(),
 
