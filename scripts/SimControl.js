@@ -20,6 +20,7 @@ class SimulatorController{
 
     gridLimits = [16384, 16384]
 
+
     async initSim(useWebgl = true) {
         this.useWebgl = useWebgl;
         this.gridSize = [20, 20];
@@ -31,7 +32,31 @@ class SimulatorController{
         this.initElements();
         this.patternSharer = new SharePatterns(this);
         console.log("1", this.patternSharer.getPreview());
-        await this.setupGrid(); // make initGrid async as well
+        const testText = `Test Comment
+        ....................
+        ....................
+        ....................
+        ......O.............
+        .....OOO............
+        ......O.............
+        ....................
+        ....................
+        ..........O.........
+        ...........O........
+        .........OOO........
+        ....................
+        ....................
+        ....................
+        ....................
+        ....................
+        ....................
+        ....................
+        ....................
+        ....................`;
+        await this.initFileGrid({
+            patternData: testText,
+            preserveState: false
+        });
         this.setupGridControls();
         this.setupEventListeners();
         this.setupCanvasControls();
@@ -93,6 +118,46 @@ class SimulatorController{
         });
     }
 
+    async initFileGrid({ patternData = "", preserveState = false } = {}) {
+        const shape = this.selectedShape || "square";
+        const activeState = this.shapeProps[shape][0] || 1;
+        const oldGrid = this.gridManager || null;
+        let [cols, rows] = this.gridSize;
+
+        const cellManager = WasmInterface.from_pattern("test1.cells", patternData);
+        if (preserveState == true) {
+            this.rangeValue = this.rangeValue || 1
+            this.grid_mesh.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
+        }
+
+        // Always create a new GridManager — safer for WebGL + camera reinit
+        this.gridManager = new GridManager(
+            shape, this.gridCanvas, cellManager, this.useWebgl
+        );
+
+        // Restore camera and view if requested
+        if (preserveState && oldGrid) {
+            Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
+        }
+        if (this.topologyType == "infinite") {
+            [cols, rows] = this.gridLimits;
+        }
+        this.gridManager.topology = this.topologyType;
+
+        // Sync grid sizes and texture
+        this.gridManager.resizeGrid(cols, rows, activeState);
+
+        this.gridManager.fitGrid();
+        this.savedView = { ...this.gridManager.cameraView };
+
+        this.grid_mesh = this.gridManager.grid_mesh;
+        this.gridManager.renderGrid(true);
+
+        this.grid_config = JSON.parse(this.grid_mesh.config_string())
+        // this.patternSharer.updatePreview(JSON.stringify(this.grid_config, null, 2));
+        // console.log("Current Config:", this.grid_config);
+    }
+
     async setupGrid({ preserveState = false } = {}) {
         const shape = this.selectedShape || "square";
         const activeState = this.shapeProps[shape][0] || 1;
@@ -100,30 +165,9 @@ class SimulatorController{
         let [cols, rows] = this.gridSize;
 
         // If we preserve, reuse old grid_mesh; otherwise make new
-        // const cellManager = preserveState && oldGrid ? oldGrid.grid_mesh
-        //     : new WasmInterface(cols, rows, activeState);
-        const testText = `Test Comment
-....................
-....................
-....................
-......O.............
-.....OOO............
-......O.............
-....................
-....................
-..........O.........
-...........O........
-.........OOO........
-....................
-....................
-....................
-....................
-....................
-....................
-....................
-....................
-....................`;
-        const cellManager = WasmInterface.from_pattern("test1.cells", testText);
+        const cellManager = preserveState && oldGrid ? oldGrid.grid_mesh
+            : new WasmInterface(cols, rows, activeState);
+
         if (preserveState == true) {
             this.rangeValue = this.rangeValue || 1
             this.grid_mesh.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
@@ -192,8 +236,10 @@ class SimulatorController{
         this.loadSim.addEventListener('click', () => {
             const patternText = this.patternSharer.getPreview();
             console.log("Loading Pattern:\n", patternText);
-            this.grid_mesh = this.grid_mesh.new_with_pattern("test2.cells", patternText);
-            this.gridManager.grid_mesh = this.grid_mesh;
+            this.initFileGrid({
+                patternData: patternText,
+                preserveState: false
+            });
             this.gridManager.renderGrid();
         });
     }
