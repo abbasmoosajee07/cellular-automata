@@ -62,11 +62,6 @@ class SimulatorController{
         this.setupCanvasControls();
         this.setupMenuControls();
 
-        // this.gridManager.changeCell(0,0,0,1);
-        // this.gridManager.changeCell(1,0,0,1);
-        // this.gridManager.changeCell(0,-1,0,1);
-        // this.gridManager.changeCell(-1,1,0,1);
-        // this.gridManager.changeCell(-1,-1,0,1);
         this.gridManager.renderGrid();
 
         // this.setShape("hexagon");
@@ -74,6 +69,7 @@ class SimulatorController{
         // this.selectTopology("infinite");
         console.log("2", this.patternSharer.getPreview());
     }
+
     setShape(value) {
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
             radio.checked = radio.value === value;
@@ -118,87 +114,71 @@ class SimulatorController{
         });
     }
 
-    async initFileGrid({ patternData = "", preserveState = false } = {}) {
-        const shape = this.selectedShape || "square";
-        const activeState = this.shapeProps[shape][0] || 1;
-        const oldGrid = this.gridManager || null;
+    _buildGrid({
+        shape,
+        cellManager,
+        preserveState = false,
+        oldGrid = null
+    }) {
         let [cols, rows] = this.gridSize;
+        const activeState = this.shapeProps[shape][0] || 1;
 
-        const cellManager = WasmInterface.from_pattern("test1.cells", patternData);
-        if (preserveState == true) {
-            this.rangeValue = this.rangeValue || 1
-            this.grid_mesh.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
-        }
-
-        // Always create a new GridManager — safer for WebGL + camera reinit
         this.gridManager = new GridManager(
-            shape, this.gridCanvas, cellManager, this.useWebgl
+            shape,
+            this.gridCanvas,
+            cellManager,
+            this.useWebgl
         );
 
-        // Restore camera and view if requested
         if (preserveState && oldGrid) {
             Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
         }
-        if (this.topologyType == "infinite") {
+
+        if (this.topologyType === "infinite") {
             [cols, rows] = this.gridLimits;
         }
+
         this.gridManager.topology = this.topologyType;
-
-        // Sync grid sizes and texture
         this.gridManager.resizeGrid(cols, rows, activeState);
-
         this.gridManager.fitGrid();
+
         this.savedView = { ...this.gridManager.cameraView };
 
         this.grid_mesh = this.gridManager.grid_mesh;
-        this.gridManager.renderGrid(true);
 
-        this.grid_config = JSON.parse(this.grid_mesh.config_string())
-        // this.patternSharer.updatePreview(JSON.stringify(this.grid_config, null, 2));
-        // console.log("Current Config:", this.grid_config);
+        if (preserveState) {
+            this.rangeValue = this.rangeValue || 1;
+            this.grid_mesh.change_grid_properties(
+                shape,
+                this.neighborhoodType,
+                this.rangeValue,
+                this.topologyType
+            );
+        }
+
+        this.gridManager.renderGrid(true);
+        this.grid_config = JSON.parse(this.grid_mesh.config_string());
+    }
+
+    async initFileGrid({ patternData = "", preserveState = false } = {}) {
+        const shape = this.selectedShape || "square";
+        const oldGrid = this.gridManager || null;
+
+        const cellManager = WasmInterface.from_pattern("pattern.cells",patternData);
+
+        this._buildGrid({shape, cellManager, preserveState, oldGrid});
     }
 
     async setupGrid({ preserveState = false } = {}) {
         const shape = this.selectedShape || "square";
-        const activeState = this.shapeProps[shape][0] || 1;
         const oldGrid = this.gridManager || null;
-        let [cols, rows] = this.gridSize;
+        const activeState = this.shapeProps[shape][0] || 1;
 
-        // If we preserve, reuse old grid_mesh; otherwise make new
-        const cellManager = preserveState && oldGrid ? oldGrid.grid_mesh
-            : new WasmInterface(cols, rows, activeState);
+        const cellManager =
+            preserveState && oldGrid ? oldGrid.grid_mesh
+                : new WasmInterface(this.gridSize[0], this.gridSize[1], activeState);
 
-        if (preserveState == true) {
-            this.rangeValue = this.rangeValue || 1
-            this.grid_mesh.change_grid_properties(shape, this.neighborhoodType, this.rangeValue, this.topologyType);
-        }
-
-        // Always create a new GridManager — safer for WebGL + camera reinit
-        this.gridManager = new GridManager(
-            shape, this.gridCanvas, cellManager, this.useWebgl
-        );
-
-        // Restore camera and view if requested
-        if (preserveState && oldGrid) {
-            Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
-        }
-        if (this.topologyType == "infinite") {
-            [cols, rows] = this.gridLimits;
-        }
-        this.gridManager.topology = this.topologyType;
-
-        // Sync grid sizes and texture
-        this.gridManager.resizeGrid(cols, rows, activeState);
-
-        this.gridManager.fitGrid();
-        this.savedView = { ...this.gridManager.cameraView };
-
-        this.grid_mesh = this.gridManager.grid_mesh;
-        this.gridManager.renderGrid(true);
-
-        this.grid_config = JSON.parse(this.grid_mesh.config_string())
-        // this.patternSharer.updatePreview(JSON.stringify(this.grid_config, null, 2));
-        // console.log("Current Config:", this.grid_config);
+        this._buildGrid({shape, cellManager, preserveState,oldGrid});
     }
 
     setupGridControls() {
