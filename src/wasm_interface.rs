@@ -16,13 +16,6 @@ impl WasmInterface {
         }
     }
 
-    // #[wasm_bindgen]
-    pub fn new2(pattern_props: &str, pattern_data: &str) -> WasmInterface {
-        WasmInterface {
-            engine: Engine::new_with_pattern(pattern_props, pattern_data),
-        }
-    }
-
     #[wasm_bindgen]
     pub fn from_pattern(pattern_props: &str, pattern_data: &str) -> WasmInterface {
         WasmInterface {

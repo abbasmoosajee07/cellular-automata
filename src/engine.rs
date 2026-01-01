@@ -79,6 +79,7 @@ impl Engine {
         new_storage.shape = config.shape.clone();
         new_storage.range = config.range;
         new_storage.alive = new_alive;
+        println!("test{:?}", config);
         self.storage = new_storage.clone();
     }
 

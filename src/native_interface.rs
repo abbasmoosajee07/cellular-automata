@@ -9,8 +9,8 @@ pub fn run_native_tests() {
     // 1 Create a test mesh
     // let mut cm = Engine::new(20, 20, 1, None);
 
-    let mut cm = Engine::read_file("patterns/glider.cells").unwrap();
-    cm.mesh.resize(20, 20, 1);
+    let mut cm = Engine::read_file("patterns/gosperglidergun.cells").unwrap();
+    // cm.mesh.resize(20, 20, 1);
     println!("{:?}\n", cm.mesh.config);
 
     // Randomize cells (TIMED)
@@ -25,7 +25,7 @@ pub fn run_native_tests() {
     // Run one step of Game of Life (TIMED)
     println!("--- Running one GoL step ---");
     let start_step = Instant::now();
-    // cm.step_game_of_life();
+    cm.step_game_of_life();
     let step_elapsed = start_step.elapsed();
 
     // Show the new set of live cells

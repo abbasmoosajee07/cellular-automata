@@ -31,30 +31,9 @@ class SimulatorController{
 
         this.initElements();
         this.patternSharer = new SharePatterns(this);
-        console.log("1", this.patternSharer.getPreview());
-        const testText = `Test Comment
-        ....................
-        ....................
-        ....................
-        ......O.............
-        .....OOO............
-        ......O.............
-        ....................
-        ....................
-        ..........O.........
-        ...........O........
-        .........OOO........
-        ....................
-        ....................
-        ....................
-        ....................
-        ....................
-        ....................
-        ....................
-        ....................
-        ....................`;
+
         await this.initFileGrid({
-            patternData: testText,
+            patternData: this.patternSharer.getPreview(),
             preserveState: false
         });
         this.setupGridControls();
@@ -64,10 +43,6 @@ class SimulatorController{
 
         this.gridManager.renderGrid();
 
-        // this.setShape("hexagon");
-        // this.selectNeighbor("tripod");
-        // this.selectTopology("infinite");
-        console.log("2", this.patternSharer.getPreview());
     }
 
     setShape(value) {
@@ -165,8 +140,19 @@ class SimulatorController{
         const oldGrid = this.gridManager || null;
 
         const cellManager = WasmInterface.from_pattern("pattern.cells",patternData);
-
         this._buildGrid({shape, cellManager, preserveState, oldGrid});
+        // const grid_config = JSON.parse(cellManager.config_string());
+        const grid_config = this.grid_config;
+        this.setShape(grid_config.shape);
+        this.selectNeighbor(grid_config.neighbor_type);
+        this.selectTopology(grid_config.topology_type);
+        this.rangeInput.value = grid_config.range;
+        this.rangeValue = parseInt(grid_config.range);
+        console.log("grid size:", grid_config);
+        this.gridSize = [grid_config.width, grid_config.height];
+        this.colInput.value = this.gridSize[0];
+        this.rowInput.value = this.gridSize[1];
+        this.setupGrid({ preserveState: true });
     }
 
     async setupGrid({ preserveState = false } = {}) {
@@ -221,6 +207,7 @@ class SimulatorController{
                 preserveState: false
             });
             this.gridManager.renderGrid();
+            console.log("Pattern Loaded.", this.grid_config);
         });
     }
 

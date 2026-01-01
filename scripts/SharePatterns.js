@@ -1,23 +1,62 @@
 class SharePatterns {
+    static PATTERN_LIST = {
+        selectId: "pattern-type",
+        descId: "pattern-desc",
+        defaultValue: "test",
+        types: {
+            test: { label: "Test", desc: "" },
+            glider: { label: "Glider", desc: "" },
+            gosperglidergun: { label: "Gosper Glider", desc: "" },
+            blank: { label: "Blank Template", desc: "" },
+        },
+    };
+
+    static TEST_FILE = `Test Comment
+....................
+....................
+....................
+......O.............
+.....OOO............
+......O.............
+....................
+....................
+..........O.........
+...........O........
+.........OOO........
+....................
+....................
+....................
+....................
+....................
+....................
+....................
+....................
+....................`;
+
     shareIDs = [
-        "patternPreview", "clearPreview", "editPreview", "copyPreview",
-        "fileInput", "download",
-    ]
+        "patternPreview",
+        "clearPreview",
+        "editPreview",
+        "copyPreview",
+        "fileInput",
+        "download",
+    ];
 
     constructor(parentSim) {
         this.simManager = parentSim;
-        this.patternPreview = document.getElementById("patternPreview");
 
-        // cache DOM
+        this.cacheDOM();
+        this.init();
+    }
+
+    cacheDOM() {
         for (const id of this.shareIDs) {
             this[id] = document.getElementById(id);
         }
-        this.patternSelect = document.getElementById("pattern-type");
 
+        this.patternSelect = document.getElementById("pattern-type");
         this.nameInput = document.querySelector(".pattern-name");
         this.formatSelect = document.querySelector(".pattern-format");
-
-        this.init();
     }
 
     init() {
@@ -28,37 +67,34 @@ class SharePatterns {
     }
 
     async setupPatternSelect() {
-        const PATTERN_LIST = {
-            selectId: "pattern-type",
-            descId: "pattern-desc",
-            defaultValue: "glider",
-            types: {
-                glider: { label: "Glider", desc: "" },
-                gosperglidergun: { label: "Gosper Glider", desc: "" },
-                blank: { label: "Blank Template", desc: "" },
-            }
-        };
+        this.simManager.setupDropdown(
+            SharePatterns.PATTERN_LIST,
+            SharePatterns.PATTERN_LIST.selectId
+        );
 
-        this.simManager.setupDropdown(PATTERN_LIST, "pattern-type");
-        this.patternPreview.value = "random text test";
-        const loadPreview = async () => {
-            const name = this.patternSelect.value;
-            const fileName = `./patterns/${name}.${this.formatSelect.value}`
-            if (!name) return;
+        this.patternPreview.value = SharePatterns.TEST_FILE;
+        await this.loadPreview();
 
-            try {
-                const res = await fetch(fileName);
-                if (!res.ok) throw new Error();
-                this.patternPreview.value = await res.text();
-                this.patternPreview.scrollTop = 0;
-                this.nameInput.value = name;
-            } catch {
-                this.patternPreview.value = `Failed to load pattern: ${fileName}`;
-            }
-        };
+        this.patternSelect.addEventListener("change", () => this.loadPreview());
+        this.formatSelect.addEventListener("change", () => this.loadPreview());
+    }
 
-        await loadPreview();
-        this.patternSelect.addEventListener("change", loadPreview);
+    async loadPreview() {
+        const name = this.patternSelect.value;
+        if (!name) return;
+
+        const filePath = `./patterns/${name}.${this.formatSelect.value}`;
+
+        try {
+            const res = await fetch(filePath);
+            if (!res.ok) throw new Error();
+
+            this.patternPreview.value = await res.text();
+            this.patternPreview.scrollTop = 0;
+            this.nameInput.value = name;
+        } catch {
+            this.patternPreview.value = `Failed to load pattern: ${filePath}`;
+        }
     }
 
     bindImport() {
@@ -71,8 +107,8 @@ class SharePatterns {
                 this.patternPreview.value = reader.result;
                 this.patternPreview.scrollTop = 0;
             };
-            reader.readAsText(file);
 
+            reader.readAsText(file);
             this.inferNameAndFormat(file.name);
 
             // allow re-uploading same file
