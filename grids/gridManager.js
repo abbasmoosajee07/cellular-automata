@@ -233,11 +233,14 @@ class GridManager {
         // --- Camera offset ---
         this.cameraView.camX = -centerX * zoom;
         this.cameraView.camY = -centerY * zoom;
+        this.updateCanvasSize();
     }
 
     resizeGrid(newCols, newRows, newStates) {
         this.gridSize = [newCols, newRows, newStates];
         this.grid_mesh.resize(newCols, newRows, newStates);
+        this.shapeGrid.gridRows = newRows;
+        this.shapeGrid.gridCols = newCols;
         this.grid_bounds = this.grid_mesh.get_bounds();
         if (this.useWebGL && this.renderer.gl) {
             this.shapeGrid.initGridTexture(this.renderer.gl, newCols, newRows);

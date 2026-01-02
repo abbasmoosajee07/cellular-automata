@@ -66,9 +66,10 @@ class SquareGrid extends BaseGrid {
 
                     // grid bounds centered around 0
                     float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  floor(uGridCols * 0.5);
+                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+
                     float minR = -floor(uGridRows * 0.5);
-                    float maxR =  floor(uGridRows * 0.5);
+                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
 
                     // check inside grid
                     if (cellCoord.x < minQ || cellCoord.x > maxQ ||
@@ -117,9 +118,10 @@ class SquareGrid extends BaseGrid {
 
                     // Grid bounds centered on (0,0)
                     float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  floor(uGridCols * 0.5);
+                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+
                     float minR = -floor(uGridRows * 0.5);
-                    float maxR =  floor(uGridRows * 0.5);
+                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
 
                     // Outside grid → background color
                     if (cellCoord.x < minQ || cellCoord.x > maxQ ||

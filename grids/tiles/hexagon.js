@@ -159,9 +159,10 @@ class HexagonGrid extends BaseGrid {
 
                     // grid bounds
                     float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  floor(uGridCols * 0.5);
+                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+
                     float minR = -floor(uGridRows * 0.5);
-                    float maxR =  floor(uGridRows * 0.5);
+                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
 
                     // out of grid → canvas color
                     if (hex.x < minQ || hex.x > maxQ ||
@@ -258,9 +259,10 @@ class HexagonGrid extends BaseGrid {
                     }
 
                     float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  floor(uGridCols * 0.5);
+                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+
                     float minR = -floor(uGridRows * 0.5);
-                    float maxR =  floor(uGridRows * 0.5);
+                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
 
                     if (hex.x < minQ || hex.x > maxQ ||
                         hex.y < minR || hex.y > maxR) {
