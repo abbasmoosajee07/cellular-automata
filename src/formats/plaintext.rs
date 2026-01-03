@@ -30,7 +30,7 @@ impl Plaintext {
             for (x, ch) in row.chars().enumerate() {
                 if ch == 'O' {
                     cfg.alive.push((x as i32, y as i32, 0, 1 as u32));
-                    println!("{},{}",x, y)
+                    // println!("{},{}",x, y)
                 }
             }
         }

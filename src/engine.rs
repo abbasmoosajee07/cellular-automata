@@ -39,6 +39,7 @@ impl Engine {
             storage: cfg.clone(),
             mesh: GridMesh::new(w as usize, h as usize, d as usize, None),
         };
+        // grid.mesh.resize(w as usize, h as usize, d as usize);
 
         grid.mesh.change_grid_properties(
             cfg.shape.clone(), cfg.neighbor_type.clone(), cfg.range, cfg.topology_type.clone()

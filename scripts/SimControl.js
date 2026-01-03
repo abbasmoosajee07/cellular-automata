@@ -32,7 +32,7 @@ class SimulatorController{
         this.initElements();
         this.patternSharer = new SharePatterns(this);
 
-        await this.initFileGrid({
+        await this.fromPattern({
             patternData: this.patternSharer.getPreview(),
             preserveState: false
         });
@@ -124,35 +124,40 @@ class SimulatorController{
         if (preserveState) {
             this.rangeValue = this.rangeValue || 1;
             this.grid_mesh.change_grid_properties(
-                shape,
-                this.neighborhoodType,
-                this.rangeValue,
-                this.topologyType
+                shape, this.neighborhoodType,
+                this.rangeValue, this.topologyType
             );
         }
 
         this.gridManager.renderGrid(true);
         this.grid_config = JSON.parse(this.grid_mesh.config_string());
+        this.storage_pattern = JSON.parse(this.grid_mesh.storage_string());
     }
 
-    async initFileGrid({ patternData = "", preserveState = false } = {}) {
-        const shape = this.selectedShape || "square";
-        const oldGrid = this.gridManager || null;
+    async fromPattern({ patternData = "", preserveState = false } = {}) {
+        const oldGrid = this.gridManager ?? null;
 
-        const cellManager = WasmInterface.from_pattern("pattern.cells",patternData);
-        this._buildGrid({shape, cellManager, preserveState, oldGrid});
-        // const grid_config = JSON.parse(cellManager.config_string());
-        const grid_config = this.grid_config;
-        this.setShape(grid_config.shape);
-        this.selectNeighbor(grid_config.neighbor_type);
-        this.selectTopology(grid_config.topology_type);
-        this.rangeInput.value = grid_config.range;
-        this.rangeValue = parseInt(grid_config.range);
-        console.log("grid size:", grid_config);
-        this.gridSize = [grid_config.width, grid_config.height];
+        // Parse pattern + config
+        const cellManager = WasmInterface.from_pattern("pattern.cells", patternData);
+        const gridConfig = JSON.parse(cellManager.config_string());
+
+        // Apply config → simulator state
+        this.setShape(gridConfig.shape);
+        this.selectNeighbor(gridConfig.neighbor_type);
+        this.selectTopology(gridConfig.topology_type);
+
+        this.rangeValue = Number(gridConfig.range);
+        this.rangeInput.value = this.rangeValue;
+
+        this.gridSize = [Number(gridConfig.width), Number(gridConfig.height)];
         this.colInput.value = this.gridSize[0];
         this.rowInput.value = this.gridSize[1];
-        this.setupGrid({ preserveState: true });
+
+        // Build grid
+        const shape = this.selectedShape ?? "square";
+        this._buildGrid({
+            shape, cellManager, preserveState, oldGrid,
+        });
     }
 
     async setupGrid({ preserveState = false } = {}) {
@@ -201,13 +206,11 @@ class SimulatorController{
 
         this.loadSim.addEventListener('click', () => {
             const patternText = this.patternSharer.getPreview();
-            console.log("Loading Pattern:\n", patternText);
-            this.initFileGrid({
+            this.fromPattern({
                 patternData: patternText,
                 preserveState: false
             });
             this.gridManager.renderGrid();
-            console.log("Pattern Loaded.", this.grid_config);
         });
     }
 

@@ -81,4 +81,7 @@ impl WasmInterface {
     pub fn config_string(&self) -> String {
         serde_json::to_string(&self.engine.mesh.config).unwrap()
     }
+    pub fn storage_string(&self) -> String {
+        serde_json::to_string(&self.engine.storage).unwrap()
+    }
 }
