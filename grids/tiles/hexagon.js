@@ -9,8 +9,8 @@ class HexagonGrid extends BaseGrid {
     }
 
     worldToCell(worldPos) {
-        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * worldPos.y) / this.radius;
-        const r = (2 / 3 * worldPos.y) / this.radius;
+        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * -worldPos.y) / this.radius;
+        const r = (2 / 3 * -worldPos.y) / this.radius;
         const s = -q - r;
 
         let rx = Math.round(q);
@@ -86,8 +86,8 @@ class HexagonGrid extends BaseGrid {
 
                 // Convert world → cube coordinates
                 vec3 worldToCube(vec2 worldPos, float size) {
-                    float q = (sqrt(3.0)/3.0 * worldPos.x - worldPos.y / 3.0) / size;
-                    float r = (2.0/3.0 * worldPos.y) / size;
+                    float q = (sqrt(3.0)/3.0 * worldPos.x - -worldPos.y / 3.0) / size;
+                    float r = (2.0/3.0 * -worldPos.y) / size;
                     return vec3(q, r, -q - r);
                 }
 
@@ -204,8 +204,8 @@ class HexagonGrid extends BaseGrid {
                 varying vec2 vTexCoord;
 
                 vec3 worldToCube(vec2 worldPos, float size) {
-                    float q = (sqrt(3.0)/3.0 * worldPos.x - worldPos.y/3.0) / size;
-                    float r = (2.0/3.0 * worldPos.y) / size;
+                    float q = (sqrt(3.0)/3.0 * worldPos.x - -worldPos.y/3.0) / size;
+                    float r = (2.0/3.0 * -worldPos.y) / size;
                     return vec3(q, r, -q - r);
                 }
 
@@ -304,7 +304,7 @@ class HexagonGrid extends BaseGrid {
         // Convert each corner to world coords
         const pts = corners.map(c => {
             const x = radius * Math.sqrt(3) * (c.q + c.r * 0.5);
-            const y = radius * -1.5 * c.r;
+            const y = radius * 1.5 * c.r;
             return { x, y };
         });
 
@@ -323,7 +323,7 @@ class HexagonGrid extends BaseGrid {
 
         // Calculate hexagon center using cube coordinates
         const centerX = radius * Math.sqrt(3) * (q + r * 0.5);
-        const centerY = radius * -1.5 * r;
+        const centerY = radius * 1.5 * r;
 
         const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
         ctx.fillStyle = `rgba(
@@ -370,7 +370,7 @@ class HexagonGrid extends BaseGrid {
         // Convert axial → world
         const pts = corners.map(({ q, r }) => ({
             x: radius * Math.sqrt(3) * (q + r * 0.5),
-            y: radius * -1.5 * r
+            y: radius * 1.5 * r
         }));
 
         // Bounding box

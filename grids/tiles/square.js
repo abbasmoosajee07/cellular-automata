@@ -8,7 +8,7 @@ class SquareGrid extends BaseGrid {
 
     worldToCell(world) {
         const col = Math.floor(world.x / this.cellSize + 0.5);
-        const row = Math.floor(world.y / this.cellSize + 0.5);
+        const row = Math.floor(-world.y / this.cellSize - 0.5);
 
         return [col, row, 0];
     }
@@ -32,7 +32,8 @@ class SquareGrid extends BaseGrid {
         const minR = -Math.floor(this.gridRows / 2);
 
         const texX = q - minQ;
-        const texY = r - minR;
+        // const texY = r - minR;
+        const texY = (this.gridRows - 1) - (r - minR);
 
         return [Math.floor(texX), Math.floor(texY)];
     }
@@ -155,8 +156,8 @@ class SquareGrid extends BaseGrid {
         const h = this.gridRows * this.cellSize;
 
         ctx.fillRect(
-            -w / 2,
-            -h / 2,
+            -w / 2 - this.cellSize/2,
+            -h / 2 - this.cellSize/2,
             w,
             h,
         );
@@ -165,7 +166,7 @@ class SquareGrid extends BaseGrid {
     drawShapeCell(ctx, q, r, s, state) {
         const cellSize = this.cellSize;
         const worldX = q * cellSize;
-        const worldY = -r * cellSize;
+        const worldY = r * cellSize;
 
         const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
         ctx.fillStyle = `rgba(

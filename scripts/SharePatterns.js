@@ -11,7 +11,7 @@ class SharePatterns {
         },
     };
 
-    static TEST_FILE = `Test Comment
+    static TEST_FILE = `!Test Comment
 ....................
 ....................
 ....................
@@ -34,12 +34,8 @@ class SharePatterns {
 ....................`;
 
     shareIDs = [
-        "patternPreview",
-        "clearPreview",
-        "editPreview",
-        "copyPreview",
-        "fileInput",
-        "download",
+        "patternPreview", "fileInput", "download",
+        "clearPreview", "editPreview", "copyPreview",
     ];
 
     constructor(parentSim) {
@@ -126,6 +122,12 @@ class SharePatterns {
         this.formatSelect.value = ext;
     }
 
+    getPatternName() {
+        const baseName = this.nameInput.value.trim() || "pattern";
+        const ext = this.formatSelect.value;
+        return`${baseName}.${ext}`
+    }
+
     bindPreviewControls() {
         this.editPreview.addEventListener("click", () => {
             const isReadonly = this.patternPreview.hasAttribute("readonly");
@@ -159,17 +161,9 @@ class SharePatterns {
             const content = this.patternPreview.value.trim();
             if (!content) return;
 
-            const format = this.formatSelect.value;
-            const ext = format;
-            const baseName = this.nameInput.value.trim() || "pattern";
-            const fileName = `${baseName}.${ext}`;
+            const fileName = this.getPatternName();
 
-            const output =
-                format === "cells"
-                    ? this.toPlaintext(content)
-                    : this.toRLE(content);
-
-            this.downloadFile(output, fileName);
+            this.downloadFile(content, fileName);
         });
     }
 
@@ -187,20 +181,11 @@ class SharePatterns {
         URL.revokeObjectURL(url);
     }
 
-    toRLE(text) {
-        return text;
-    }
-
-    toPlaintext(text) {
-        return text;
-    }
-
     updatePreview(newText) {
         this.patternPreview.value = newText;
     }
 
     getPreview() {
-        // console.log(this.patternPreview.value);
         return this.patternPreview.value;
     }
 }
