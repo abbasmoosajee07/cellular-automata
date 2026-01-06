@@ -32,7 +32,7 @@ class Canvas2DRenderer {
         ctx.save();
         ctx.translate(this.width / 2, this.height / 2);
         ctx.scale(cameraView.zoom, cameraView.zoom);
-        ctx.translate(cameraView.camX, -cameraView.camY);
+        ctx.translate(cameraView.camX, cameraView.camY);
         this.shapeGrid.drawShapeCell(ctx, q, r, s, state)
     }
 
@@ -69,7 +69,7 @@ class Canvas2DRenderer {
         ctx.save();
         ctx.translate(this.width / 2, this.height / 2);
         ctx.scale(cameraView.zoom, cameraView.zoom);
-        ctx.translate(cameraView.camX, -cameraView.camY);
+        ctx.translate(cameraView.camX, cameraView.camY);
 
         const gridBg = colorSchema.grid;
         ctx.fillStyle = `rgba(
