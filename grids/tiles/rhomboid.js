@@ -9,8 +9,8 @@ class RhomboidalGrid extends BaseGrid {
     }
 
     worldToCell(worldPos) {
-        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * worldPos.y) / this.radius;
-        const s = (2 / 3 * worldPos.y) / this.radius;
+        const q = (Math.sqrt(3) / 3 * worldPos.x - 1 / 3 * -worldPos.y) / this.radius;
+        const s = (2 / 3 * -worldPos.y) / this.radius;
 
         const x = q;
         const z = s;
@@ -31,14 +31,14 @@ class RhomboidalGrid extends BaseGrid {
         // Get local position for rhombus determination
         const hexCenterX = this.radius * Math.sqrt(3) * (rx + rz * 0.5);
         const hexCenterY = this.radius * 1.5 * rz;
-        
+
         const localX = worldPos.x - hexCenterX;
-        const localY = worldPos.y - hexCenterY;
+        const localY = -worldPos.y - hexCenterY;
 
         // Use the same triangle test as in shader
         const getRhombusIndex = (localX, localY, radius) => {
             const center = { x: 0, y: 0 };
-            
+
             // Calculate hex vertices
             const vertices = [];
             for (let i = 0; i < 6; i++) {
@@ -71,7 +71,7 @@ class RhomboidalGrid extends BaseGrid {
             if (pointInTriangle(p, center, vertices[3], vertices[4])) return 1;
             if (pointInTriangle(p, center, vertices[4], vertices[5])) return 2;
             if (pointInTriangle(p, center, vertices[5], vertices[0])) return 2;
-            
+
             return 0;
         };
 
@@ -103,6 +103,7 @@ class RhomboidalGrid extends BaseGrid {
         // Use different texture columns for different rhombus types
         const texX = (q - minCol) * 3 + rhombusIndex; // *3 for three rhombus types
         const texY = (r - minRow);
+        // const texY = (this.gridRows - 1 - (r - minRow)) + rhombusIndex * this.gridRows;
 
         return [Math.floor(texX), Math.floor(texY)];
     }
@@ -209,7 +210,10 @@ class RhomboidalGrid extends BaseGrid {
 
             void main() {
                 // Screen -> world
-                vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                vec2 worldPos = vec2(
+                    (vTexCoord.x * uResolution.x - uResolution.x * 0.5 - uOffset.x) / uScale,
+                    -(vTexCoord.y * uResolution.y - uResolution.y * 0.5 - uOffset.y) / uScale
+                );
                 vec2 axial = worldToHex(worldPos, uRadius);
                 ivec3 hexCell = hexRound(axial);
 
@@ -358,8 +362,10 @@ class RhomboidalGrid extends BaseGrid {
             }
 
             void main() {
-                vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-                vec2 axial = worldToHex(worldPos, uRadius);
+                vec2 worldPos = vec2(
+                    (vTexCoord.x * uResolution.x - uResolution.x * 0.5 - uOffset.x) / uScale,
+                    -(vTexCoord.y * uResolution.y - uResolution.y * 0.5 - uOffset.y) / uScale
+                );                vec2 axial = worldToHex(worldPos, uRadius);
                 vec3 hexCell = hexRound(axial);
 
                 // compute hex center and convert components to floats
@@ -431,7 +437,7 @@ class RhomboidalGrid extends BaseGrid {
         // Convert each corner to world coords
         const pts = corners.map(c => {
             const x = radius * Math.sqrt(3) * (c.q + c.r * 0.5);
-            const y = radius * -1.5 * c.r;
+            const y = radius * 1.5 * c.r;
             return { x, y };
         });
 
@@ -449,7 +455,7 @@ class RhomboidalGrid extends BaseGrid {
         const radius = this.radius;
 
         const centerX = radius * Math.sqrt(3) * (q + r * 0.5);
-        const centerY = radius * r * -1.5;
+        const centerY = radius * r * 1.5;
         // Use color schema based on state value
         const drawColor = this.colorSchema[state] ||  [1, 1, 1, 1];
 
@@ -457,7 +463,7 @@ class RhomboidalGrid extends BaseGrid {
     }
 
     drawAdjacentRhombus(ctx, centerX, centerY, radius, rhombusType, fillColor) {
-        const shadeMultipliers = [1.0, 0.8, 0.6];
+        const shadeMultipliers = [1.0, 0.75, 0.5];
         const shade = shadeMultipliers[rhombusType] || 1.0;
 
         // Apply shade to color
@@ -467,7 +473,7 @@ class RhomboidalGrid extends BaseGrid {
         ctx.fillStyle = `rgb(${Math.round(r * shade)}, ${Math.round(g * shade)}, ${Math.round(b * shade)})`;
 
         ctx.beginPath();
-        
+
         // Calculate hex vertices - EXACTLY like the shader (flat-topped, positive Y)
         const vertices = [];
         for (let i = 0; i < 6; i++) {
@@ -480,12 +486,6 @@ class RhomboidalGrid extends BaseGrid {
         switch (rhombusType) {
             case 0:
                 ctx.moveTo(centerX, centerY);
-                ctx.lineTo(vertices[4].x, vertices[4].y); // Top-left vertex
-                ctx.lineTo(vertices[5].x, vertices[5].y); // Top vertex
-                ctx.lineTo(vertices[0].x, vertices[0].y); // Top-right vertex
-                break;
-            case 2:
-                ctx.moveTo(centerX, centerY);
                 ctx.lineTo(vertices[0].x, vertices[0].y); // Top-right vertex
                 ctx.lineTo(vertices[1].x, vertices[1].y); // Bottom-right vertex
                 ctx.lineTo(vertices[2].x, vertices[2].y); // Bottom vertex
@@ -495,6 +495,12 @@ class RhomboidalGrid extends BaseGrid {
                 ctx.lineTo(vertices[2].x, vertices[2].y); // Bottom vertex
                 ctx.lineTo(vertices[3].x, vertices[3].y); // Bottom-left vertex
                 ctx.lineTo(vertices[4].x, vertices[4].y); // Top-left vertex
+                break;
+            case 2:
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(vertices[4].x, vertices[4].y); // Top-left vertex
+                ctx.lineTo(vertices[5].x, vertices[5].y); // Top vertex
+                ctx.lineTo(vertices[0].x, vertices[0].y); // Top-right vertex
                 break;
         }
         ctx.closePath();

@@ -138,7 +138,8 @@ class SimulatorController{
         const oldGrid = this.gridManager ?? null;
 
         // Parse pattern + config
-        const cellManager = WasmInterface.from_pattern("pattern.cells", patternData);
+        const patternName = this.patternSharer.getPatternName();
+        const cellManager = WasmInterface.from_pattern(patternName, patternData);
         const gridConfig = JSON.parse(cellManager.config_string());
 
         // Apply config → simulator state
