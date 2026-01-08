@@ -33,20 +33,6 @@ class HexagonGrid extends BaseGrid {
         return [rx, ry, 0];
     }
 
-    calculateBounds(bounds) {
-        const [minX, maxX, minY, maxY] = bounds;
-        const radius = this.radius;
-        const hexWidth = radius * Math.sqrt(3);
-        const hexHeight = radius * 1.5;
-
-        const minCol = Math.floor(minX / hexWidth) - 2;
-        const maxCol = Math.ceil(maxX / hexWidth) + 2;
-        const minRow = Math.floor(minY / hexHeight) - 2;
-        const maxRow = Math.ceil(maxY / hexHeight) + 2;
-
-        return [minCol, maxCol, minRow, maxRow];
-    }
-
     cubeToTextureCoords(q, r, s) {
         // Verify cube coordinates sum to zero
         if (Math.abs(q + r + s) > 0.001) {

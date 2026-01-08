@@ -23,19 +23,6 @@ class TriangleGrid extends BaseGrid {
         return [q, r, s];
     }
 
-    calculateBounds(bounds) {
-        const [minX, maxX, minY, maxY] = bounds;
-        const size = this.cellSize;
-
-        // Calculate visible square cell range
-        const minQ = Math.floor(minX / size) - 1;
-        const maxQ = Math.ceil(maxX / size) + 1;
-        const minR = Math.floor(minY / size) - 1;
-        const maxR = Math.ceil(maxY / size) + 1;
-
-        return [minQ, maxQ, minR, maxR];
-    }
-
     cubeToTextureCoords(q, r, s) {
         const minQ = -Math.floor(this.gridCols / 2);
         const minR = -Math.floor(this.gridRows / 2);

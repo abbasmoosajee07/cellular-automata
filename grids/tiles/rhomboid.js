@@ -79,20 +79,6 @@ class RhomboidalGrid extends BaseGrid {
         return [rx, rz, rhombusType];
     }
 
-    calculateBounds(bounds) {
-        const [minX, maxX, minY, maxY] = bounds;
-        const radius = this.radius;
-        const hexWidth = radius * Math.sqrt(3);
-        const hexHeight = radius * 2;
-
-        const minCol = Math.floor(minX / hexWidth) - 1;
-        const maxCol = Math.ceil(maxX / hexWidth) + 1;
-        const minRow = Math.floor(minY / hexHeight) - 1;
-        const maxRow = Math.ceil(maxY / hexHeight) + 1;
-
-        return [minCol, maxCol, minRow, maxRow];
-    }
-
     cubeToTextureCoords(q, r, rhombusIndex) {
         // Convert centered coordinates to texture coordinates
         const centerCol = Math.floor(this.gridCols / 2);

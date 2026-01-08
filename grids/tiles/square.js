@@ -7,23 +7,10 @@ class SquareGrid extends BaseGrid {
     }
 
     worldToCell(world) {
-        const col = Math.floor(world.x / this.cellSize + 0.5);
+        const col = Math.floor(+world.x / this.cellSize + 0.5);
         const row = Math.floor(-world.y / this.cellSize - 0.5);
 
         return [col, row, 0];
-    }
-
-    calculateBounds(bounds) {
-        const [minX, maxX, minY, maxY] = bounds;
-        const size = this.cellSize;
-
-        // Calculate visible cell range in centered coordinates
-        const minQ = Math.floor(minX / size) - 1;
-        const maxQ = Math.ceil(maxX / size) + 1;
-        const minR = Math.floor(minY / size) - 1;
-        const maxR = Math.ceil(maxY / size) + 1;
-
-        return [minQ, maxQ, minR, maxR];
     }
 
     cubeToTextureCoords(q, r, s) {
@@ -32,7 +19,6 @@ class SquareGrid extends BaseGrid {
         const minR = -Math.floor(this.gridRows / 2);
 
         const texX = q - minQ;
-        // const texY = r - minR;
         const texY = (this.gridRows - 1) - (r - minR);
 
         return [Math.floor(texX), Math.floor(texY)];

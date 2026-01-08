@@ -7,11 +7,11 @@ import { WebGLRenderer } from '../renderer/WebGL.js';
 import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 
 class GridManager {
-    constructor(shape, canvas, init_cells, useWebGL = false) {
+    constructor(shape, canvas, init_mesh, useWebGL = false) {
         this.shape = shape || "square";
         this.topology = "finite";
         this.useWebGL = useWebGL;
-        this.grid_mesh = init_cells;
+        this.grid_mesh = init_mesh;
         this.canvas = canvas;
 
         // Grid configuration

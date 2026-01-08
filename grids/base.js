@@ -189,10 +189,6 @@ class BaseGrid {
         throw new Error("Method 'worldToCell(world)' must be implemented.");
     }
 
-    calculateBounds(bounds) {
-        throw new Error("Method 'calculateBounds(bounds)' must be implemented.");
-    }
-
     cubeToTextureCoords(q, r, s) {
         throw new Error("Method 'cubeToTextureCoords(q, r, s)' must be implemented.");
     }

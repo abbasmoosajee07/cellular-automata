@@ -91,7 +91,7 @@ class SimulatorController{
 
     _buildGrid({
         shape,
-        cellManager,
+        wasm_engine,
         preserveState = false,
         oldGrid = null
     }) {
@@ -99,10 +99,7 @@ class SimulatorController{
         const activeState = this.shapeProps[shape][0] || 1;
 
         this.gridManager = new GridManager(
-            shape,
-            this.gridCanvas,
-            cellManager,
-            this.useWebgl
+            shape, this.gridCanvas, wasm_engine, this.useWebgl
         );
 
         if (preserveState && oldGrid) {
@@ -119,19 +116,19 @@ class SimulatorController{
 
         this.savedView = { ...this.gridManager.cameraView };
 
-        this.grid_mesh = this.gridManager.grid_mesh;
+        this.wasm_engine = this.gridManager.grid_mesh;
 
         if (preserveState) {
             this.rangeValue = this.rangeValue || 1;
-            this.grid_mesh.change_grid_properties(
+            this.wasm_engine.change_grid_properties(
                 shape, this.neighborhoodType,
                 this.rangeValue, this.topologyType
             );
         }
 
         this.gridManager.renderGrid(true);
-        this.grid_config = JSON.parse(this.grid_mesh.config_string());
-        this.storage_pattern = JSON.parse(this.grid_mesh.storage_string());
+        this.grid_config = JSON.parse(this.wasm_engine.config_string());
+        this.storage_pattern = JSON.parse(this.wasm_engine.storage_string());
     }
 
     async fromPattern({ patternData = "", preserveState = false } = {}) {
@@ -139,8 +136,8 @@ class SimulatorController{
 
         // Parse pattern + config
         const patternName = this.patternSharer.getPatternName();
-        const cellManager = WasmInterface.from_pattern(patternName, patternData);
-        const gridConfig = JSON.parse(cellManager.config_string());
+        const wasm_engine = WasmInterface.from_pattern(patternName, patternData);
+        const gridConfig = JSON.parse(wasm_engine.config_string());
 
         // Apply config → simulator state
         this.setShape(gridConfig.shape);
@@ -157,7 +154,7 @@ class SimulatorController{
         // Build grid
         const shape = this.selectedShape ?? "square";
         this._buildGrid({
-            shape, cellManager, preserveState, oldGrid,
+            shape, wasm_engine, preserveState, oldGrid,
         });
     }
 
@@ -166,11 +163,11 @@ class SimulatorController{
         const oldGrid = this.gridManager || null;
         const activeState = this.shapeProps[shape][0] || 1;
 
-        const cellManager =
+        const wasm_engine =
             preserveState && oldGrid ? oldGrid.grid_mesh
                 : new WasmInterface(this.gridSize[0], this.gridSize[1], activeState);
 
-        this._buildGrid({shape, cellManager, preserveState,oldGrid});
+        this._buildGrid({shape, wasm_engine, preserveState,oldGrid});
     }
 
     setupGridControls() {
@@ -201,7 +198,7 @@ class SimulatorController{
         });
 
         this.updateSim.addEventListener('click', () => {
-            const previewText = this.grid_mesh.update_preview();
+            const previewText = this.wasm_engine.update_preview();
             this.patternSharer.updatePreview(previewText);
         });
 
