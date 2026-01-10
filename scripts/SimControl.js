@@ -7,8 +7,7 @@ class SimulatorController{
         "gridCanvas", "menuPanel", "menuToggle", "reMap", "autoFit", "simCtrl",
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
-        "status_gen", "status_popl", "status_zoom", "status_camera",
-        "updateSim", "loadSim",
+        "status_zoom", "status_camera", "updateSim", "loadSim",
     ];
 
     shapeProps = {
@@ -503,8 +502,6 @@ class SimulatorController{
     }
 
     updateStatusBar(px, py) {
-        this.status_gen.textContent = 0;
-        this.status_popl.textContent = 0;
         this.status_zoom.textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
         const [q, r, s] = this.gridManager.screenToCell(px, py)
         this.status_camera.textContent = `(${q},${r},${s})`;
