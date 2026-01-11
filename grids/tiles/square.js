@@ -7,21 +7,18 @@ class SquareGrid extends BaseGrid {
     }
 
     worldToCell(world) {
-        const col = Math.floor(+world.x / this.cellSize + 0.5);
-        const row = Math.floor(-world.y / this.cellSize - 0.5);
 
-        return [col, row, 0];
+        const q = Math.round(+world.x / this.cellSize);
+        const r = Math.round(-world.y / this.cellSize);
+
+        return [q, r, 0];
     }
 
     cubeToTextureCoords(q, r, s) {
-        // Convert centered coordinates to texture coordinates
-        const minQ = -Math.floor(this.gridCols / 2);
-        const minR = -Math.floor(this.gridRows / 2);
+        const centerCol = Math.floor(this.gridCols / 2);
+        const centerRow = Math.floor(this.gridRows / 2);
 
-        const texX = q - minQ;
-        const texY = (this.gridRows - 1) - (r - minR);
-
-        return [Math.floor(texX), Math.floor(texY)];
+        return [q + centerCol, r + centerRow];
     }
 
     getFragmentShaderSource(isWebGL2 = false) {
@@ -45,95 +42,91 @@ class SquareGrid extends BaseGrid {
 
                 void main() {
 
-                    // convert screen → world
-                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                    // screen → world (centered)
+                    vec2 worldPos =
+                        (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
 
-                    // world → cell index
-                    vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
-
-                    // grid bounds centered around 0
-                    float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
-
-                    float minR = -floor(uGridRows * 0.5);
-                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
-
-                    // check inside grid
-                    if (cellCoord.x < minQ || cellCoord.x > maxQ ||
-                        cellCoord.y < minR || cellCoord.y > maxR) {
-
-                        outColor = uCanvasColor;
-                        return;
-                    }
-
-                    // convert cell → texture uv
-                    vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
-                    vec4 cellColor = texture(uGridTexture, texCoord);
-
-                    // if cell empty → use grid color
-                    if (cellColor.a <= 0.0) {
-                        outColor = uGridColor;
-                    } else {
-                        outColor = cellColor;
-                    }
-                }
-            `;
-        } else {
-            return `
-                precision mediump float;
-
-                uniform vec2 uResolution;
-                uniform vec2 uOffset;
-                uniform float uScale;
-                uniform float uGridCols;
-                uniform float uGridRows;
-                uniform float uBaseCellSize;
-
-                uniform sampler2D uGridTexture;
-                uniform vec4 uCanvasColor;
-                uniform vec4 uGridColor;     // NEW! color used when texel is empty
-
-                varying vec2 vTexCoord;
-
-                void main() {
-
-                    // World → grid conversion
-                    vec2 worldPos = (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-
-                    // Snap to cell grid
-                    vec2 cellCoord = floor(worldPos / uBaseCellSize + 0.5);
+                    // world → cell (CENTER-based, symmetric)
+                    vec2 cell = round(vec2(
+                        +worldPos.x / uBaseCellSize,
+                        -worldPos.y / uBaseCellSize
+                    ));
 
                     // Grid bounds centered on (0,0)
                     float minQ = -floor(uGridCols * 0.5);
                     float maxQ =  ceil(uGridCols * 0.5) - 1.0;
-
                     float minR = -floor(uGridRows * 0.5);
                     float maxR =  ceil(uGridRows * 0.5) - 1.0;
 
-                    // Outside grid → background color
-                    if (cellCoord.x < minQ || cellCoord.x > maxQ ||
-                        cellCoord.y < minR || cellCoord.y > maxR) {
-
-                        gl_FragColor = uCanvasColor;
+                    if (cell.x < minQ || cell.x > maxQ ||
+                        cell.y < minR || cell.y > maxR) {
+                        outColor = uCanvasColor;
                         return;
                     }
 
-                    // Convert cell to texture lookup
-                    // vec2 texCoord = (cellCoord - vec2(minQ, minR)) / vec2(uGridCols, uGridRows);
-                    vec2 texCoord = (cellCoord - vec2(minQ, minR) + 0.5)
-                                    / vec2(uGridCols, uGridRows);
+                    // sample CELL CENTER like hex grid
+                    vec2 texCoord = vec2(
+                        (cell.x - minQ + 0.5) / uGridCols,
+                        (cell.y - minR + 0.5) / uGridRows
+                    );
 
-                    // Read texture
-                    vec4 cellColor = texture2D(uGridTexture, texCoord);
+                    vec4 cellColor = texture(uGridTexture, texCoord);
 
-                    // If alpha == 0 → empty cell → use grid color instead
-                    if (cellColor.a <= 0.0) {
-                        gl_FragColor = uGridColor;
-                    } else {
-                        gl_FragColor = cellColor;
-                    }
+                    outColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
                 }
-            `;
+                `;
+        } else {
+            return `precision mediump float;
+
+            uniform vec2  uResolution;
+            uniform vec2  uOffset;
+            uniform float uScale;
+            uniform float uGridCols;
+            uniform float uGridRows;
+            uniform float uBaseCellSize;
+
+            uniform sampler2D uGridTexture;
+            uniform vec4 uCanvasColor;
+            uniform vec4 uGridColor;
+
+            varying vec2 vTexCoord;
+
+            void main() {
+
+                // screen → world (centered)
+                vec2 worldPos =
+                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+
+                // world → cell (WebGL1-safe rounding)
+                vec2 cell = floor(vec2(
+                    worldPos.x / uBaseCellSize,
+                -worldPos.y / uBaseCellSize
+                ) + 0.5);
+
+                // grid bounds
+                float minQ = -floor(uGridCols * 0.5);
+                float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+
+                float minR = -floor(uGridRows * 0.5);
+                float maxR =  ceil(uGridRows * 0.5) - 1.0;
+
+                // outside grid
+                if (cell.x < minQ || cell.x > maxQ ||
+                    cell.y < minR || cell.y > maxR) {
+                    gl_FragColor = uCanvasColor;
+                    return;
+                }
+
+                // sample cell center
+                vec2 texCoord = vec2(
+                    (cell.x - minQ + 0.5) / uGridCols,
+                    (cell.y - minR + 0.5) / uGridRows
+                );
+
+                vec4 cellColor = texture2D(uGridTexture, texCoord);
+
+                gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
+            }`;
         }
     }
 
@@ -142,8 +135,8 @@ class SquareGrid extends BaseGrid {
         const h = this.gridRows * this.cellSize;
 
         ctx.fillRect(
-            -w / 2 - this.cellSize/2,
-            -h / 2 - this.cellSize/2,
+            -w / 2,
+            -h / 2,
             w,
             h,
         );
@@ -163,8 +156,8 @@ class SquareGrid extends BaseGrid {
         )`;
 
         ctx.fillRect(
-            worldX - cellSize / 2,
-            worldY - cellSize / 2,
+            worldX,
+            worldY,
             cellSize,
             cellSize
         );

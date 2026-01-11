@@ -1,12 +1,16 @@
 
 class WebGLRenderer {
-    constructor(canvas, shapeGrid) {
+    constructor(canvas, shapeGrid, { forceWebGL1 = false } = {}) {
         this.canvas = canvas;
         this.shapeGrid = shapeGrid;
+        this.forceWebGL1 = forceWebGL1;
+
         this.gl = this.initWebGL();
         if (!this.gl) throw new Error("WebGL not supported");
 
-        this.isWebGL2 = this.gl instanceof WebGL2RenderingContext;
+        // CORRECT capability detection
+        this.isWebGL2 = !this.forceWebGL1 &&
+                        this.gl instanceof WebGL2RenderingContext;
 
         this.initShaders();
         this.initBuffers();
@@ -16,14 +20,28 @@ class WebGLRenderer {
     }
 
     initWebGL() {
-        let gl = this.canvas.getContext('webgl2');
+        let gl = null;
+
+        // Default: try WebGL2 first
+        if (!this.forceWebGL1) {
+            gl = this.canvas.getContext('webgl2');
+        }
+
+        // Fallback or forced WebGL1
         if (!gl) {
-            gl = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
-            if (gl) console.warn("Falling back to WebGL1");
+            gl = this.canvas.getContext('webgl') ||
+                this.canvas.getContext('experimental-webgl');
+
+            if (gl) {
+                console.warn(this.forceWebGL1
+                    ? "Forced WebGL1"
+                    : "Falling back to WebGL1"
+                );
+            }
         }
 
         if (!gl) {
-            console.error('WebGL not supported');
+            console.error("WebGL not supported");
             return null;
         }
 
