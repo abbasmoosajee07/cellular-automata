@@ -278,21 +278,29 @@ class HexagonGrid extends BaseGrid {
     drawGridShape(ctx) {
         const radius = this.radius;
 
-        const halfCols = (this.gridCols * 0.5) ;
-        const halfRows = (this.gridRows * 0.5);
+        const halfCols = this.gridCols * 0.5;
+        const halfRows = this.gridRows * 0.5;
 
-        // Compute axial grid corners in (q, r)
+        // Even/odd centering correction
+        const xOffset = (this.gridCols % 2 !== 0)
+            ? (Math.sqrt(3) * radius) / 2
+            : 0;
+
+        const yOffset = (this.gridRows % 2 !== 0)
+            ? (1.5 * radius) / 2
+            : 0;
+
+        // Compute axial grid corners
         const corners = [
             { q: -halfCols - 1, r: -halfRows - 1 },
-            { q:  halfCols, r: -halfRows - 1},
-            { q:  halfCols, r:  halfRows },
-            { q: -halfCols - 1, r:  halfRows }
+            { q:  halfCols,     r: -halfRows - 1 },
+            { q:  halfCols,     r:  halfRows     },
+            { q: -halfCols - 1, r:  halfRows     }
         ];
 
-        // Convert each corner to world coords
         const pts = corners.map(c => {
-            const x = radius * Math.sqrt(3) * (c.q + c.r * 0.5);
-            const y = radius * 1.5 * c.r;
+            const x = radius * Math.sqrt(3) * (c.q + c.r * 0.5) + xOffset;
+            const y = radius * 1.5 * c.r + yOffset;
             return { x, y };
         });
 
@@ -302,7 +310,6 @@ class HexagonGrid extends BaseGrid {
         ctx.lineTo(pts[2].x, pts[2].y);
         ctx.lineTo(pts[3].x, pts[3].y);
         ctx.closePath();
-
         ctx.fill();
     }
 

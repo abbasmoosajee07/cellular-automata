@@ -190,7 +190,7 @@ class GridManager {
         this.colorSchema = newSchema;
         this.renderer.colorSchema = newSchema
         this.shapeGrid.colorSchema = newSchema;
-        this.renderer.renderGrid(this.cameraView, this.grid_mesh);
+        this.renderGrid(true);
     }
 
     showGridLimits() {

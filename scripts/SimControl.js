@@ -128,6 +128,8 @@ class SimulatorController{
         this.gridManager.renderGrid(true);
         this.grid_config = JSON.parse(this.wasm_engine.config_string());
         this.storage_pattern = JSON.parse(this.wasm_engine.storage_string());
+        console.log(this.storage_pattern);
+        console.log(this.grid_config);
     }
 
     async fromPattern({ patternData = "", preserveState = false } = {}) {

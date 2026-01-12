@@ -131,14 +131,18 @@ class SquareGrid extends BaseGrid {
     }
 
     drawGridShape(ctx) {
-        const w = this.gridCols * this.cellSize;
-        const h = this.gridRows * this.cellSize;
+        const size = this.cellSize;
+        const w = this.gridCols * size;
+        const h = this.gridRows * size;
+
+        const xOffset = (this.gridCols % 2 !== 0) ? size / 2 : 0;
+        const yOffset = (this.gridRows % 2 !== 0) ? size / 2 : 0;
 
         ctx.fillRect(
-            -w / 2,
-            -h / 2,
+            -w / 2 + xOffset,
+            -h / 2 + yOffset,
             w,
-            h,
+            h
         );
     }
 

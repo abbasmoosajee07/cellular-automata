@@ -24,18 +24,6 @@ class Canvas2DRenderer {
         return;
     }
 
-    renderCell(cameraView, q, r, s, state) {
-        const ctx = this.ctx;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // --- Camera transform ---
-        ctx.save();
-        ctx.translate(this.width / 2, this.height / 2);
-        ctx.scale(cameraView.zoom, cameraView.zoom);
-        ctx.translate(cameraView.camX, cameraView.camY);
-        this.shapeGrid.drawShapeCell(ctx, q, r, s, state)
-    }
-
     syncCellsToCanvas(ctx, cells) {
         const arr = cells.each_live_cell();
         for (let i = 0; i < arr.length; i += 4) {
@@ -46,6 +34,18 @@ class Canvas2DRenderer {
 
             this.shapeGrid.drawShapeCell(ctx, q, r, s, state);
         }
+    }
+
+    renderCell(cameraView, q, r, s, state) {
+        const ctx = this.ctx;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // --- Camera transform ---
+        ctx.save();
+        ctx.translate(this.width / 2, this.height / 2);
+        ctx.scale(cameraView.zoom, cameraView.zoom);
+        ctx.translate(cameraView.camX, -cameraView.camY);
+        this.shapeGrid.drawShapeCell(ctx, q, r, s, state)
     }
 
     renderGrid(cameraView, cells, updateCells) {
@@ -69,7 +69,7 @@ class Canvas2DRenderer {
         ctx.save();
         ctx.translate(this.width / 2, this.height / 2);
         ctx.scale(cameraView.zoom, cameraView.zoom);
-        ctx.translate(cameraView.camX, cameraView.camY);
+        ctx.translate(cameraView.camX, -cameraView.camY);
 
         const gridBg = colorSchema.grid;
         ctx.fillStyle = `rgba(

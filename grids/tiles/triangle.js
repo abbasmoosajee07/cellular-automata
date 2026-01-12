@@ -156,9 +156,19 @@ class TriangleGrid extends BaseGrid {
     }
 
     drawGridShape(ctx) {
-        const w = this.gridCols * this.cellSize;
-        const h = this.gridRows * this.cellSize;
-        ctx.fillRect(-w / 2, -h / 2 - this.cellSize, w, h);
+        const size = this.cellSize;
+        const w = this.gridCols * size;
+        const h = this.gridRows * size;
+
+        const xOffset = (this.gridCols % 2 !== 0) ? size / 2 : 0;
+        const yOffset = (this.gridRows % 2 !== 0) ? size / 2 : size;
+
+        ctx.fillRect(
+            -w / 2 + xOffset,
+            -h / 2 - yOffset,
+            w,
+            h
+        );
     }
 
     drawShapeCell(ctx, q, r, s, state) {
@@ -210,7 +220,6 @@ class TriangleGrid extends BaseGrid {
         return [minX, maxX, minY, maxY];
 
     }
-
 
 }
 

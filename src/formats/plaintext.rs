@@ -23,14 +23,13 @@ impl Plaintext {
         let width = rows.first().map(|r| r.len()).unwrap_or(0) as i32;
 
         cfg.grid_size = [width as usize, height as usize, 1 as usize];
-        cfg.top_left = [-width/2, height/2, 0];
+        cfg.top_left = [-width/2, -height/2, 0];
         // cfg.cells = rows.clone();
 
         for (y, row) in rows.iter().enumerate() {
             for (x, ch) in row.chars().enumerate() {
                 if ch == 'O' {
                     cfg.alive.push((x as i32, y as i32, 0, 1 as u32));
-                    // println!("{},{}",x, y)
                 }
             }
         }

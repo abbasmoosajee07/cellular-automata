@@ -49,7 +49,7 @@ impl Engine {
 
         for (x, y, z, state) in &cfg.alive {
             if *state != 0 {
-                grid.mesh.set_cell(*x + shift_q, *y - shift_r, *z + shift_s, *state);
+                grid.mesh.set_cell(*x + shift_q, *y + shift_r, *z + shift_s, *state);
             }
         }
         grid
@@ -70,7 +70,7 @@ impl Engine {
         let mut new_alive: Vec<(i32, i32, i32, u32)> = Vec::new();
         for [q, r, s, state] in self.mesh.inner.iter_cell() {
             if state != 0 {
-                new_alive.push((q - shift_q, r + shift_r, s + shift_s, state as u32));
+                new_alive.push((q - shift_q, r - shift_r, s + shift_s, state as u32));
             }
         }
         new_storage.grid_size = [config.width, config.height, config.depth];
