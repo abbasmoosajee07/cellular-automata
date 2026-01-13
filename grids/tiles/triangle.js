@@ -205,22 +205,21 @@ class TriangleGrid extends BaseGrid {
 
     screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS) {
         let minX, maxX, minY, maxY;
-        const fitFactor = 1.1;
 
         // Simple linear mapping
         const size = this.cellSize;
+        const evenRows = (this.gridRows % 2 === 0);
+        const evenCols = (this.gridCols % 2 === 0);
 
-        minX = minQ * size;
-        maxX = maxQ * size;
+        minX = (minQ + (evenCols ? -1 : -1)) * size;
+        maxX = (maxQ + (evenCols ? 2 : 2)) * size;
 
-        minY = minR * size;
-        maxY = maxR * size;
-        minY *= fitFactor;
-        maxY *= fitFactor;
+        minY = (minR + (evenRows ? -1 : -2)) * size;
+        maxY = (maxR + (evenRows ? 2 : 1)) * size;
+
         return [minX, maxX, minY, maxY];
 
     }
-
 }
 
 export { TriangleGrid };
