@@ -110,6 +110,12 @@ class BaseGrid {
         return { x: worldX, y: worldY };
     }
 
+    worldToScreen(world, width, height, cameraView) {
+        const px = world.x * cameraView.zoom + width / 2 + cameraView.camX;
+        const py = height / 2 - cameraView.camY - world.y * cameraView.zoom;
+        return { x: px, y: py };
+    }
+
     setCellState(q, r, s, state) {
         const [texX, texY] = this.cubeToTextureCoords(q, r, s);
 
@@ -205,10 +211,9 @@ class BaseGrid {
         throw new Error("Method 'drawShapeCell(ctx, q, r, s, state)' must be implemented.");
     }
 
-    screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS) {
-        throw new Error("Method 'screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS)' must be implemented.");
+    cellToWorld(q, r, s) {
+        throw new Error("Method 'cellToWorld(q, r, s)' must be implemented.");
     }
-
 }
 
 export {BaseGrid};

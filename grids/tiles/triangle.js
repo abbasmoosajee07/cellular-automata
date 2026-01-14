@@ -23,6 +23,13 @@ class TriangleGrid extends BaseGrid {
         return [q, r, s];
     }
 
+    cellToWorld(q, r, s) {
+        return {
+            x: q * this.cellSize,
+            y: r * this.cellSize
+        };
+    }
+
     cubeToTextureCoords(q, r, s) {
         const minQ = -Math.floor(this.gridCols / 2);
         const minR = -Math.floor(this.gridRows / 2);
@@ -203,23 +210,6 @@ class TriangleGrid extends BaseGrid {
         ctx.fill();
     }
 
-    screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS) {
-        let minX, maxX, minY, maxY;
-
-        // Simple linear mapping
-        const size = this.cellSize;
-        const evenRows = (this.gridRows % 2 === 0);
-        const evenCols = (this.gridCols % 2 === 0);
-
-        minX = (minQ + (evenCols ? -1 : -1)) * size;
-        maxX = (maxQ + (evenCols ? 2 : 2)) * size;
-
-        minY = (minR + (evenRows ? -1 : -2)) * size;
-        maxY = (maxR + (evenRows ? 2 : 1)) * size;
-
-        return [minX, maxX, minY, maxY];
-
-    }
 }
 
 export { TriangleGrid };

@@ -14,6 +14,13 @@ class SquareGrid extends BaseGrid {
         return [q, r, 0];
     }
 
+    cellToWorld(q, r, s) {
+        return {
+            x: q * this.cellSize,
+            y: r * this.cellSize
+        };
+    }
+
     cubeToTextureCoords(q, r, s) {
         const centerCol = Math.floor(this.gridCols / 2);
         const centerRow = Math.floor(this.gridRows / 2);
@@ -144,6 +151,7 @@ class SquareGrid extends BaseGrid {
             w,
             h
         );
+        console.log("canvas", -w / 2 + xOffset, -h / 2 + yOffset, w, h);
     }
 
     drawShapeCell(ctx, q, r, s, state) {
@@ -167,23 +175,6 @@ class SquareGrid extends BaseGrid {
         );
     }
 
-    screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS) {
-        let minX, maxX, minY, maxY;
-
-        // Simple linear mapping
-        const size = this.cellSize;
-        const evenRows = (this.gridRows % 2 === 0);
-        const evenCols = (this.gridCols % 2 === 0);
-
-        minX = (minQ + (evenCols ? -1 : -1)) * size;
-        maxX = (maxQ + (evenCols ? 1 : 1)) * size;
-
-        minY = (minR + (evenRows ? 0 : -1)) * size;
-        maxY = (maxR + (evenRows ? 2 : 1)) * size;
-
-        return [minX, maxX, minY, maxY];
-
-    }
 }
 
 export { SquareGrid };

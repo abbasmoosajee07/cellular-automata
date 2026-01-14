@@ -193,7 +193,7 @@ class GridManager {
         this.renderGrid(true);
     }
 
-    showGridLimits() {
+    selectGridLimits() {
         let [minQ, maxQ, minR, maxR, minS, maxS] =
             this.topology === "infinite"
                 ? this.grid_mesh.get_cell_extremes()
@@ -211,29 +211,41 @@ class GridManager {
     }
 
     fitGrid() {
-        const [minQ, maxQ, minR, maxR, minS, maxS] = this.showGridLimits();
+        const [minQ, maxQ, minR, maxR] = this.selectGridLimits();
 
-        let [minX, maxX, minY, maxY] = this.shapeGrid.screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS);
+        const cellCorners = [
+            { q: minQ - 1.5, r: minR - 1.5 },
+            { q: maxQ + 1.5, r: minR - 1.5 },
+            { q: maxQ + 1.5, r: maxR + 1.5 },
+            { q: minQ - 1.5, r: maxR + 1.5 },
+        ];
 
-        // --- Dimensions ---
+        const worldCorners = cellCorners.map(c =>
+            this.shapeGrid.cellToWorld(c.q, c.r, 0)
+        );
+
+        const xs = worldCorners.map(p => p.x);
+        const ys = worldCorners.map(p => p.y);
+
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+
         const worldW = maxX - minX;
         const worldH = maxY - minY;
 
-        // --- Zoom ---
         const zoomX = this.width  / worldW;
         const zoomY = this.height / worldH;
         const zoom  = Math.min(zoomX, zoomY);
 
         this.cameraView.zoom = zoom;
 
-        // --- Center ---
-        const centerX = (minX + maxX) * 0.5;
-        const centerY = (minY + maxY) * 0.5;
+        const worldCX = (minX + maxX) * 0.5;
+        const worldCY = (minY + maxY) * 0.5;
 
-        // --- Camera offset ---
-        this.cameraView.camX = -centerX * zoom;
-        this.cameraView.camY = -centerY * zoom;
-        this.updateCanvasSize();
+        this.cameraView.camX = -worldCX * zoom;
+        this.cameraView.camY =  worldCY * zoom;
     }
 
     resizeGrid(newCols, newRows, newStates) {

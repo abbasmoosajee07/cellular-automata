@@ -33,6 +33,13 @@ class HexagonGrid extends BaseGrid {
         return [rx, ry, 0];
     }
 
+    cellToWorld(q, r, s) {
+        return {
+            x: q * this.cellSize,
+            y: r * this.cellSize
+        };
+    }
+
     cubeToTextureCoords(q, r, s) {
         // Verify cube coordinates sum to zero
         if (Math.abs(q + r + s) > 0.001) {
@@ -348,33 +355,6 @@ class HexagonGrid extends BaseGrid {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-    }
-
-    screenGridBounds(minQ, maxQ, minR, maxR, minS, maxS) {
-        let minX, maxX, minY, maxY;
-
-        const radius = this.radius;
-        // World-space corners in axial coords
-        const corners = [
-            { q: minQ, r: minR },
-            { q: maxQ, r: minR},
-            { q: maxQ, r: maxR + 2},
-            { q: minQ, r: maxR + 2}
-        ];
-
-        // Convert axial → world
-        const pts = corners.map(({ q, r }) => ({
-            x: radius * Math.sqrt(3) * (q + r * 0.5),
-            y: radius * 1.5 * r
-        }));
-
-        // Bounding box
-        minX = Math.min(...pts.map(p => p.x));
-        maxX = Math.max(...pts.map(p => p.x));
-        minY = Math.min(...pts.map(p => p.y));
-        maxY = Math.max(...pts.map(p => p.y)) ;
-
-        return [minX, maxX, minY, maxY];
     }
 
 }
