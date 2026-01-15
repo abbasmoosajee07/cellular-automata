@@ -80,10 +80,19 @@ class RhomboidalGrid extends BaseGrid {
     }
 
     cellToWorld(q, r, s) {
-        return {
-            x: q * this.cellSize,
-            y: r * this.cellSize
-        };
+        const x = this.radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+        const y = this.radius * (-3 / 2 * r);
+        return { x, y };
+    }
+
+    getGridCorners(minQ, maxQ, minR, maxR, minS, maxS) {
+        const gridCorners = [
+            { q: minQ * 1.1, r: minR - 1 },
+            { q: maxQ + 1, r: minR - 1 },
+            { q: maxQ + 1, r: maxR + 1 },
+            { q: minQ - 1, r: maxR * 1.25 },
+        ];
+        return gridCorners;
     }
 
     cubeToTextureCoords(q, r, rhombusIndex) {
@@ -102,315 +111,315 @@ class RhomboidalGrid extends BaseGrid {
     }
 
     getFragmentShaderSource(isWebGL2 = false) {
-    if (isWebGL2) {
-        return `#version 300 es
-            precision mediump float;
+        if (isWebGL2) {
+            return `#version 300 es
+                precision mediump float;
 
-            in vec2 vTexCoord;
-            out vec4 outColor;
+                in vec2 vTexCoord;
+                out vec4 outColor;
 
-            uniform vec2 uResolution;
-            uniform vec2 uOffset;
-            uniform float uScale;
-            uniform float uGridCols;
-            uniform float uGridRows;
-            uniform float uRadius;
-            uniform sampler2D uGridTexture;
-            uniform vec4 uCanvasColor;   // background outside any hex
-            uniform vec4 uGridColor;     // color for empty cells
+                uniform vec2 uResolution;
+                uniform vec2 uOffset;
+                uniform float uScale;
+                uniform float uGridCols;
+                uniform float uGridRows;
+                uniform float uRadius;
+                uniform sampler2D uGridTexture;
+                uniform vec4 uCanvasColor;   // background outside any hex
+                uniform vec4 uGridColor;     // color for empty cells
 
-            // Flat-topped hexagon to cube coordinates
-            vec2 worldToHex(vec2 pos, float r) {
-                float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
-                float s = (2.0/3.0 * pos.y) / r;
-                return vec2(q, s);
-            }
-
-            ivec3 hexRound(vec2 h) {
-                float x = h.x;
-                float z = h.y;
-                float y = -x - z;
-                float rx = floor(x + 0.5);
-                float ry = floor(y + 0.5);
-                float rz = floor(z + 0.5);
-                float dx = abs(rx - x);
-                float dy = abs(ry - y);
-                float dz = abs(rz - z);
-                if (dx > dy && dx > dz) rx = -ry - rz;
-                else if (dy > dz) ry = -rx - rz;
-                else rz = -rx - ry;
-                return ivec3(int(rx), int(rz), int(-rx - rz));
-            }
-
-            // Get hex vertex for flat-topped hexagon
-            vec2 getHexVertex(int i, float r) {
-                float angle = 3.14159265359 / 3.0 * float(i) - 3.14159265359 / 6.0;
-                return vec2(r * cos(angle), r * sin(angle));
-            }
-
-            // Point in triangle test
-            bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
-                vec2 v0 = c - a;
-                vec2 v1 = b - a;
-                vec2 v2 = p - a;
-                float dot00 = dot(v0, v0);
-                float dot01 = dot(v0, v1);
-                float dot02 = dot(v0, v2);
-                float dot11 = dot(v1, v1);
-                float dot12 = dot(v1, v2);
-                float invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
-                float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-                float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-                return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
-            }
-
-            // Determine which rhombus using the proper cube-to-hex split
-            int getRhombusIndex(vec2 localPos, float radius) {
-                vec2 center = vec2(0.0);
-
-                // Get hex vertices (flat-topped)
-                vec2 v0 = getHexVertex(0, radius); // Right
-                vec2 v1 = getHexVertex(1, radius); // Bottom-right
-                vec2 v2 = getHexVertex(2, radius); // Bottom-left
-                vec2 v3 = getHexVertex(3, radius); // Left
-                vec2 v4 = getHexVertex(4, radius); // Top-left
-                vec2 v5 = getHexVertex(5, radius); // Top-right
-
-                // Check which triangular sector the point is in
-                if (pointInTriangle(localPos, center, v0, v1)) return 0;
-                if (pointInTriangle(localPos, center, v1, v2)) return 0;
-                if (pointInTriangle(localPos, center, v2, v3)) return 1;
-                if (pointInTriangle(localPos, center, v3, v4)) return 1;
-                if (pointInTriangle(localPos, center, v4, v5)) return 2;
-                if (pointInTriangle(localPos, center, v5, v0)) return 2;
-
-                return 0;
-            }
-
-            // Function to apply different shades based on rhombus type
-            vec4 applyRhombusShade(vec4 baseColor, int rhombusType) {
-                if (rhombusType == 0) {
-                    // Lightest shade - multiply by 1.0 (original)
-                    return baseColor;
-                } else if (rhombusType == 1) {
-                    // Medium shade - multiply by 0.75
-                    return vec4(baseColor.rgb * 0.75, baseColor.a);
-                } else {
-                    // Darkest shade - multiply by 0.5
-                    return vec4(baseColor.rgb * 0.5, baseColor.a);
-                }
-            }
-
-            void main() {
-                // Screen -> world
-                vec2 worldPos = vec2(
-                    (vTexCoord.x * uResolution.x - uResolution.x * 0.5 - uOffset.x) / uScale,
-                    -(vTexCoord.y * uResolution.y - uResolution.y * 0.5 - uOffset.y) / uScale
-                );
-                vec2 axial = worldToHex(worldPos, uRadius);
-                ivec3 hexCell = hexRound(axial);
-
-                // compute hex center in world (convert ints to floats)
-                float hx = float(hexCell.x);
-                float hy = float(hexCell.y);
-                vec2 hexCenter = vec2(
-                    uRadius * sqrt(3.0) * (hx + hy * 0.5),
-                    uRadius * 1.5 * hy
-                );
-
-                vec2 localPos = worldPos - hexCenter;
-
-                // outside hex -> canvas color
-                if (length(localPos) > uRadius * 1.05) {
-                    outColor = uCanvasColor;
-                    return;
+                // Flat-topped hexagon to cube coordinates
+                vec2 worldToHex(vec2 pos, float r) {
+                    float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                    float s = (2.0/3.0 * pos.y) / r;
+                    return vec2(q, s);
                 }
 
-                // Determine rhombus type (still used only for addressing)
-                int rhombusType = getRhombusIndex(localPos, uRadius);
-
-                // Grid bounds expressed as floats
-                float minQ = -floor(uGridCols * 0.5);
-                float maxQ =  ceil(uGridCols * 0.5) - 1.0;
-
-                float minR = -floor(uGridRows * 0.5);
-                float maxR =  ceil(uGridRows * 0.5) - 1.0;
-
-                // Check if hex is outside grid (convert hex indices to floats)
-                if (hx < minQ || hx > maxQ || hy < minR || hy > maxR) {
-                    outColor = uCanvasColor;
-                    return;
+                ivec3 hexRound(vec2 h) {
+                    float x = h.x;
+                    float z = h.y;
+                    float y = -x - z;
+                    float rx = floor(x + 0.5);
+                    float ry = floor(y + 0.5);
+                    float rz = floor(z + 0.5);
+                    float dx = abs(rx - x);
+                    float dy = abs(ry - y);
+                    float dz = abs(rz - z);
+                    if (dx > dy && dx > dz) rx = -ry - rz;
+                    else if (dy > dz) ry = -rx - rz;
+                    else rz = -rx - ry;
+                    return ivec3(int(rx), int(rz), int(-rx - rz));
                 }
 
-                // texture addressing (3 rhombi per hex along X)
-                float texX = ((hx - minQ) * 3.0) + float(rhombusType);
-                float texY = (hy - minR);
-
-                vec2 texCoord = vec2(texX / (uGridCols * 3.0), texY / uGridRows);
-
-                // if texCoord outside texture area -> canvas color
-                if (texCoord.x < 0.0 || texCoord.x >= 0.9999 || texCoord.y < 0.0 || texCoord.y >= 1.0) {
-                    outColor = uCanvasColor;
-                    return;
+                // Get hex vertex for flat-topped hexagon
+                vec2 getHexVertex(int i, float r) {
+                    float angle = 3.14159265359 / 3.0 * float(i) - 3.14159265359 / 6.0;
+                    return vec2(r * cos(angle), r * sin(angle));
                 }
 
-                vec4 cellColor = texture(uGridTexture, texCoord);
-
-                // identical color rules to hex shader:
-                // empty texel -> gridColor, otherwise use texture color
-                if (cellColor.a <= 0.0) {
-                    outColor = uGridColor;
-                } else {
-                    // Apply rhombus shading to texture color
-                    outColor = applyRhombusShade(cellColor, rhombusType);
-                }
-            }
-        `;
-    } else {
-        return `
-            precision mediump float;
-
-            uniform vec2 uResolution;
-            uniform vec2 uOffset;
-            uniform float uScale;
-            uniform float uGridCols;
-            uniform float uGridRows;
-            uniform float uRadius;
-            uniform sampler2D uGridTexture;
-            uniform vec4 uCanvasColor;
-            uniform vec4 uGridColor;
-            varying vec2 vTexCoord;
-
-            vec2 worldToHex(vec2 pos, float r) {
-                float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
-                float s = (2.0/3.0 * pos.y) / r;
-                return vec2(q, s);
-            }
-
-            vec3 hexRound(vec2 h) {
-                float x = h.x;
-                float z = h.y;
-                float y = -x - z;
-                float rx = floor(x + 0.5);
-                float ry = floor(y + 0.5);
-                float rz = floor(z + 0.5);
-                float dx = abs(rx - x);
-                float dy = abs(ry - y);
-                float dz = abs(rz - z);
-                if (dx > dy && dx > dz) rx = -ry - rz;
-                else if (dy > dz) ry = -rx - rz;
-                else rz = -rx - ry;
-                return vec3(rx, rz, -rx - rz);
-            }
-
-            vec2 getHexVertex(float i, float r) {
-                float angle = 3.14159265359 / 3.0 * i - 3.14159265359 / 6.0;
-                return vec2(r * cos(angle), r * sin(angle));
-            }
-
-            bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
-                vec2 v0 = c - a;
-                vec2 v1 = b - a;
-                vec2 v2 = p - a;
-                float dot00 = dot(v0, v0);
-                float dot01 = dot(v0, v1);
-                float dot02 = dot(v0, v2);
-                float dot11 = dot(v1, v1);
-                float dot12 = dot(v1, v2);
-                float invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
-                float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-                float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-                return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
-            }
-
-            float getRhombusIndex(vec2 localPos, float radius) {
-                vec2 center = vec2(0.0);
-
-                vec2 v0 = getHexVertex(0.0, radius);
-                vec2 v1 = getHexVertex(1.0, radius);
-                vec2 v2 = getHexVertex(2.0, radius);
-                vec2 v3 = getHexVertex(3.0, radius);
-                vec2 v4 = getHexVertex(4.0, radius);
-                vec2 v5 = getHexVertex(5.0, radius);
-
-                if (pointInTriangle(localPos, center, v0, v1)) return 0.0;
-                if (pointInTriangle(localPos, center, v1, v2)) return 0.0;
-                if (pointInTriangle(localPos, center, v2, v3)) return 1.0;
-                if (pointInTriangle(localPos, center, v3, v4)) return 1.0;
-                if (pointInTriangle(localPos, center, v4, v5)) return 2.0;
-                if (pointInTriangle(localPos, center, v5, v0)) return 2.0;
-
-                return 0.0;
-            }
-
-            // Function to apply different shades based on rhombus type
-            vec4 applyRhombusShade(vec4 baseColor, float rhombusType) {
-                if (rhombusType == 0.0) {
-                    return baseColor;
-                } else if (rhombusType == 1.0) {
-                    return vec4(baseColor.rgb * 0.75, baseColor.a);
-                } else {
-                    return vec4(baseColor.rgb * 0.5, baseColor.a);
-                }
-            }
-
-            void main() {
-                vec2 worldPos = vec2(
-                    (vTexCoord.x * uResolution.x - uResolution.x * 0.5 - uOffset.x) / uScale,
-                    -(vTexCoord.y * uResolution.y - uResolution.y * 0.5 - uOffset.y) / uScale
-                );                vec2 axial = worldToHex(worldPos, uRadius);
-                vec3 hexCell = hexRound(axial);
-
-                // compute hex center and convert components to floats
-                float hx = hexCell.x;
-                float hy = hexCell.y;
-                vec2 hexCenter = vec2(
-                    uRadius * sqrt(3.0) * (hx + hy * 0.5),
-                    uRadius * 1.5 * hy
-                );
-
-                vec2 localPos = worldPos - hexCenter;
-
-                if (length(localPos) > uRadius * 1.05) {
-                    gl_FragColor = uCanvasColor;
-                    return;
+                // Point in triangle test
+                bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
+                    vec2 v0 = c - a;
+                    vec2 v1 = b - a;
+                    vec2 v2 = p - a;
+                    float dot00 = dot(v0, v0);
+                    float dot01 = dot(v0, v1);
+                    float dot02 = dot(v0, v2);
+                    float dot11 = dot(v1, v1);
+                    float dot12 = dot(v1, v2);
+                    float invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+                    float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+                    float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+                    return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
                 }
 
-                float rhombusType = getRhombusIndex(localPos, uRadius);
+                // Determine which rhombus using the proper cube-to-hex split
+                int getRhombusIndex(vec2 localPos, float radius) {
+                    vec2 center = vec2(0.0);
 
-                float minQ = -floor(uGridCols * 0.5);
-                float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+                    // Get hex vertices (flat-topped)
+                    vec2 v0 = getHexVertex(0, radius); // Right
+                    vec2 v1 = getHexVertex(1, radius); // Bottom-right
+                    vec2 v2 = getHexVertex(2, radius); // Bottom-left
+                    vec2 v3 = getHexVertex(3, radius); // Left
+                    vec2 v4 = getHexVertex(4, radius); // Top-left
+                    vec2 v5 = getHexVertex(5, radius); // Top-right
 
-                float minR = -floor(uGridRows * 0.5);
-                float maxR =  ceil(uGridRows * 0.5) - 1.0;
+                    // Check which triangular sector the point is in
+                    if (pointInTriangle(localPos, center, v0, v1)) return 0;
+                    if (pointInTriangle(localPos, center, v1, v2)) return 0;
+                    if (pointInTriangle(localPos, center, v2, v3)) return 1;
+                    if (pointInTriangle(localPos, center, v3, v4)) return 1;
+                    if (pointInTriangle(localPos, center, v4, v5)) return 2;
+                    if (pointInTriangle(localPos, center, v5, v0)) return 2;
 
-                if (hx < minQ || hx > maxQ || hy < minR || hy > maxR) {
-                    gl_FragColor = uCanvasColor;
-                    return;
+                    return 0;
                 }
 
-                float texX = (hx - minQ) * 3.0 + rhombusType;
-                float texY = (hy - minR);
-
-                vec2 texCoord = vec2(texX / (uGridCols * 3.0), texY / uGridRows);
-
-                if (texCoord.x < 0.0 || texCoord.x >= 0.9999 || texCoord.y < 0.0 || texCoord.y >= 1.0) {
-                    gl_FragColor = uCanvasColor;
-                    return;
+                // Function to apply different shades based on rhombus type
+                vec4 applyRhombusShade(vec4 baseColor, int rhombusType) {
+                    if (rhombusType == 0) {
+                        // Lightest shade - multiply by 1.0 (original)
+                        return baseColor;
+                    } else if (rhombusType == 1) {
+                        // Medium shade - multiply by 0.75
+                        return vec4(baseColor.rgb * 0.75, baseColor.a);
+                    } else {
+                        // Darkest shade - multiply by 0.5
+                        return vec4(baseColor.rgb * 0.5, baseColor.a);
+                    }
                 }
 
-                vec4 cellColor = texture2D(uGridTexture, texCoord);
+                void main() {
+                    // Screen -> world
+                    vec2 worldPos = vec2(
+                        (vTexCoord.x * uResolution.x - uResolution.x * 0.5 - uOffset.x) / uScale,
+                        -(vTexCoord.y * uResolution.y - uResolution.y * 0.5 - uOffset.y) / uScale
+                    );
+                    vec2 axial = worldToHex(worldPos, uRadius);
+                    ivec3 hexCell = hexRound(axial);
 
-                if (cellColor.a <= 0.0) {
-                    // Apply rhombus shading to grid color
-                    gl_FragColor = uGridColor;
-                } else {
-                    // Apply rhombus shading to texture color
-                    gl_FragColor = applyRhombusShade(cellColor, rhombusType);
+                    // compute hex center in world (convert ints to floats)
+                    float hx = float(hexCell.x);
+                    float hy = float(hexCell.y);
+                    vec2 hexCenter = vec2(
+                        uRadius * sqrt(3.0) * (hx + hy * 0.5),
+                        uRadius * 1.5 * hy
+                    );
+
+                    vec2 localPos = worldPos - hexCenter;
+
+                    // outside hex -> canvas color
+                    if (length(localPos) > uRadius * 1.05) {
+                        outColor = uCanvasColor;
+                        return;
+                    }
+
+                    // Determine rhombus type (still used only for addressing)
+                    int rhombusType = getRhombusIndex(localPos, uRadius);
+
+                    // Grid bounds expressed as floats
+                    float minQ = -floor(uGridCols * 0.5);
+                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+
+                    float minR = -floor(uGridRows * 0.5);
+                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
+
+                    // Check if hex is outside grid (convert hex indices to floats)
+                    if (hx < minQ || hx > maxQ || hy < minR || hy > maxR) {
+                        outColor = uCanvasColor;
+                        return;
+                    }
+
+                    // texture addressing (3 rhombi per hex along X)
+                    float texX = ((hx - minQ) * 3.0) + float(rhombusType);
+                    float texY = (hy - minR);
+
+                    vec2 texCoord = vec2(texX / (uGridCols * 3.0), texY / uGridRows);
+
+                    // if texCoord outside texture area -> canvas color
+                    if (texCoord.x < 0.0 || texCoord.x >= 0.9999 || texCoord.y < 0.0 || texCoord.y >= 1.0) {
+                        outColor = uCanvasColor;
+                        return;
+                    }
+
+                    vec4 cellColor = texture(uGridTexture, texCoord);
+
+                    // identical color rules to hex shader:
+                    // empty texel -> gridColor, otherwise use texture color
+                    if (cellColor.a <= 0.0) {
+                        outColor = uGridColor;
+                    } else {
+                        // Apply rhombus shading to texture color
+                        outColor = applyRhombusShade(cellColor, rhombusType);
+                    }
                 }
-            }
             `;
-    }
+        } else {
+            return `
+                precision mediump float;
+
+                uniform vec2 uResolution;
+                uniform vec2 uOffset;
+                uniform float uScale;
+                uniform float uGridCols;
+                uniform float uGridRows;
+                uniform float uRadius;
+                uniform sampler2D uGridTexture;
+                uniform vec4 uCanvasColor;
+                uniform vec4 uGridColor;
+                varying vec2 vTexCoord;
+
+                vec2 worldToHex(vec2 pos, float r) {
+                    float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                    float s = (2.0/3.0 * pos.y) / r;
+                    return vec2(q, s);
+                }
+
+                vec3 hexRound(vec2 h) {
+                    float x = h.x;
+                    float z = h.y;
+                    float y = -x - z;
+                    float rx = floor(x + 0.5);
+                    float ry = floor(y + 0.5);
+                    float rz = floor(z + 0.5);
+                    float dx = abs(rx - x);
+                    float dy = abs(ry - y);
+                    float dz = abs(rz - z);
+                    if (dx > dy && dx > dz) rx = -ry - rz;
+                    else if (dy > dz) ry = -rx - rz;
+                    else rz = -rx - ry;
+                    return vec3(rx, rz, -rx - rz);
+                }
+
+                vec2 getHexVertex(float i, float r) {
+                    float angle = 3.14159265359 / 3.0 * i - 3.14159265359 / 6.0;
+                    return vec2(r * cos(angle), r * sin(angle));
+                }
+
+                bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
+                    vec2 v0 = c - a;
+                    vec2 v1 = b - a;
+                    vec2 v2 = p - a;
+                    float dot00 = dot(v0, v0);
+                    float dot01 = dot(v0, v1);
+                    float dot02 = dot(v0, v2);
+                    float dot11 = dot(v1, v1);
+                    float dot12 = dot(v1, v2);
+                    float invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+                    float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+                    float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+                    return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
+                }
+
+                float getRhombusIndex(vec2 localPos, float radius) {
+                    vec2 center = vec2(0.0);
+
+                    vec2 v0 = getHexVertex(0.0, radius);
+                    vec2 v1 = getHexVertex(1.0, radius);
+                    vec2 v2 = getHexVertex(2.0, radius);
+                    vec2 v3 = getHexVertex(3.0, radius);
+                    vec2 v4 = getHexVertex(4.0, radius);
+                    vec2 v5 = getHexVertex(5.0, radius);
+
+                    if (pointInTriangle(localPos, center, v0, v1)) return 0.0;
+                    if (pointInTriangle(localPos, center, v1, v2)) return 0.0;
+                    if (pointInTriangle(localPos, center, v2, v3)) return 1.0;
+                    if (pointInTriangle(localPos, center, v3, v4)) return 1.0;
+                    if (pointInTriangle(localPos, center, v4, v5)) return 2.0;
+                    if (pointInTriangle(localPos, center, v5, v0)) return 2.0;
+
+                    return 0.0;
+                }
+
+                // Function to apply different shades based on rhombus type
+                vec4 applyRhombusShade(vec4 baseColor, float rhombusType) {
+                    if (rhombusType == 0.0) {
+                        return baseColor;
+                    } else if (rhombusType == 1.0) {
+                        return vec4(baseColor.rgb * 0.75, baseColor.a);
+                    } else {
+                        return vec4(baseColor.rgb * 0.5, baseColor.a);
+                    }
+                }
+
+                void main() {
+                    vec2 worldPos = vec2(
+                        (vTexCoord.x * uResolution.x - uResolution.x * 0.5 - uOffset.x) / uScale,
+                        -(vTexCoord.y * uResolution.y - uResolution.y * 0.5 - uOffset.y) / uScale
+                    );                vec2 axial = worldToHex(worldPos, uRadius);
+                    vec3 hexCell = hexRound(axial);
+
+                    // compute hex center and convert components to floats
+                    float hx = hexCell.x;
+                    float hy = hexCell.y;
+                    vec2 hexCenter = vec2(
+                        uRadius * sqrt(3.0) * (hx + hy * 0.5),
+                        uRadius * 1.5 * hy
+                    );
+
+                    vec2 localPos = worldPos - hexCenter;
+
+                    if (length(localPos) > uRadius * 1.05) {
+                        gl_FragColor = uCanvasColor;
+                        return;
+                    }
+
+                    float rhombusType = getRhombusIndex(localPos, uRadius);
+
+                    float minQ = -floor(uGridCols * 0.5);
+                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+
+                    float minR = -floor(uGridRows * 0.5);
+                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
+
+                    if (hx < minQ || hx > maxQ || hy < minR || hy > maxR) {
+                        gl_FragColor = uCanvasColor;
+                        return;
+                    }
+
+                    float texX = (hx - minQ) * 3.0 + rhombusType;
+                    float texY = (hy - minR);
+
+                    vec2 texCoord = vec2(texX / (uGridCols * 3.0), texY / uGridRows);
+
+                    if (texCoord.x < 0.0 || texCoord.x >= 0.9999 || texCoord.y < 0.0 || texCoord.y >= 1.0) {
+                        gl_FragColor = uCanvasColor;
+                        return;
+                    }
+
+                    vec4 cellColor = texture2D(uGridTexture, texCoord);
+
+                    if (cellColor.a <= 0.0) {
+                        // Apply rhombus shading to grid color
+                        gl_FragColor = uGridColor;
+                    } else {
+                        // Apply rhombus shading to texture color
+                        gl_FragColor = applyRhombusShade(cellColor, rhombusType);
+                    }
+                }
+                `;
+        }
     }
 
     drawGridShape(ctx) {

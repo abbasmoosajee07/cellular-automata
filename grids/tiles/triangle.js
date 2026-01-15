@@ -24,10 +24,19 @@ class TriangleGrid extends BaseGrid {
     }
 
     cellToWorld(q, r, s) {
-        return {
-            x: q * this.cellSize,
-            y: r * this.cellSize
-        };
+        const worldX = q * this.cellSize;
+        const worldY = r * this.cellSize;
+        return {x: worldX, y: worldY};
+    }
+
+    getGridCorners(minQ, maxQ, minR, maxR, minS, maxS) {
+        const gridCorners = [
+            { q: minQ - 1, r: minR - 1 },
+            { q: maxQ + 2, r: minR - 1 },
+            { q: maxQ + 2, r: maxR + 2 },
+            { q: minQ - 1, r: maxR + 2 },
+        ];
+        return gridCorners;
     }
 
     cubeToTextureCoords(q, r, s) {

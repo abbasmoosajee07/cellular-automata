@@ -7,24 +7,31 @@ class SquareGrid extends BaseGrid {
     }
 
     worldToCell(world) {
-
-        const q = Math.round(+world.x / this.cellSize);
+        const q = Math.round(world.x / this.cellSize);
         const r = Math.round(-world.y / this.cellSize);
 
         return [q, r, 0];
     }
 
     cellToWorld(q, r, s) {
-        return {
-            x: q * this.cellSize,
-            y: r * this.cellSize
-        };
+        const worldX = q * this.cellSize;
+        const worldY = r * this.cellSize;
+        return {x: worldX, y: worldY};
+    }
+
+    getGridCorners(minQ, maxQ, minR, maxR, minS, maxS) {
+        const gridCorners = [
+            { q: minQ - 1, r: minR - 1 },
+            { q: maxQ + 1, r: minR - 1 },
+            { q: maxQ + 1, r: maxR + 1 },
+            { q: minQ - 1, r: maxR + 1 },
+        ];
+        return gridCorners;
     }
 
     cubeToTextureCoords(q, r, s) {
         const centerCol = Math.floor(this.gridCols / 2);
         const centerRow = Math.floor(this.gridRows / 2);
-
         return [q + centerCol, r + centerRow];
     }
 
@@ -151,7 +158,6 @@ class SquareGrid extends BaseGrid {
             w,
             h
         );
-        console.log("canvas", -w / 2 + xOffset, -h / 2 + yOffset, w, h);
     }
 
     drawShapeCell(ctx, q, r, s, state) {

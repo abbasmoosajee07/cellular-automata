@@ -211,16 +211,10 @@ class GridManager {
     }
 
     fitGrid() {
-        const [minQ, maxQ, minR, maxR] = this.selectGridLimits();
+        const [minQ, maxQ, minR, maxR, minS, maxS] = this.selectGridLimits();
+        const gridCorners = this.shapeGrid.getGridCorners(minQ, maxQ, minR, maxR, minS, maxS);
 
-        const cellCorners = [
-            { q: minQ - 1.5, r: minR - 1.5 },
-            { q: maxQ + 1.5, r: minR - 1.5 },
-            { q: maxQ + 1.5, r: maxR + 1.5 },
-            { q: minQ - 1.5, r: maxR + 1.5 },
-        ];
-
-        const worldCorners = cellCorners.map(c =>
+        const worldCorners = gridCorners.map(c =>
             this.shapeGrid.cellToWorld(c.q, c.r, 0)
         );
 

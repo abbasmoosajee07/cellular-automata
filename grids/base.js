@@ -190,9 +190,17 @@ class BaseGrid {
         }
     }
 
-    // Abstract methods
+    // Abstract Shape specific methods
     worldToCell(world) {
         throw new Error("Method 'worldToCell(world)' must be implemented.");
+    }
+
+    cellToWorld(q, r, s) {
+        throw new Error("Method 'cellToWorld(q, r, s)' must be implemented.");
+    }
+
+    getGridCorners(minQ, maxQ, minR, maxR, minS, maxS) {
+        throw new Error("Method 'getGridCorners(minQ, maxQ, minR, maxR, minS, maxS)' must be implemented.");
     }
 
     cubeToTextureCoords(q, r, s) {
@@ -211,9 +219,6 @@ class BaseGrid {
         throw new Error("Method 'drawShapeCell(ctx, q, r, s, state)' must be implemented.");
     }
 
-    cellToWorld(q, r, s) {
-        throw new Error("Method 'cellToWorld(q, r, s)' must be implemented.");
-    }
 }
 
 export {BaseGrid};
