@@ -21,10 +21,10 @@ class SquareGrid extends BaseGrid {
 
     getGridCorners(minQ, maxQ, minR, maxR, minS, maxS) {
         const gridCorners = [
-            { q: minQ - 1, r: minR - 1 },
-            { q: maxQ + 1, r: minR - 1 },
-            { q: maxQ + 1, r: maxR + 1 },
-            { q: minQ - 1, r: maxR + 1 },
+            { q: minQ - 1, r: minR - 1, s: 0 },
+            { q: maxQ + 1, r: minR - 1, s: 0 },
+            { q: maxQ + 1, r: maxR + 1, s: 0 },
+            { q: minQ - 1, r: maxR + 1, s: 0 },
         ];
         return gridCorners;
     }

@@ -390,15 +390,15 @@ class SimulatorController{
         let draggingCam = false;
         let lastX = 0, lastY = 0;
         let lastTouchDistance = null;
-        const MIN_ZOOM = 10;
-        const MAX_ZOOM = 0.0001;
+        const MIN_ZOOM = 1E+2;
+        const MAX_ZOOM = 1E-4;
 
         const getPointer = (e) => {
             if (e.touches) {
-                const pointer = { 
-                    x: e.touches[0].clientX, 
-                    y: e.touches[0].clientY, 
-                    touches: e.touches.length 
+                const pointer = {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY,
+                    touches: e.touches.length
                 };
                 return pointer;
             }

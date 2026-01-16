@@ -80,17 +80,31 @@ class RhomboidalGrid extends BaseGrid {
     }
 
     cellToWorld(q, r, s) {
-        const x = this.radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-        const y = this.radius * (-3 / 2 * r);
-        return { x, y };
+        const R = this.radius;
+
+        // --- Hex center (exact inverse of cube projection) ---
+        const centerX = R * Math.sqrt(3) * (q + r * 0.5);
+        const centerY = R * (3 / 2) * r;
+
+        // --- Rhombus center offset ---
+        const angle = Math.PI / 6 + s * (2 * Math.PI / 3);
+        const offsetRadius = R * 0.5;
+
+        const offsetX = offsetRadius * Math.cos(angle);
+        const offsetY = offsetRadius * Math.sin(angle);
+
+        return {
+            x: centerX + offsetX,
+            y: - (centerY + offsetY)   // keep your Y-flip convention
+        };
     }
 
     getGridCorners(minQ, maxQ, minR, maxR, minS, maxS) {
         const gridCorners = [
-            { q: minQ * 1.1, r: minR - 1 },
-            { q: maxQ + 1, r: minR - 1 },
-            { q: maxQ + 1, r: maxR + 1 },
-            { q: minQ - 1, r: maxR * 1.25 },
+            { q: minQ - 2, r: minR - 1, s: 1 },
+            { q: maxQ + 1, r: minR - 1, s: 2 },
+            { q: maxQ + 1, r: maxR + 2, s: 0 },
+            { q: minQ - 2, r: maxR + 2, s: 2 },
         ];
         return gridCorners;
     }

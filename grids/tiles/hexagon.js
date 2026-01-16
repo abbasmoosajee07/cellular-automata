@@ -34,12 +34,6 @@ class HexagonGrid extends BaseGrid {
     }
 
     cellToWorld(q, r, s) {
-        const worldY = -(r * this.radius) * 3 / 2;
-        const worldX = (q * this.radius) + worldY / 3 * 3 / Math.sqrt(3);
-        return {x: worldX, y: worldY};
-    }
-
-    cellToWorld(q, r, s) {
         const x = this.radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
         const y = this.radius * (-3 / 2 * r);
         return { x, y };
@@ -47,10 +41,10 @@ class HexagonGrid extends BaseGrid {
 
     getGridCorners(minQ, maxQ, minR, maxR, minS, maxS) {
         const gridCorners = [
-            { q: minQ * 1.1, r: minR - 1 },
-            { q: maxQ + 1, r: minR - 1 },
-            { q: maxQ + 1, r: maxR + 1 },
-            { q: minQ - 1, r: maxR * 1.25 },
+            { q: minQ - 2, r: minR - 1, s: 0 },
+            { q: maxQ + 1, r: minR - 1, s: 0 },
+            { q: maxQ + 1, r: maxR + 2, s: 0 },
+            { q: minQ - 2, r: maxR + 2, s: 0 },
         ];
         return gridCorners;
     }

@@ -215,7 +215,7 @@ class GridManager {
         const gridCorners = this.shapeGrid.getGridCorners(minQ, maxQ, minR, maxR, minS, maxS);
 
         const worldCorners = gridCorners.map(c =>
-            this.shapeGrid.cellToWorld(c.q, c.r, 0)
+            this.shapeGrid.cellToWorld(c.q, c.r, c.s)
         );
 
         const xs = worldCorners.map(p => p.x);

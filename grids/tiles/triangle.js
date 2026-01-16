@@ -24,18 +24,31 @@ class TriangleGrid extends BaseGrid {
     }
 
     cellToWorld(q, r, s) {
-        const worldX = q * this.cellSize;
-        const worldY = r * this.cellSize;
-        return {x: worldX, y: worldY};
+        const size = this.cellSize;
+        let worldX = q * size;
+        let worldY = -r * size;
+
+        // Triangle-local offset (centers)
+        if (s === 0) {
+            // lower-left triangle
+            worldX += size * 1 / 3;
+            worldY -= size * 2 / 2;
+        } else {
+            // upper-right triangle
+            worldX += size * 2 / 3;
+            worldY += size * 1 / 3;
+        }
+        return { x: worldX, y: worldY };
     }
 
     getGridCorners(minQ, maxQ, minR, maxR, minS, maxS) {
         const gridCorners = [
-            { q: minQ - 1, r: minR - 1 },
-            { q: maxQ + 2, r: minR - 1 },
-            { q: maxQ + 2, r: maxR + 2 },
-            { q: minQ - 1, r: maxR + 2 },
+            { q: maxQ + 1, r: maxR + 1, s: 0 },
+            { q: minQ - 1, r: maxR + 1, s: 0 },
+            { q: minQ - 1, r: minR - 1, s: 1 },
+            { q: maxQ + 1, r: minR - 1, s: 1 },
         ];
+        console.log(minQ, maxR);
         return gridCorners;
     }
 
