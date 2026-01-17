@@ -3,6 +3,8 @@ class Canvas2DRenderer {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.shapeGrid = shapeGrid;
+        this.shapeGrid.rendererUsed = "canvas2d";
+
         this.updateCanvasSize();
     }
 

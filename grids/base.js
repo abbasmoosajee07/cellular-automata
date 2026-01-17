@@ -4,6 +4,7 @@ class BaseGrid {
     constructor(colorSchema, shape) {
         this.colorSchema = colorSchema;
         this.shape = shape;
+        this.rendererUsed = null;
 
         // Common properties
         this.radius = 30;
@@ -20,6 +21,30 @@ class BaseGrid {
         // Common WebGL buffers
         this.vertexBuffer = null;
         this.indexBuffer = null;
+    }
+
+    buildPalette(maxStates = 16) {
+        const palette = new Float32Array(maxStates * 4);
+
+        // Default color = grid color
+        const defaultColor = this.colorSchema.grid || [1, 1, 1, 1];
+
+        // Fill entire palette with grid color
+        for (let i = 0; i < maxStates; i++) {
+            palette.set(defaultColor, i * 4);
+        }
+
+        // Override numeric state entries
+        for (const key in this.colorSchema) {
+            // Only numeric keys represent states
+            const state = Number(key);
+            if (!Number.isInteger(state)) continue;
+            if (state < 0 || state >= maxStates) continue;
+
+            palette.set(this.colorSchema[key], state * 4);
+        }
+
+        return palette;
     }
 
     setupGeometryBuffers(gl) {
@@ -82,6 +107,7 @@ class BaseGrid {
             gridTexture: gl.getUniformLocation(program, "uGridTexture"),
             gridColor: gl.getUniformLocation(program, "uGridColor"),
             canvasColor: gl.getUniformLocation(program, "uCanvasColor"),
+            paletteLoc: gl.getUniformLocation(program, "uPalette"),
         };
 
         gl.uniform2f(uniformLocations.resolution, width, height);
@@ -101,6 +127,8 @@ class BaseGrid {
         const g = this.colorSchema.grid;
         gl.uniform4f(uniformLocations.gridColor, g[0], g[1], g[2], g[3]); // NEW
 
+        gl.uniform4fv(uniformLocations.paletteLoc, this.buildPalette(256));
+
         return uniformLocations;
     }
 
@@ -116,28 +144,6 @@ class BaseGrid {
         return { x: px, y: py };
     }
 
-    setCellState(q, r, s, state) {
-        const [texX, texY] = this.cubeToTextureCoords(q, r, s);
-
-        if (texX < 0 || texX >= this.textureWidth ||
-            texY < 0 || texY >= this.textureHeight) return;
-
-        const index = (texY * this.textureWidth + texX) * 4;
-
-        if (state) {
-            const c = this.colorSchema[state];
-            this.textureData[index]     = c[0] * 255;
-            this.textureData[index + 1] = c[1] * 255;
-            this.textureData[index + 2] = c[2] * 255;
-            this.textureData[index + 3] = 255;
-        } else {
-            this.textureData[index]     = 0;
-            this.textureData[index + 1] = 0;
-            this.textureData[index + 2] = 0;
-            this.textureData[index + 3] = 0;
-        }
-    }
-
     getGridGeometry(gridSize) {
         return {
             texture: this.gridTexture,
@@ -151,42 +157,118 @@ class BaseGrid {
         };
     }
 
+    setCellState(q, r, s, state) {
+        const [x, y] = this.cubeToTextureCoords(q, r, s);
+
+        if (x < 0 || y < 0 ||
+            x >= this.textureWidth ||
+            y >= this.textureHeight) {
+            return null;
+        }
+
+        if (this.rendererUsed === "webgl2") {
+            const idx = y * this.textureWidth + x;
+            this.textureData[idx] = state ?? 0;
+            return { x, y, state: this.textureData[idx] };
+        }
+
+        // WebGL1 (RGBA)
+        const i = (y * this.textureWidth + x) * 4;
+
+        if (state) {
+            const c = this.colorSchema[state];
+            this.textureData[i]     = c[0] * 255;
+            this.textureData[i + 1] = c[1] * 255;
+            this.textureData[i + 2] = c[2] * 255;
+            this.textureData[i + 3] = 255;
+        } else {
+            this.textureData.fill(0, i, i + 4);
+        }
+
+        return null;
+    }
+
     initGridTexture(gl, gridCols, gridRows) {
         this.gridCols = gridCols;
         this.gridRows = gridRows;
 
-        this.textureWidth = gridCols * this.colMult;
+        this.textureWidth  = gridCols * this.colMult;
         this.textureHeight = gridRows * this.rowMult;
-        this.textureData = new Uint8Array(this.textureWidth * this.textureHeight * 4);
 
-        // Initialize with transparent
-        for (let i = 0; i < this.textureWidth * this.textureHeight * 4; i += 4) {
-            this.textureData[i] = 0;
-            this.textureData[i + 1] = 0;
-            this.textureData[i + 2] = 0;
-            this.textureData[i + 3] = 0;
-        }
+        const isWebGL2 = this.rendererUsed === "webgl2";
+
+        this.textureData = new Uint8Array(
+            isWebGL2
+                ? this.textureWidth * this.textureHeight
+                : this.textureWidth * this.textureHeight * 4
+        );
 
         this.gridTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+
+        if (isWebGL2) {
+            gl.texImage2D(
+                gl.TEXTURE_2D,
+                0,
+                gl.R8UI,
+                this.textureWidth,
+                this.textureHeight,
+                0,
+                gl.RED_INTEGER,
+                gl.UNSIGNED_BYTE,
+                this.textureData
+            );
+        } else {
+            gl.texImage2D(
+                gl.TEXTURE_2D,
+                0,
+                gl.RGBA,
+                this.textureWidth,
+                this.textureHeight,
+                0,
+                gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                this.textureData
+            );
+        }
     }
 
     clearGrid(gl) {
-        if (this.textureData) {
-            this.textureData.fill(0);
-        }
+        if (!this.textureData || !this.gridTexture) return;
 
-        if (gl && this.gridTexture) {
-            gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0,
-                            this.textureWidth,
-                            this.textureHeight,
-                            gl.RGBA, gl.UNSIGNED_BYTE, this.textureData);
+        this.textureData.fill(0);
+
+        gl.bindTexture(gl.TEXTURE_2D, this.gridTexture);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+        if (this.rendererUsed === "webgl2") {
+            gl.texSubImage2D(
+                gl.TEXTURE_2D,
+                0,
+                0, 0,
+                this.textureWidth,
+                this.textureHeight,
+                gl.RED_INTEGER,
+                gl.UNSIGNED_BYTE,
+                this.textureData
+            );
+        } else {
+            gl.texSubImage2D(
+                gl.TEXTURE_2D,
+                0,
+                0, 0,
+                this.textureWidth,
+                this.textureHeight,
+                gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                this.textureData
+            );
         }
     }
 

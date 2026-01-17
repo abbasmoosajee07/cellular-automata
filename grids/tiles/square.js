@@ -38,7 +38,8 @@ class SquareGrid extends BaseGrid {
     getFragmentShaderSource(isWebGL2 = false) {
         if (isWebGL2) {
             return `#version 300 es
-                precision mediump float;
+                precision highp float;
+                precision highp usampler2D;
 
                 uniform vec2  uResolution;
                 uniform vec2  uOffset;
@@ -47,48 +48,65 @@ class SquareGrid extends BaseGrid {
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
 
-                uniform sampler2D uGridTexture;
+                // SINGLE-CHANNEL STATE TEXTURE
+                uniform usampler2D uGridTexture;
+
                 uniform vec4 uCanvasColor;
                 uniform vec4 uGridColor;
+
+                // PALETTE: state → color
+                uniform vec4 uPalette[256];
 
                 in vec2 vTexCoord;
                 out vec4 outColor;
 
+                // State → Color mapping (palette)
+                vec4 colorFromState(uint state) {
+                    if (state >= 256u) {
+                        return uPalette[0]; // safe fallback
+                    }
+                    return uPalette[state];
+                }
+
                 void main() {
 
-                    // screen → world (centered)
+                    // Screen → World (centered)
                     vec2 worldPos =
-                        (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                        (vTexCoord * uResolution
+                        - uResolution * 0.5
+                        - uOffset) / uScale;
 
-                    // world → cell (CENTER-based, symmetric)
-                    vec2 cell = round(vec2(
-                        +worldPos.x / uBaseCellSize,
-                        -worldPos.y / uBaseCellSize
-                    ));
+                    // World → Cell (centered grid)
+                    ivec2 cell = ivec2(
+                        round(worldPos.x / uBaseCellSize),
+                        round(-worldPos.y / uBaseCellSize)
+                    );
 
-                    // Grid bounds centered on (0,0)
-                    float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
-                    float minR = -floor(uGridRows * 0.5);
-                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
+                    // Grid bounds (centered)
+                    int minQ = -int(floor(uGridCols * 0.5));
+                    int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
+                    int minR = -int(floor(uGridRows * 0.5));
+                    int maxR =  int(ceil (uGridRows * 0.5)) - 1;
 
+                    // Outside grid
                     if (cell.x < minQ || cell.x > maxQ ||
                         cell.y < minR || cell.y > maxR) {
                         outColor = uCanvasColor;
                         return;
                     }
 
-                    // sample CELL CENTER like hex grid
-                    vec2 texCoord = vec2(
-                        (cell.x - minQ + 0.5) / uGridCols,
-                        (cell.y - minR + 0.5) / uGridRows
+                    // Cell → Texture coordinates
+                    ivec2 texel = ivec2(
+                        cell.x - minQ,
+                        cell.y - minR
                     );
 
-                    vec4 cellColor = texture(uGridTexture, texCoord);
+                    // Fetch state (NO filtering)
+                    uint state = texelFetch(uGridTexture, texel, 0).r;
 
-                    outColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
-                }
-                `;
+                    // Output color via palette
+                    outColor = colorFromState(state);
+                }`;
         } else {
             return `precision mediump float;
 

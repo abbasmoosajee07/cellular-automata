@@ -65,7 +65,8 @@ class TriangleGrid extends BaseGrid {
     getFragmentShaderSource(isWebGL2 = false) {
         if (isWebGL2) {
             return `#version 300 es
-                precision mediump float;
+                precision highp float;
+                precision highp usampler2D;
 
                 uniform vec2  uResolution;
                 uniform vec2  uOffset;
@@ -74,57 +75,67 @@ class TriangleGrid extends BaseGrid {
                 uniform float uGridRows;
                 uniform float uBaseCellSize;
 
-                uniform sampler2D uGridTexture;
+                // INTEGER state texture (R8UI)
+                uniform usampler2D uGridTexture;
+
                 uniform vec4 uCanvasColor;
                 uniform vec4 uGridColor;
+
+                // Optional palette (recommended)
+                uniform vec4 uPalette[256];
 
                 in vec2 vTexCoord;
                 out vec4 outColor;
 
+                vec4 colorFromState(uint state) {
+                    return uPalette[int(state)];
+                }
+
                 void main() {
 
-                    // ---- screen → world (already correct) ----
+                    // Screen → World
                     vec2 worldPos =
                         (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
 
                     float size = uBaseCellSize;
 
-                    // ---- world → cell (EXACT MATCH to JS) ----
+                    // World → triangle cell
                     float q = floor(worldPos.x / size);
                     float r = floor(-worldPos.y / size);
 
-                    float localX = (worldPos.x / size) - q;
-                    float localY = (-worldPos.y / size) - r;
+                    float localX = (worldPos.x / size) + (-q);
+                    float localY = (-worldPos.y / size) + (-r);
 
-                    float s = (localY < localX) ? 1.0 : 0.0;
+                    int s = (localY < localX) ? 1 : 0;
 
-                    // ---- bounds (same as JS) ----
-                    float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+                    // Grid bounds
+                    int minQ = -int(floor(uGridCols * 0.5));
+                    int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
 
-                    float minR = -floor(uGridRows * 0.5);
-                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
+                    int minR = -int(floor(uGridRows * 0.5));
+                    int maxR =  int(ceil (uGridRows * 0.5)) - 1;
 
-                    if (q < minQ || q > maxQ || r < minR || r > maxR) {
+                    if (int(q) < minQ || int(q) > maxQ ||
+                        int(r) < minR || int(r) > maxR) {
                         outColor = uCanvasColor;
                         return;
                     }
 
-                    // ---- cubeToTextureCoords (EXACT MATCH) ----
-                    float texX = q - minQ;
-                    float texY = (uGridRows - 1.0 - (r - minR)) + s * uGridRows;
+                    // cubeToTextureCoords (triangle)
+                    int texX = int(q) - minQ;
+                    int texY = (int(uGridRows) - 1 - (int(r) - minR))
+                            + s * int(uGridRows);
 
-                    // ---- texel → UV (CRITICAL FIX) ----
-                    vec2 uv = vec2(
-                        (texX + 0.5) / uGridCols,
-                        (texY + 0.5) / (uGridRows * 2.0)
-                    );
+                    // Fetch integer state (NO FILTERING)
+                    uint state = texelFetch(
+                        uGridTexture,
+                        ivec2(texX, texY),
+                        0
+                    ).r;
 
-                    vec4 cellColor = texture(uGridTexture, uv);
-
-                    outColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
-                }
-            `;
+                    // State → Color
+                    outColor = (state == 0u) ? uGridColor : colorFromState(state);
+                }`;
         } else {
             return `
                 precision mediump float;

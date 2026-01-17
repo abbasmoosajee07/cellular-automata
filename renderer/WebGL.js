@@ -9,8 +9,8 @@ class WebGLRenderer {
         if (!this.gl) throw new Error("WebGL not supported");
 
         // CORRECT capability detection
-        this.isWebGL2 = !this.forceWebGL1 &&
-                        this.gl instanceof WebGL2RenderingContext;
+        this.isWebGL2 = !this.forceWebGL1 && this.gl instanceof WebGL2RenderingContext;
+        this.shapeGrid.rendererUsed = this.isWebGL2 ? "webgl2" : "webgl";
 
         this.initShaders();
         this.initBuffers();
@@ -150,9 +150,28 @@ class WebGLRenderer {
             0, 0,
             this.shapeGrid.textureWidth,
             this.shapeGrid.textureHeight,
-            gl.RGBA,
+            this.isWebGL2 ? gl.RED_INTEGER : gl.RGBA,
             gl.UNSIGNED_BYTE,
             this.shapeGrid.textureData
+        );
+    }
+
+    uploadCell(x, y, state) {
+        const gl = this.gl;
+
+        gl.bindTexture(gl.TEXTURE_2D, this.shapeGrid.gridTexture);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+        const data = new Uint8Array([state]);
+
+        gl.texSubImage2D(
+            gl.TEXTURE_2D,
+            0,
+            x, y,
+            1, 1,
+            gl.RED_INTEGER,
+            gl.UNSIGNED_BYTE,
+            data
         );
     }
 
@@ -161,8 +180,12 @@ class WebGLRenderer {
     }
 
     renderCell(cameraView, q, r, s, state) {
-        this.shapeGrid.setCellState(q, r, s, state);
-        this.uploadTexture();
+        const info = this.shapeGrid.setCellState(q, r, s, state);
+        if (this.isWebGL2) {
+            this.uploadCell(info.x, info.y, info.state);
+        } else {
+            this.uploadTexture();
+        }
     }
 
     syncCellsToTexture(cells) {

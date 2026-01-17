@@ -70,7 +70,8 @@ class HexagonGrid extends BaseGrid {
     getFragmentShaderSource(isWebGL2 = false) {
         if (isWebGL2) {
             return `#version 300 es
-                precision mediump float;
+                precision highp float;
+                precision highp usampler2D;
 
                 in vec2 vTexCoord;
                 out vec4 outColor;
@@ -82,113 +83,109 @@ class HexagonGrid extends BaseGrid {
                 uniform float uGridRows;
                 uniform float uRadius;
 
-                uniform sampler2D uGridTexture;
-                uniform vec4 uCanvasColor;   // background outside any hex
-                uniform vec4 uGridColor;     // color for empty cells
+                // INTEGER grid texture
+                uniform usampler2D uGridTexture;
 
-                // Convert world → cube coordinates
+                uniform vec4 uCanvasColor;   // background
+                uniform vec4 uGridColor;     // empty cell color
+                uniform vec4 uPalette[256];  // state → color
+
+                // World → Cube
                 vec3 worldToCube(vec2 worldPos, float size) {
                     float q = (sqrt(3.0)/3.0 * worldPos.x - -worldPos.y / 3.0) / size;
                     float r = (2.0/3.0 * -worldPos.y) / size;
                     return vec3(q, r, -q - r);
                 }
 
-                // Round cube coordinates
+                // Cube rounding
                 vec3 cubeRound(vec3 cube) {
-                    float x = cube.x;
-                    float y = cube.y;
-                    float z = cube.z;
+                    vec3 r = round(cube);
 
-                    float rx = round(x);
-                    float ry = round(y);
-                    float rz = round(z);
+                    vec3 d = abs(r - cube);
 
-                    float dx = abs(rx - x);
-                    float dy = abs(ry - y);
-                    float dz = abs(rz - z);
-
-                    if (dx > dy && dx > dz)
-                        rx = -ry - rz;
-                    else if (dy > dz)
-                        ry = -rx - rz;
+                    if (d.x > d.y && d.x > d.z)
+                        r.x = -r.y - r.z;
+                    else if (d.y > d.z)
+                        r.y = -r.x - r.z;
                     else
-                        rz = -rx - ry;
+                        r.z = -r.x - r.y;
 
-                    return vec3(rx, ry, rz);
+                    return r;
                 }
 
-                // Cube → world space center
+                // Cube → World center
                 vec2 cubeToWorld(vec3 cube, float size) {
-                    float q = cube.x;
-                    float r = cube.y;
-                    float x = size * (sqrt(3.0)*q + sqrt(3.0)/2.0 * r);
-                    float y = size * (3.0/2.0 * r);
+                    float x = size * (sqrt(3.0) * cube.x + sqrt(3.0)/2.0 * cube.y);
+                    float y = size * (3.0/2.0 * cube.y);
                     return vec2(x, y);
                 }
 
                 // Inside-hex test
                 bool pointInHex(vec2 local, float size) {
                     vec2 p = vec2(
-                        local.x / (sqrt(3.0)*size),
-                        local.y / (1.5*size)
+                        local.x / (sqrt(3.0) * size),
+                        local.y / (1.5 * size)
                     );
 
-                    vec2 axial = vec2(p.x - p.y*0.5, p.y);
+                    vec2 axial = vec2(p.x - p.y * 0.5, p.y);
                     vec2 r = round(axial);
                     vec2 d = abs(axial - r);
 
                     return max(d.x, d.y) <= 0.5;
                 }
 
+                // State → Color
+                vec4 colorFromState(uint state) {
+                    return uPalette[int(state)];
+                }
+
                 void main() {
 
-                    // screen → world
-                    vec2 worldPos = (vTexCoord * uResolution - uResolution*0.5 - uOffset) / uScale;
+                    // Screen → World
+                    vec2 worldPos =
+                        (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
 
-                    // world → cube
+                    // World → Hex cell
                     vec3 cube = worldToCube(worldPos, uRadius);
-                    vec3 hex = cubeRound(cube);
+                    vec3 hex  = cubeRound(cube);
 
-                    // cube → world center
                     vec2 center = cubeToWorld(hex, uRadius);
-                    vec2 local = worldPos - center;
+                    vec2 local  = worldPos - center;
 
-                    // not inside any hex → canvas background
+                    // Outside any hex
                     if (!pointInHex(local, uRadius)) {
                         outColor = uCanvasColor;
                         return;
                     }
 
-                    // grid bounds
-                    float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+                    // Grid bounds
+                    int minQ = -int(floor(uGridCols * 0.5));
+                    int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
+                    int minR = -int(floor(uGridRows * 0.5));
+                    int maxR =  int(ceil (uGridRows * 0.5)) - 1;
 
-                    float minR = -floor(uGridRows * 0.5);
-                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
+                    int q = int(hex.x);
+                    int r = int(hex.y);
 
-                    // out of grid → canvas color
-                    if (hex.x < minQ || hex.x > maxQ ||
-                        hex.y < minR || hex.y > maxR) {
-
+                    if (q < minQ || q > maxQ || r < minR || r > maxR) {
                         outColor = uCanvasColor;
                         return;
                     }
 
-                    // cube q,r → texture coords
-                    vec2 texCoord = vec2(
-                        (hex.x - minQ) / uGridCols,
-                        (hex.y - minR) / uGridRows
+                    // Cube → texture coords
+                    ivec2 texel = ivec2(
+                        q - minQ,
+                        r - minR
                     );
 
-                    vec4 cellColor = texture(uGridTexture, texCoord);
+                    // Fetch integer state
+                    uint state = texelFetch(uGridTexture, texel, 0).r;
 
-                    // empty texel → gridColor
-                    if (cellColor.a <= 0.0)
-                        outColor = uGridColor;
-                    else
-                        outColor = cellColor;
-                }
-                `;
+                    // Output color
+                    outColor = (state == 0u)
+                        ? uGridColor
+                        : colorFromState(state);
+                }`;
         } else {
             return `precision mediump float;
                 uniform vec2  uResolution;
