@@ -45,14 +45,14 @@ impl PatternIO {
         };
 
         let path = PathBuf::from(filename);
-        // let print_cfg =  serde_json::to_string(&config).unwrap();
-        // println!("{}", print_cfg);
+
         let write_text = Plaintext::write(&config);
         println!("{}", write_text);
 
         fs::write(&path, write_text)?;
         Ok(())
     }
+
     pub fn write_text(config: PatternConfig) -> String {
         Plaintext::write(&config)
     }

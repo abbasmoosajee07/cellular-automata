@@ -11,7 +11,7 @@ pub fn run_native_tests() {
 
     let mut cm = Engine::read_file("patterns/gosperglidergun.cells").unwrap();
     // cm.mesh.resize(20, 20, 1);
-    println!("{:?}\n", cm.mesh.config);
+    println!("Native Print: {:?}\n", cm.mesh.config);
 
     // Randomize cells (TIMED)
     let start_rand = Instant::now();
@@ -25,7 +25,7 @@ pub fn run_native_tests() {
     // Run one step of Game of Life (TIMED)
     println!("--- Running one GoL step ---");
     let start_step = Instant::now();
-    // cm.step_game_of_life();
+    cm.step_game_of_life();
     let step_elapsed = start_step.elapsed();
 
     // Show the new set of live cells

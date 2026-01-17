@@ -32,14 +32,13 @@ impl Engine {
         let cfg = PatternIO::read_pattern(pattern_props, pattern_data);
 
         let print_cfg =  serde_json::to_string(&cfg).unwrap();
-        println!("config: {}", print_cfg);
+        println!("Just Uploaded: {}", print_cfg);
 
         let [w, h, d] = cfg.grid_size;
         let mut grid = Self {
             storage: cfg.clone(),
             mesh: GridMesh::new(w as usize, h as usize, d as usize, None),
         };
-        // grid.mesh.resize(w as usize, h as usize, d as usize);
 
         grid.mesh.change_grid_properties(
             cfg.shape.clone(), cfg.neighbor_type.clone(), cfg.range, cfg.topology_type.clone()
@@ -64,8 +63,7 @@ impl Engine {
     pub fn update_storage(&mut self) {
         let mut new_storage = self.storage.clone();
         let config = self.mesh.config.clone();
-        let [shift_q, _, _, shift_r, _, shift_s]= config.bounds;
-        // let [shift_q, shift_r, shift_s, ] = new_storage.top_left;
+        let [shift_q, _, shift_r,_,  _, shift_s]= config.bounds;
 
         let mut new_alive: Vec<(i32, i32, i32, u32)> = Vec::new();
         for [q, r, s, state] in self.mesh.inner.iter_cell() {
@@ -80,7 +78,7 @@ impl Engine {
         new_storage.shape = config.shape.clone();
         new_storage.range = config.range;
         new_storage.alive = new_alive;
-        println!("test{:?}", config);
+        println!("Post Print: {:?}", config);
         self.storage = new_storage.clone();
     }
 
