@@ -2,11 +2,12 @@ import { SimulatorController } from './SimControl.js';
 
 /* ------------------ MOBILE DETECTION ------------------ */
 function isMobileBrowser() {
-    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(navigator.userAgent);
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(
+        navigator.userAgent
+    );
 }
 
-
-/* ------------------ THEME HANDLING ------------------ */
+// THEME HANDLING
 function switchThemes() {
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = document.getElementById('themeIcon');
@@ -39,52 +40,90 @@ function switchThemes() {
     }
 }
 
-
-/* ------------------ SIMULATOR INITIALISATION ------------------ */
+// SIMULATOR INITIALISATION
 const mobile = isMobileBrowser();
-const initialUseWebGL = !mobile;   // force Canvas2D on mobile
 
 let simulator = new SimulatorController();
 simulator.docIDs.push("themeIcon", "themeToggle");
-simulator.initSim(initialUseWebGL);
+
+let useWebGL = true;
+
+// Popup ONLY on real mobile browsers
+if (mobile) {
+    useWebGL = confirm(
+        "WebGL on mobile devices may cause performance or stability issues.\n\n" +
+        "Do you want to continue using WebGL or switch to Canvas2d?"
+    );
+}
+
+const success = simulator.initSim(useWebGL);
+
+// Optional: inform mobile users if fallback occurred
+if (mobile && useWebGL && !success) {
+    alert(
+        "WebGL could not be initialized on this device.\n\n" +
+        "The simulator is now using Canvas2D."
+    );
+}
+
 switchThemes();
 
-// Sync toggle checkbox with forced renderer mode
+// Sync checkbox with actual renderer
 const rendererToggle = document.getElementById("useWebgl");
-if (rendererToggle) rendererToggle.checked = initialUseWebGL;
+if (rendererToggle) {
+    rendererToggle.checked = simulator.rendererType === "webgl";
+}
 
 
 /* ------------------ RENDERER SWITCHING ------------------ */
 window.switchRenderers = function () {
     const checkbox = document.getElementById("useWebgl");
-    let useWebgl = checkbox.checked;
+    const requestedWebGL = checkbox.checked;
 
-    // Force Canvas2D on mobile
-    if (mobile) {
-        alert("WebGL rendering is disabled on mobile. Using Canvas2D instead.");
-        useWebgl = false;
-        checkbox.checked = false;
+    // ⚠️ Warn ONLY on mobile when enabling WebGL
+    if (mobile && requestedWebGL) {
+        const proceed = confirm(
+            "WebGL on mobile devices may cause performance or stability issues.\n\n" +
+            "Do you want to continue?"
+        );
+
+        if (!proceed) {
+            checkbox.checked = false;
+            return;
+        }
     }
 
-    const confirmed = confirm("Switch rendering mode? This will restart the simulator.");
+    const confirmed = confirm(
+        "Switch rendering mode?\n\nThis will restart the simulator."
+    );
+
     if (!confirmed) {
-        checkbox.checked = !useWebgl;
+        checkbox.checked = !requestedWebGL;
         return;
     }
 
     // Clean up old simulator
     try {
-        if (simulator?.delElements) simulator.delElements();
-        if (simulator?.destroy) simulator.destroy();
+        simulator.delElements?.();
+        simulator.destroy?.();
     } catch (err) {
         console.warn("Simulator cleanup error:", err);
     }
 
-    // Create new simulator
     simulator = new SimulatorController();
     simulator.docIDs.push("themeIcon", "themeToggle");
-    simulator.initSim(useWebgl);
+
+    const success = simulator.initSim(requestedWebGL);
+
+    if (mobile && requestedWebGL && !success) {
+        alert(
+            "WebGL failed to initialize on this device.\n\n" +
+            "Falling back to Canvas2D."
+        );
+    }
+
     switchThemes();
 
-    console.log(`Renderer switched to: ${useWebgl ? "WebGL" : "Canvas2D"}`);
+    // Sync checkbox with actual renderer
+    checkbox.checked = simulator.rendererType === "webgl";
 };
