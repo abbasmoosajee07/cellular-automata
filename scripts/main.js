@@ -7,7 +7,7 @@ function isMobileBrowser() {
     );
 }
 
-// THEME HANDLING
+/* ------------------ THEME HANDLING ------------------ */
 function switchThemes() {
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = document.getElementById('themeIcon');
@@ -40,25 +40,26 @@ function switchThemes() {
     }
 }
 
-// SIMULATOR INITIALISATION
+/* ------------------ SIMULATOR INITIALISATION ------------------ */
 const mobile = isMobileBrowser();
 
 let simulator = new SimulatorController();
 simulator.docIDs.push("themeIcon", "themeToggle");
 
 let useWebGL = true;
+let isUsingWebGL = false;
 
 // Popup ONLY on real mobile browsers
 if (mobile) {
     useWebGL = confirm(
         "WebGL on mobile devices may cause performance or stability issues.\n\n" +
-        "Do you want to continue using WebGL or switch to Canvas2d?"
+        "Do you want to continue using WebGL or switch to Canvas2D?"
     );
 }
 
 const success = simulator.initSim(useWebGL);
+isUsingWebGL = useWebGL && success;
 
-// Optional: inform mobile users if fallback occurred
 if (mobile && useWebGL && !success) {
     alert(
         "WebGL could not be initialized on this device.\n\n" +
@@ -71,7 +72,7 @@ switchThemes();
 // Sync checkbox with actual renderer
 const rendererToggle = document.getElementById("useWebgl");
 if (rendererToggle) {
-    rendererToggle.checked = simulator.rendererType === "webgl";
+    rendererToggle.checked = isUsingWebGL;
 }
 
 
@@ -80,13 +81,11 @@ window.switchRenderers = function () {
     const checkbox = document.getElementById("useWebgl");
     const requestedWebGL = checkbox.checked;
 
-    // ⚠️ Warn ONLY on mobile when enabling WebGL
     if (mobile && requestedWebGL) {
         const proceed = confirm(
             "WebGL on mobile devices may cause performance or stability issues.\n\n" +
             "Do you want to continue?"
         );
-
         if (!proceed) {
             checkbox.checked = false;
             return;
@@ -102,7 +101,6 @@ window.switchRenderers = function () {
         return;
     }
 
-    // Clean up old simulator
     try {
         simulator.delElements?.();
         simulator.destroy?.();
@@ -114,6 +112,7 @@ window.switchRenderers = function () {
     simulator.docIDs.push("themeIcon", "themeToggle");
 
     const success = simulator.initSim(requestedWebGL);
+    isUsingWebGL = requestedWebGL && success;
 
     if (mobile && requestedWebGL && !success) {
         alert(
@@ -124,6 +123,5 @@ window.switchRenderers = function () {
 
     switchThemes();
 
-    // Sync checkbox with actual renderer
-    checkbox.checked = simulator.rendererType === "webgl";
+    checkbox.checked = isUsingWebGL;
 };

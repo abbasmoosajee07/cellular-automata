@@ -17,8 +17,7 @@ class SimulatorController{
         triangle: [2, ["vonNeumann", "biohazard", "inner", "vertices", "moore"]],
     };
 
-    gridLimits = [16384, 16384]
-
+    webglLimit = 16834;
 
     async initSim(useWebgl = true) {
         this.useWebgl = useWebgl;
@@ -42,15 +41,6 @@ class SimulatorController{
 
         this.gridManager.renderGrid();
 
-    }
-
-    setShape(value) {
-        document.querySelectorAll('input[name="shape"]').forEach(radio => {
-            radio.checked = radio.value === value;
-        });
-
-        this.selectedShape = value;
-        this.selectNeighbor();
     }
 
     initElements() {
@@ -103,10 +93,6 @@ class SimulatorController{
 
         if (preserveState && oldGrid) {
             Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
-        }
-
-        if (this.topologyType === "infinite") {
-            [cols, rows] = this.gridLimits;
         }
 
         this.gridManager.topology = this.topologyType;
@@ -188,15 +174,31 @@ class SimulatorController{
         // --- Shape selection ---
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
             radio.addEventListener('change', () => {
-                if (radio.checked) { this.selectedShape = radio.value; }
-                this.selectNeighbor();
+                if (radio.checked) {
+                    this.setShape(radio.value);
+                }
             });
         });
 
         // --- Rebuild / Remap Grid Button ---
         this.reMap.addEventListener('click', () => {
+            const exceedsLimit =
+                this.gridSize[0] > this.gridLimit ||
+                this.gridSize[1] > this.gridLimit;
+
+            if (this.useWebgl &&
+                exceedsLimit &&
+                !confirm(
+                    "Grid size exceeds WebGL limits.\n\n" +
+                    "Reduce the grid size or switch to Canvas2D(Beware of stability issues)?"
+                )
+            ) {
+                return;
+            }
+
             this.setupGrid({ preserveState: true });
         });
+
 
         this.updateSim.addEventListener('click', () => {
             const previewText = this.wasm_engine.update_preview();
@@ -245,16 +247,32 @@ class SimulatorController{
         this.neighborTiles.addEventListener('click', () => {this.fillNeighbors()});
     }
 
+    setShape(value) {
+        this.selectedShape = value;
+
+        // sync radio buttons
+        document.querySelectorAll('input[name="shape"]').forEach(radio => {
+            radio.checked = (radio.value === value);
+        });
+        const stateVal = this.shapeProps[value][0];
+        this.gridLimit = Math.floor(this.webglLimit / stateVal);
+        const shape_desc = document.getElementById("shape-desc");
+        shape_desc.textContent = `WebGL MAX Grid Size = ${this.gridLimit}`;
+
+        this.selectNeighbor();
+    }
+
     selectTopology(preffered = null) {
         const TOPOLOGY = {
             selectId: 'topology-type',
             descId: 'topology-desc',
             defaultValue:  preffered || 'finite',
             types: {
+                /* INFINTE GRID REMOVED UNTILL CHUNKED RNDRING IMPLEMENTED
                 infinite: {
                     label: "Infinite plane",
                     desc: "Infinitely expands grid in all directions. (MAX GRID SIZE: 16384)"
-                },
+                }, */
                 finite: {
                     label: "Finite plane",
                     desc: "Cells outside of the plane are always considered to be dead"
@@ -521,13 +539,13 @@ class SimulatorController{
     randomCells() {
         // Start timer for entire step
         const stepStartTime = performance.now();
-        
+
         // Step 1: Run Game of Life simulation
         const simStartTime = performance.now();
         this.gridManager.grid_mesh.random_cells();
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
-        
+
         // Step 2: Clear and render
         const renderStartTime = performance.now();
         this.gridManager.renderGrid(true);
@@ -552,7 +570,7 @@ class SimulatorController{
         this.gridManager.grid_mesh.step_game_of_life();
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
-        
+
         // Step 2: Render
         const renderStartTime = performance.now();
         this.gridManager.renderGrid(true);

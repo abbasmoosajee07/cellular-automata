@@ -13,7 +13,7 @@ A web-based simulation of different variations of Cellular Automata
 - Multi-layered grids (stacked CA worlds that interact).
 
 ### Performance Changes
-- instead of multiple loops, create new grid and swap, (improve step speed)
+- ~~instead of multiple loops, create new grid and swap, (improve step speed)~~(fixed rendering speeds, actual GOL maybe improved).
 - track changing cells, and then change only them
 
 ### 🎨 Visualization
@@ -29,7 +29,7 @@ A web-based simulation of different variations of Cellular Automata
 - Pattern recognizer (detect gliders, oscillators, still lifes).
 - Stability detector (detect when the system freezes or loops).
 - Cycle detection (recognize repeating states).
-- Pattern comparison (export/import and compare runs).
+- ~~Pattern comparison (export/import and compare runs)~~.
 
 ### 🌍 Advanced Features
 - Multi-species interactions (predator-prey, competing organisms).
