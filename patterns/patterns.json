@@ -1,0 +1,18 @@
+{
+  "test": {
+    "label": "Test",
+    "desc": ""
+  },
+  "glider": {
+    "label": "Glider",
+    "desc": ""
+  },
+  "gosperglidergun": {
+    "label": "Gosper Glider",
+    "desc": ""
+  },
+  "blank": {
+    "label": "Blank Template",
+    "desc": ""
+  }
+}

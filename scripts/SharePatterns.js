@@ -2,36 +2,9 @@ class SharePatterns {
     static PATTERN_LIST = {
         selectId: "pattern-type",
         descId: "pattern-desc",
-        defaultValue: "test",
-        types: {
-            test: { label: "Test", desc: "" },
-            glider: { label: "Glider", desc: "" },
-            gosperglidergun: { label: "Gosper Glider", desc: "" },
-            blank: { label: "Blank Template", desc: "" },
-        },
+        defaultValue: null, // will be set after load
+        types: {}
     };
-
-    static TEST_FILE = `!Test Comment
-....................
-....................
-....................
-......O.............
-.....OOO............
-......O.............
-....................
-....................
-..........O.........
-...........O........
-.........OOO........
-....................
-....................
-....................
-....................
-....................
-....................
-....................
-....................
-....................`;
 
     shareIDs = [
         "patternPreview", "fileInput", "download",
@@ -40,9 +13,8 @@ class SharePatterns {
 
     constructor(parentSim) {
         this.simManager = parentSim;
-
         this.cacheDOM();
-        this.init();
+        this.ready = this.init(); // ← REQUIRED
     }
 
     cacheDOM() {
@@ -55,29 +27,49 @@ class SharePatterns {
         this.formatSelect = document.querySelector(".pattern-format");
     }
 
-    init() {
-        this.setupPatternSelect();
+    async init() {
+        await this.loadPatternList();
+        await this.setupPatternSelect(); // ← must await
         this.bindImport();
         this.bindPreviewControls();
         this.bindExport();
     }
 
+    async loadPatternList() {
+        const res = await fetch("./patterns/patterns.json");
+        if (!res.ok) {
+            throw new Error("Failed to load patterns.json");
+        }
+
+        const data = await res.json();
+
+        SharePatterns.PATTERN_LIST.types = data;
+
+        // pick a safe default (prefer non-blank)
+        const keys = Object.keys(data);
+        SharePatterns.PATTERN_LIST.defaultValue =
+            keys.find(k => k !== "blank") ?? keys[0];
+    }
+
     async setupPatternSelect() {
+        this.patternPreview.value = "";
+
         this.simManager.setupDropdown(
             SharePatterns.PATTERN_LIST,
             SharePatterns.PATTERN_LIST.selectId
         );
 
-        this.patternPreview.value = SharePatterns.TEST_FILE;
         await this.loadPreview();
-
         this.patternSelect.addEventListener("change", () => this.loadPreview());
         this.formatSelect.addEventListener("change", () => this.loadPreview());
     }
 
     async loadPreview() {
         const name = this.patternSelect.value;
-        if (!name) return;
+        if (!name || name === "blank") {
+            this.updatePreview("");
+            return;
+        }
 
         const filePath = `./patterns/${name}.${this.formatSelect.value}`;
 
@@ -85,11 +77,12 @@ class SharePatterns {
             const res = await fetch(filePath);
             if (!res.ok) throw new Error();
 
-            this.patternPreview.value = await res.text();
-            this.patternPreview.scrollTop = 0;
+            const text = await res.text();
+            this.updatePreview(text);
             this.nameInput.value = name;
         } catch {
-            this.patternPreview.value = `Failed to load pattern: ${filePath}`;
+            this.updatePreview("");
+            console.warn("Pattern file missing:", filePath);
         }
     }
 

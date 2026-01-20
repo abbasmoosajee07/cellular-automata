@@ -29,18 +29,19 @@ class SimulatorController{
 
         this.initElements();
         this.patternSharer = new SharePatterns(this);
+        await this.patternSharer.ready;
 
         await this.fromPattern({
             patternData: this.patternSharer.getPreview(),
             preserveState: false
         });
+
         this.setupGridControls();
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
 
         this.gridManager.renderGrid();
-
     }
 
     initElements() {
