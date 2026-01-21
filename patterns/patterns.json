@@ -1,18 +1,20 @@
 {
-  "test": {
-    "label": "Test",
-    "desc": ""
+  "base": {
+    "label": "Base",
+    "desc": "",
+    "format": ["cells"],
+    "lines": 21
   },
   "glider": {
     "label": "Glider",
-    "desc": ""
+    "desc": "",
+    "format": ["cells", "rle"],
+    "lines": 8
   },
   "gosperglidergun": {
-    "label": "Gosper Glider",
-    "desc": ""
-  },
-  "blank": {
-    "label": "Blank Template",
-    "desc": ""
+    "label": "Gosperglidergun",
+    "desc": "",
+    "format": ["cells", "rle"],
+    "lines": 14
   }
 }

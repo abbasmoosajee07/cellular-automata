@@ -45,10 +45,9 @@ class SharePatterns {
 
         SharePatterns.PATTERN_LIST.types = data;
 
-        // pick a safe default (prefer non-blank)
         const keys = Object.keys(data);
         SharePatterns.PATTERN_LIST.defaultValue =
-            keys.find(k => k !== "blank") ?? keys[0];
+            keys.find(k => k === "base") ?? keys[0];
     }
 
     async setupPatternSelect() {
@@ -66,11 +65,6 @@ class SharePatterns {
 
     async loadPreview() {
         const name = this.patternSelect.value;
-        if (!name || name === "blank") {
-            this.updatePreview("");
-            return;
-        }
-
         const filePath = `./patterns/${name}.${this.formatSelect.value}`;
 
         try {
@@ -84,6 +78,25 @@ class SharePatterns {
             this.updatePreview("");
             console.warn("Pattern file missing:", filePath);
         }
+    }
+
+    async selectRandomPattern({ exclude = [""] } = {}) {
+        const types = SharePatterns.PATTERN_LIST.types;
+        const keys = Object.keys(types).filter(k => !exclude.includes(k));
+
+        if (!keys.length) return;
+
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
+
+        this.patternSelect.value = randomKey;
+
+        // reset format to current or default
+        if (!this.formatSelect.value) {
+            this.formatSelect.value = Object.keys(types[randomKey].formats ?? {})[0]
+                ?? this.formatSelect.value;
+        }
+
+        await this.loadPreview();
     }
 
     bindImport() {
@@ -146,6 +159,7 @@ class SharePatterns {
 
         this.clearPreview.addEventListener("click", () => {
             this.patternPreview.value = "";
+            this.selectRandomPattern();
         });
     }
 
@@ -181,6 +195,7 @@ class SharePatterns {
     getPreview() {
         return this.patternPreview.value;
     }
+
 }
 
 export {SharePatterns};
