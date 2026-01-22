@@ -33,9 +33,11 @@ pub mod formats {
     pub mod pattern_io;
     pub mod formats;
     pub mod plaintext;
+    pub mod run_length_encode;
 
     pub use formats::PatternConfig;
     pub use plaintext::Plaintext;
+    pub use run_length_encode::RunLengthEncoder;
     pub use pattern_io::PatternIO;
 }
 

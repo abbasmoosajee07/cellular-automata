@@ -1,43 +1,51 @@
-use std::{fs, path::{Path, PathBuf}};
-use crate::formats::{PatternConfig, Plaintext};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
+
+use crate::formats::{PatternConfig, Plaintext, RunLengthEncoder};
 
 #[derive(Debug)]
 pub struct PatternIO;
 
+/// Holds the read/write behavior for a file format
+struct FormatHandler {
+    parse: fn(&str) -> PatternConfig,
+    write: fn(&PatternConfig) -> String,
+}
+
 impl PatternIO {
+    /* ------------------ PUBLIC API ------------------ */
 
     pub fn read_file<P: AsRef<Path>>(
         path: P,
     ) -> Result<PatternConfig, std::io::Error> {
-        let path_str = path.as_ref().to_string_lossy().to_string();
-        let path = path.as_ref();
+        let path_ref = path.as_ref();
+        let path_str = path_ref.to_string_lossy().to_string();
 
-        let file_text = fs::read_to_string(path)?;
-
+        let file_text = fs::read_to_string(path_ref)?;
         Ok(Self::read_pattern(&path_str, &file_text))
     }
 
     pub fn read_pattern(
-        pattern_props: &str, pattern_data: &str,
+        pattern_props: &str,
+        pattern_data: &str,
     ) -> PatternConfig {
-        let path = pattern_props.as_ref();
-
+        let path = Path::new(pattern_props);
         let (name, format) = Self::parse_filename(path);
 
-        let mut cfg = Self::match_format(&format, pattern_data);
+        // 🔑 Select format ONCE
+        let handler = Self::select_format(&format);
+
+        let mut cfg = (handler.parse)(pattern_data);
         cfg.name = name;
         cfg.format = format;
         cfg
     }
 
-    pub fn match_format(format: &str, pattern_data: &str) -> PatternConfig {
-        match format {
-            "cells" | "txt" => Plaintext::parse(pattern_data),
-            _ => PatternConfig::default(),
-        }
-    }
-
     pub fn save_file(config: PatternConfig) -> Result<(), std::io::Error> {
+        let handler = Self::select_format(&config.format);
+
         let filename = if config.format.is_empty() {
             config.name.clone()
         } else {
@@ -45,16 +53,34 @@ impl PatternIO {
         };
 
         let path = PathBuf::from(filename);
+        let output = (handler.write)(&config);
 
-        let write_text = Plaintext::write(&config);
-        println!("{}", write_text);
-
-        fs::write(&path, write_text)?;
+        fs::write(path, output)?;
         Ok(())
     }
 
     pub fn write_text(config: PatternConfig) -> String {
-        Plaintext::write(&config)
+        let handler = Self::select_format(&config.format);
+        (handler.write)(&config)
+    }
+
+    /* ------------------ INTERNAL ------------------ */
+
+    fn select_format(format: &str) -> FormatHandler {
+        match format {
+            "cells" | "txt" => FormatHandler {
+                parse: Plaintext::parse,
+                write: Plaintext::write,
+            },
+            "rle" | "RLE" => FormatHandler {
+                parse: RunLengthEncoder::parse,
+                write: RunLengthEncoder::write,
+            },
+            _ => FormatHandler {
+                parse: |_| PatternConfig::default(),
+                write: |_| String::new(),
+            },
+        }
     }
 
     fn parse_filename(path: &Path) -> (String, String) {
