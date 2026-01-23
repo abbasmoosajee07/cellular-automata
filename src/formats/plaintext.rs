@@ -20,16 +20,19 @@ impl Plaintext {
         }
 
         let height = rows.len() as i32;
-        let width = rows.first().map(|r| r.len()).unwrap_or(0) as i32;
+        let width = rows
+            .iter()
+            .map(|r| r.len())
+            .max()
+            .unwrap_or(0) as i32;
 
         cfg.grid_size = [width as usize, height as usize, 1 as usize];
         cfg.top_left = [-width/2, -height/2, 0];
-        // cfg.cells = rows.clone();
 
-        for (y, row) in rows.iter().enumerate() {
-            for (x, ch) in row.chars().enumerate() {
+        for (x, row) in rows.iter().enumerate() {
+            for (y, ch) in row.chars().enumerate() {
                 if ch == 'O' {
-                    cfg.alive.push((x as i32, y as i32, 0, 1 as u32));
+                    cfg.alive.push((y as i32, x as i32, 0, 1 as u32));
                 }
             }
         }
@@ -52,11 +55,11 @@ impl Plaintext {
         let mut grid = vec![vec!['.'; width]; height];
 
         // Mark alive cells
-        for (x, y, _, _) in &config.alive {
+        for (y, x, _, _) in &config.alive {
             let x = *x as usize;
             let y = *y as usize;
-            if y < height && x < width {
-                grid[y][x] = 'O';
+            if x < height && y < width {
+                grid[x][y] = 'O';
             }
         }
 

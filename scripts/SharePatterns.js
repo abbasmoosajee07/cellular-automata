@@ -159,7 +159,7 @@ class SharePatterns {
 
         this.clearPreview.addEventListener("click", () => {
             this.patternPreview.value = "";
-            this.selectRandomPattern();
+            // this.selectRandomPattern();
         });
     }
 

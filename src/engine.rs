@@ -46,9 +46,9 @@ impl Engine {
 
         let [shift_q, shift_r, shift_s, ] = cfg.top_left;
 
-        for (x, y, z, state) in &cfg.alive {
+        for (y, x, z, state) in &cfg.alive {
             if *state != 0 {
-                grid.mesh.set_cell(*x + shift_q, *y + shift_r, *z + shift_s, *state);
+                grid.mesh.set_cell(*y + shift_q, *x + shift_r, *z + shift_s, *state);
             }
         }
         grid
@@ -85,6 +85,7 @@ impl Engine {
     pub fn snap_pattern(&mut self) {
         let _reader = PatternIO::save_file(self.storage.clone());
     }
+
     pub fn pattern_text(&mut self) -> String {
         PatternIO::write_text(self.storage.clone())
     }
