@@ -77,6 +77,10 @@ impl WasmInterface {
         self.engine.step_game_of_life();
     }
 
+    pub fn change_format(&mut self, new_format: &str) {
+        self.engine.storage.format = new_format.to_string();
+    }
+
     #[wasm_bindgen]
     pub fn config_string(&self) -> String {
         serde_json::to_string(&self.engine.mesh.config).unwrap()

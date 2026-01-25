@@ -260,17 +260,17 @@
                 <label class="block-label">Export Pattern</label>
 
                 <div class="pattern-header">
-                <input
-                    type="text"
-                    class="pattern-name"
-                    placeholder="pattern_name"
-                    aria-label="Pattern file name"
-                />
+                    <input
+                        type="text"
+                        class="pattern-name"
+                        placeholder="pattern_name"
+                        aria-label="Pattern file name"
+                    />
 
-                <select class="pattern-format" aria-label="Pattern format">
-                    <option value="cells">Plaintext</option>
-                    <option value="rle">RLE</option>
-                </select>
+                    <div class="config-group">
+                        <select id="format-type" class="config-select"></select>
+                        <p id="format-desc" class="config-desc"></p>
+                    </div>
                 </div>
 
                 <button id="download" class="btn btn-download action-btn full-width">

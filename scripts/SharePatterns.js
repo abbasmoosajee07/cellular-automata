@@ -5,7 +5,15 @@ class SharePatterns {
         defaultValue: null, // will be set after load
         types: {}
     };
-
+    static FORMAT_LIST = {
+        selectId: "format-type",
+        descId: "format-desc",
+        defaultValue: "cells", // will be set after load
+        types: {
+            rle: {label: "rle", desc: ""},
+            cells: {label: "cells", desc: ""},
+        }
+    };
     shareIDs = [
         "patternPreview", "fileInput", "download",
         "clearPreview", "editPreview", "copyPreview",
@@ -24,10 +32,14 @@ class SharePatterns {
 
         this.patternSelect = document.getElementById("pattern-type");
         this.nameInput = document.querySelector(".pattern-name");
-        this.formatSelect = document.querySelector(".pattern-format");
+        this.formatSelect = document.getElementById("format-type");
     }
 
     async init() {
+        this.simManager.setupDropdown(
+            SharePatterns.FORMAT_LIST,
+            SharePatterns.FORMAT_LIST.selectId
+        );
         await this.loadPatternList();
         await this.setupPatternSelect(); // ← must await
         this.bindImport();
@@ -60,7 +72,7 @@ class SharePatterns {
 
         await this.loadPreview();
         this.patternSelect.addEventListener("change", () => this.loadPreview());
-        this.formatSelect.addEventListener("change", () => this.loadPreview());
+        this.formatSelect.addEventListener("change", () => this.updatePreview(""));
     }
 
     async loadPreview() {
@@ -159,8 +171,8 @@ class SharePatterns {
 
         this.clearPreview.addEventListener("click", () => {
             this.patternPreview.value = "";
-            // this.selectRandomPattern();
         });
+
     }
 
     bindExport() {

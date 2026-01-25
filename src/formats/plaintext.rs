@@ -4,6 +4,7 @@ use crate::formats::PatternConfig;
 pub struct Plaintext;
 
 impl Plaintext {
+    const COMMENT_PREFIX: char = '!';
     pub fn parse(file_data: &str) -> PatternConfig {
         let mut cfg = PatternConfig::default();
 
@@ -12,8 +13,10 @@ impl Plaintext {
         for line in file_data.lines() {
             let line = line.trim();
 
-            if line.starts_with('!') {
-                cfg.comments.push(line.to_string());
+            if line.starts_with(Self::COMMENT_PREFIX) {
+                cfg.comments.push(
+                    line.strip_prefix(Self::COMMENT_PREFIX).unwrap().to_string()
+                );
             } else if matches!(line.chars().next(), Some('.' | 'O')) {
                 rows.push(line.to_string());
             }
@@ -44,6 +47,7 @@ impl Plaintext {
 
         // Write comments first
         for comment in &config.comments {
+            file_text.push(Self::COMMENT_PREFIX);
             file_text.push_str(comment);
             file_text.push('\n');
         }

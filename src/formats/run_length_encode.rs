@@ -4,6 +4,7 @@ use std::collections::HashSet;
 pub struct RunLengthEncoder;
 
 impl RunLengthEncoder {
+    const COMMENT_PREFIX: char = '#';
     pub fn parse(file_data: &str) -> PatternConfig {
         let mut cfg = PatternConfig::default();
 
@@ -19,8 +20,10 @@ impl RunLengthEncoder {
                 continue;
             }
 
-            if line.starts_with('#') {
-                cfg.comments.push(line.to_string());
+            if line.starts_with(Self::COMMENT_PREFIX) {
+                cfg.comments.push(
+                    line.strip_prefix(Self::COMMENT_PREFIX).unwrap().to_string()
+                );
                 continue;
             }
 
@@ -91,6 +94,7 @@ impl RunLengthEncoder {
 
         // Comments
         for comment in &config.comments {
+            file_text.push(Self::COMMENT_PREFIX);
             file_text.push_str(comment);
             file_text.push('\n');
         }
