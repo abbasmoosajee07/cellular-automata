@@ -712,3 +712,50 @@ body.light-mode .control-btn {
 .full-width {
   width: 100%;
 }
+
+.pattern-browser {
+  position: fixed;
+  inset: 10%;
+  background: var(--panel-bg, #111);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 30px rgba(0,0,0,.6);
+  z-index: 2000;
+}
+
+.pattern-browser.hidden {
+  display: none;
+}
+
+.browser-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+}
+
+.browser-search {
+  margin: 12px;
+  padding: 8px;
+}
+
+.browser-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.browser-table th,
+.browser-table td {
+  padding: 10px;
+  border-bottom: 1px solid #333;
+}
+
+.browser-table tbody tr {
+  cursor: pointer;
+}
+
+.browser-table tbody tr:hover {
+  background: rgba(255,255,255,0.05);
+}
