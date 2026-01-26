@@ -202,7 +202,7 @@ class SimulatorController{
 
 
         this.updateSim.addEventListener('click', () => {
-            this.wasm_engine.change_format(this.patternSharer.formatSelect.value);
+            // this.wasm_engine.change_format(this.patternSharer.formatSelect.value);
 
             const previewText = this.wasm_engine.update_preview();
             this.patternSharer.updatePreview(previewText);

@@ -11,11 +11,11 @@
   --card-border: #333;
   --card-shadow: rgba(0, 0, 0, 0.2);
   --canvas-color: #000000;
-  --remap: #ff4e3a;           /* Vivid red */
+
+  --remap: #ff4e3a;
   --load: #eb770b;
   --update: #4c60e1;
   --download: #ef34b3;
-
 }
 
 body.light {
@@ -149,7 +149,6 @@ input[type="checkbox"] { width: auto; }
 .btn-load { background-color: var(--load) !important; }
 .btn-update { background-color: var(--update) !important; }
 .btn-download { background-color: var(--download) !important; }
-
 
 /* ==============================
     Side Navigation Drawer
@@ -430,14 +429,14 @@ input[type="checkbox"] { width: auto; }
 /* Pattern Name Input */
 .pattern-name {
   flex: 1.2;
-  background: #0f1115;
-  border: 1px solid #2a2f3a;
-  color: #e6e6e6;
+  background: var(--bg);
+  color: var(--text-color);
+  border: 1px solid var(--card-border);
   border-radius: 6px;
 }
 
 /* =========================
-   Config Options (radio tiles etc)
+  Config Options (radio tiles etc)
 ========================= */
 .config-row {
   display: flex;
@@ -606,8 +605,8 @@ body.light-mode .control-btn {
    Labels
 ========================= */
 .block-label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--feature-color);
@@ -623,6 +622,14 @@ body.light-mode .control-btn {
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
+}
+button.io-upload-box {
+  background: none;
+  border: 2px dashed #2e3442; /* keep your border */
+  padding: 0.5rem;
+  color: inherit;
+  font: inherit;
+  outline: none;
 }
 
 .io-upload-box span {
@@ -647,12 +654,13 @@ body.light-mode .control-btn {
   color: var(--feature-color);
 }
 
+
 /* =========================
    Editor
 ========================= */
 .text-editor {
   width: 100%;
-  min-height: 200px;
+  min-height: 250px;
   padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--card-border);
@@ -713,49 +721,95 @@ body.light-mode .control-btn {
   width: 100%;
 }
 
-.pattern-browser {
+/* Library Styles */
+.pattern-library {
   position: fixed;
   inset: 10%;
-  background: var(--panel-bg, #111);
+  background: var(--card-bg);
+  color: var(--text-color);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 30px rgba(0,0,0,.6);
+  box-shadow: 0 0 30px var(--card-shadow);
   z-index: 2000;
+  border: 1px solid var(--card-border);
 }
 
-.pattern-browser.hidden {
+.pattern-library.hidden {
   display: none;
 }
 
-.browser-header {
+/* ---------- Header ---------- */
+
+.library-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--card-border);
 }
 
-.browser-search {
-  margin: 12px;
-  padding: 8px;
+.library-header h2 {
+  margin: 0;
+  color: var(--text-color);
 }
 
-.browser-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.browser-table th,
-.browser-table td {
-  padding: 10px;
-  border-bottom: 1px solid #333;
-}
-
-.browser-table tbody tr {
+.library-header button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
   cursor: pointer;
 }
 
-.browser-table tbody tr:hover {
-  background: rgba(255,255,255,0.05);
+.library-header button:hover {
+  color: var(--text-color);
+}
+
+/* ---------- Search ---------- */
+
+.library-search {
+  margin: 12px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text-color);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+}
+
+.library-search::placeholder {
+  color: var(--muted);
+}
+
+/* ---------- Table ---------- */
+
+.library-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-color);
+}
+
+.library-table th,
+.library-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.library-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.library-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.library-table tbody tr:hover {
+  background: color-mix(
+    in srgb,
+    var(--text-color) 6%,
+    transparent
+  );
 }

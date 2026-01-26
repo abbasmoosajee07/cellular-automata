@@ -198,8 +198,8 @@
                 <label class="block-label">Import Pattern</label>
 
                 <div class="action-row">
-                    <button id="openPatternBrowser" class="action-btn">
-                    <i class="bi bi-search"></i> Library
+                    <button id="openLibrary" class="io-upload-box">
+                        <i class="bi bi-search  io-upload-icon"></i> Library
                     </button>
 
                     <label for="fileInput" class="io-upload-box">
@@ -215,7 +215,6 @@
                         />
                     </label>
                 </div>
-
 
             </div>
 
@@ -238,10 +237,10 @@
                 </div>
 
                 <textarea
-                id="patternPreview"
-                class="text-editor"
-                placeholder="Pattern preview…"
-                readonly
+                    id="patternPreview"
+                    class="text-editor"
+                    placeholder="Pattern preview…"
+                    readonly
                 ></textarea>
 
                 <div class="action-row">
@@ -275,7 +274,7 @@
                     </div>
                 </div>
 
-                <button id="download" class="btn btn-download action-btn full-width">
+                <button id="downloadFile" class="btn btn-download action-btn">
                 <i class="bi bi-download"></i>
                 Download
                 </button>
@@ -331,23 +330,23 @@
     </div>
     </div>
 
-<!-- Pattern Browser -->
-<div id="patternBrowser" class="pattern-browser hidden">
-  <div class="browser-header">
+<!-- Pattern Library -->
+<div id="library" class="pattern-library hidden">
+  <div class="library-header">
     <h3><i class="bi bi-collection"></i> Pattern Library</h3>
-    <button id="closePatternBrowser" class="icon-btn">
+    <button id="closeLibrary" class="icon-btn">
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
 
   <input
     type="text"
-    id="patternSearch"
+    id="searchLibrary"
     placeholder="Search patterns…"
-    class="browser-search"
+    class="library-search"
   />
 
-  <table class="browser-table">
+  <table class="library-table">
     <thead>
       <tr>
         <th>Name</th>
@@ -355,7 +354,7 @@
         <th>Lines</th>
       </tr>
     </thead>
-    <tbody id="patternTableBody"></tbody>
+    <tbody id="tableBody"></tbody>
   </table>
 </div>
 

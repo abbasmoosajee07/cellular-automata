@@ -1,5 +1,5 @@
 class SharePatterns {
-    static PATTERN_LIST = { types: {} };
+    static PATTERN_LIST = { };
 
     static FORMAT_LIST = {
         selectId: "format-type",
@@ -12,8 +12,10 @@ class SharePatterns {
     };
 
     shareIDs = [
-        "patternPreview", "fileInput", "download",
+        "patternPreview", "fileInput", "downloadFile",
         "clearPreview", "editPreview", "copyPreview",
+        "library", "openLibrary", "closeLibrary",
+        "searchLibrary", "tableBody"
     ];
 
     constructor(parentSim) {
@@ -31,11 +33,6 @@ class SharePatterns {
         this.nameInput    = document.querySelector(".pattern-name");
         this.formatSelect = document.getElementById("format-type");
 
-        this.openBrowser  = document.getElementById("openPatternBrowser");
-        this.browser      = document.getElementById("patternBrowser");
-        this.closeBrowser = document.getElementById("closePatternBrowser");
-        this.searchInput  = document.getElementById("patternSearch");
-        this.tableBody    = document.getElementById("patternTableBody");
     }
 
     async init() {
@@ -52,45 +49,41 @@ class SharePatterns {
         this.buildPatternTable();
 
         this.formatSelect.addEventListener("change", () => {
-            this.loadPreview();
+            this.simManager.wasm_engine.change_format(this.formatSelect.value);
+            this.updatePreview("");
         });
 
-        this.openBrowser.addEventListener("click", () => {
-            this.browser.classList.remove("hidden");
-            this.searchInput.value = "";
-            this.searchInput.focus();
+        this.openLibrary.addEventListener("click", () => {
+            this.library.classList.remove("hidden");
+            this.searchLibrary.value = "";
+            this.searchLibrary.focus();
             this.filterPatterns("");
         });
 
-        this.closeBrowser.addEventListener("click", () => {
-            this.closePatternBrowser();
+        this.closeLibrary.addEventListener("click", () => {
+            this.closeLibraryBox();
         });
 
-        this.searchInput.addEventListener("input", e => {
+        this.searchLibrary.addEventListener("input", e => {
             this.filterPatterns(e.target.value);
         });
 
         // bootstrap default
-        await this.loadInitialPattern();
+        this.inferNameAndFormat("base.cells")
+        await this.loadPreview();
     }
 
     async loadPatternList() {
         const res = await fetch("./patterns/patterns.json");
         if (!res.ok) throw new Error("Failed to load patterns.json");
-        SharePatterns.PATTERN_LIST.types = await res.json();
-    }
-
-    async loadInitialPattern() {
-        this.nameInput.value = "base";
-        this.formatSelect.value = "cells";
-        await this.loadPreview();
+        SharePatterns.PATTERN_LIST = await res.json();
     }
 
     async loadPreview() {
         const name = this.nameInput.value.trim();
         if (!name) return;
 
-        const meta = SharePatterns.PATTERN_LIST.types[name];
+        const meta = SharePatterns.PATTERN_LIST[name];
         let format = this.formatSelect.value;
 
         if (meta && !meta.format.includes(format)) {
@@ -119,10 +112,10 @@ class SharePatterns {
     async selectPattern(name) {
         this.nameInput.value = name;
         this.formatSelect.value =
-            SharePatterns.PATTERN_LIST.types[name].format[0];
+            SharePatterns.PATTERN_LIST[name].format[0];
 
         await this.loadPreview();
-        this.closePatternBrowser();
+        this.closeLibraryBox();
     }
 
     bindImport() {
@@ -176,7 +169,7 @@ class SharePatterns {
     }
 
     bindExport() {
-        this.download.addEventListener("click", () => {
+        this.downloadFile.addEventListener("click", () => {
             const content = this.patternPreview.value.trim();
             if (!content) return;
             this.downloadFile(content, this.getPatternName());
@@ -192,14 +185,14 @@ class SharePatterns {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = fileName;
+        a.downloadFile = fileName;
         a.click();
         URL.revokeObjectURL(url);
     }
 
     buildPatternTable() {
         this.tableBody.innerHTML = "";
-        Object.entries(SharePatterns.PATTERN_LIST.types).forEach(
+        Object.entries(SharePatterns.PATTERN_LIST).forEach(
             ([key, meta]) => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
@@ -223,8 +216,8 @@ class SharePatterns {
         });
     }
 
-    closePatternBrowser() {
-        this.browser.classList.add("hidden");
+    closeLibraryBox() {
+        this.library.classList.add("hidden");
     }
 
     updatePreview(text) {
