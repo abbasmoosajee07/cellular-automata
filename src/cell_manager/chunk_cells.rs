@@ -134,8 +134,34 @@ impl ChunkedCellManager {
         self.depth = new_depth;
     }
 
-        pub fn get_cell_struct(&mut self) -> String {
+    pub fn get_cell_struct(&mut self) -> String {
         "chunk_cells".to_string()
+    }
+
+    pub fn get_chunk_size(&self) -> usize {
+        self.chunk_size
+    }
+
+    pub fn get_depth(&self) -> usize {
+        self.depth
+    }
+
+    pub fn get_chunk_keys(&self) -> Vec<i32> {
+        let mut out = Vec::with_capacity(self.chunks.len() * 3);
+        for &(cx, cy, cz) in self.chunks.keys() {
+            out.push(cx);
+            out.push(cy);
+            out.push(cz);
+        }
+        out
+    }
+
+    pub fn get_chunk_cells(&self, cx: i32, cy: i32, cz: i32) -> Vec<u32> {
+        if let Some(chunk) = self.get_chunk(cx, cy, cz) {
+            chunk.clone()
+        } else {
+            vec![0; self.chunk_size * self.chunk_size * self.depth]
+        }
     }
 
 }

@@ -51,11 +51,38 @@ impl CellBackend {
         }
     }
 
-        pub fn get_cell_struct(&mut self) -> String {
+    pub fn get_cell_struct(&mut self) -> String {
         match self {
             CellBackend::Flat(fm) => fm.get_cell_struct(),
             CellBackend::Chunked(cm) => cm.get_cell_struct(),
         }
     }
 
+    pub fn get_chunk_size(&self) -> usize {
+        match self {
+            CellBackend::Flat(fm) => fm.get_chunk_size(),
+            CellBackend::Chunked(cm) => cm.get_chunk_size(),
+        }
+    }
+
+    pub fn get_depth(&self) -> usize {
+        match self {
+            CellBackend::Flat(fm) => fm.get_depth(),
+            CellBackend::Chunked(cm) => cm.get_depth(),
+        }
+    }
+
+    pub fn get_chunk_keys(&self) -> Vec<i32> {
+        match self {
+            CellBackend::Flat(fm) => fm.get_chunk_keys(),
+            CellBackend::Chunked(cm) => cm.get_chunk_keys(),
+        }
+    }
+
+    pub fn get_chunk_cells(&self, cx: i32, cy: i32, cz: i32) -> Vec<u32> {
+        match self {
+            CellBackend::Flat(fm) => fm.get_chunk_cells(cx, cy, cz),
+            CellBackend::Chunked(cm) => cm.get_chunk_cells(cx, cy, cz),
+        }
+    }
 }

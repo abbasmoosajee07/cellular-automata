@@ -88,4 +88,24 @@ impl WasmInterface {
     pub fn storage_string(&self) -> String {
         serde_json::to_string(&self.engine.storage).unwrap()
     }
+
+
+
+    pub fn get_chunk_size(&self) -> usize {
+        self.engine.mesh.inner.get_chunk_size()
+    }
+
+    pub fn get_depth(&self) -> usize {
+        self.engine.mesh.inner.get_depth()
+    }
+
+    pub fn get_chunk_keys(&self) -> Vec<i32> {
+        self.engine.mesh.inner.get_chunk_keys()
+    }
+
+    pub fn get_chunk_cells(&self, cx: i32, cy: i32, cz: i32) -> Vec<u32> {
+        self.engine.mesh.inner.get_chunk_cells(cx, cy, cz)
+    }
+
+
 }
