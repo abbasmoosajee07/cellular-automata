@@ -39,10 +39,9 @@ impl GridMesh {
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> Self {
         let threshold = 10_000;
         let use_chunked = width > threshold || height > threshold;
-
         let cs = chunk_size.unwrap_or(256);
 
-        let inner = if use_chunked {
+        let mut inner = if use_chunked {
             CellBackend::Chunked(ChunkedCellManager::new(cs, depth))
         } else {
             CellBackend::Flat(FlatCellManager::new(width , height, depth))
@@ -53,7 +52,7 @@ impl GridMesh {
             height,
             depth,
             threshold,
-            cell_struct: "flat_cells".to_string(),
+            cell_struct: inner.get_cell_struct(),
             chunk_size: cs,
 
             shape: "square".to_string(),
