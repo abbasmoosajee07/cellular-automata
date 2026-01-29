@@ -239,6 +239,16 @@ class BaseGrid {
         }
     }
 
+    getFragmentShaderSource(isWebGL2 = false, isChunked = false) {
+        if (isWebGL2 && isChunked) {
+            return this.chunked_WebGL2();
+        } else if (isWebGL2 && !isChunked) {
+            return this.direct_WebGL2();
+        } else {
+            return this.direct_WebGL1();
+        }
+    }
+
     clearGrid(gl) {
         if (!this.textureData || !this.gridTexture) return;
 
@@ -289,8 +299,19 @@ class BaseGrid {
         throw new Error("Method 'cubeToTextureCoords(q, r, s)' must be implemented.");
     }
 
-    getFragmentShaderSource() {
-        throw new Error("Method 'getFragmentShaderSource()' must be implemented.");
+    chunked_WebGL2 () {
+        throw new Error("Chunked WebGL2 Fragment shaders must be implemented");
+        return ``
+    }
+
+    direct_WebGL2 () {
+        throw new Error("Direct WebGL2 Fragment shaders must be implemented");
+        return ``
+    }
+
+    direct_WebGL1 () {
+        throw new Error("Direct WebGL2 Fragment shaders must be implemented");
+        return ``
     }
 
     drawGridShape(ctx) {

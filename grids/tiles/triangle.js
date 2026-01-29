@@ -48,7 +48,6 @@ class TriangleGrid extends BaseGrid {
             { q: minQ - 1, r: minR - 1, s: 1 },
             { q: maxQ + 1, r: minR - 1, s: 1 },
         ];
-        console.log(minQ, maxR);
         return gridCorners;
     }
 
@@ -62,137 +61,134 @@ class TriangleGrid extends BaseGrid {
         return [texX, texY];
     }
 
-    getFragmentShaderSource(isWebGL2 = false) {
-        if (isWebGL2) {
-            return `#version 300 es
-                precision highp float;
-                precision highp usampler2D;
+    direct_WebGL2 () {
+        return `#version 300 es
+            precision highp float;
+            precision highp usampler2D;
 
-                uniform vec2  uResolution;
-                uniform vec2  uOffset;
-                uniform float uScale;
-                uniform float uGridCols;
-                uniform float uGridRows;
-                uniform float uBaseCellSize;
+            uniform vec2  uResolution;
+            uniform vec2  uOffset;
+            uniform float uScale;
+            uniform float uGridCols;
+            uniform float uGridRows;
+            uniform float uBaseCellSize;
 
-                // INTEGER state texture (R8UI)
-                uniform usampler2D uGridTexture;
+            // INTEGER state texture (R8UI)
+            uniform usampler2D uGridTexture;
 
-                uniform vec4 uCanvasColor;
-                uniform vec4 uGridColor;
+            uniform vec4 uCanvasColor;
+            uniform vec4 uGridColor;
 
-                // Optional palette (recommended)
-                uniform vec4 uPalette[256];
+            // Optional palette (recommended)
+            uniform vec4 uPalette[256];
 
-                in vec2 vTexCoord;
-                out vec4 outColor;
+            in vec2 vTexCoord;
+            out vec4 outColor;
 
-                vec4 colorFromState(uint state) {
-                    return uPalette[int(state)];
+            vec4 colorFromState(uint state) {
+                return uPalette[int(state)];
+            }
+
+            void main() {
+
+                // Screen → World
+                vec2 worldPos =
+                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+
+                float size = uBaseCellSize;
+
+                // World → triangle cell
+                float q = floor(worldPos.x / size);
+                float r = floor(-worldPos.y / size);
+
+                float localX = (worldPos.x / size) + (-q);
+                float localY = (-worldPos.y / size) + (-r);
+
+                int s = (localY < localX) ? 1 : 0;
+
+                // Grid bounds
+                int minQ = -int(floor(uGridCols * 0.5));
+                int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
+
+                int minR = -int(floor(uGridRows * 0.5));
+                int maxR =  int(ceil (uGridRows * 0.5)) - 1;
+
+                if (int(q) < minQ || int(q) > maxQ ||
+                    int(r) < minR || int(r) > maxR) {
+                    outColor = uCanvasColor;
+                    return;
                 }
 
-                void main() {
+                // cubeToTextureCoords (triangle)
+                int texX = int(q) - minQ;
+                int texY = (int(uGridRows) - 1 - (int(r) - minR))
+                        + s * int(uGridRows);
 
-                    // Screen → World
-                    vec2 worldPos =
-                        (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                // Fetch integer state (NO FILTERING)
+                uint state = texelFetch(
+                    uGridTexture,
+                    ivec2(texX, texY),
+                    0
+                ).r;
 
-                    float size = uBaseCellSize;
+                // State → Color
+                outColor = (state == 0u) ? uGridColor : colorFromState(state);
+            }`;
+    }
 
-                    // World → triangle cell
-                    float q = floor(worldPos.x / size);
-                    float r = floor(-worldPos.y / size);
+    direct_WebGL1 () {
+        return `precision mediump float;
+            uniform vec2 uResolution;
+            uniform vec2 uOffset;
+            uniform float uScale;
+            uniform float uGridCols;
+            uniform float uGridRows;
+            uniform float uBaseCellSize;
 
-                    float localX = (worldPos.x / size) + (-q);
-                    float localY = (-worldPos.y / size) + (-r);
+            uniform sampler2D uGridTexture;
+            uniform vec4 uCanvasColor;
+            uniform vec4 uGridColor;
 
-                    int s = (localY < localX) ? 1 : 0;
+            varying vec2 vTexCoord;
 
-                    // Grid bounds
-                    int minQ = -int(floor(uGridCols * 0.5));
-                    int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
+            void main() {
 
-                    int minR = -int(floor(uGridRows * 0.5));
-                    int maxR =  int(ceil (uGridRows * 0.5)) - 1;
+                vec2 worldPos =
+                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
 
-                    if (int(q) < minQ || int(q) > maxQ ||
-                        int(r) < minR || int(r) > maxR) {
-                        outColor = uCanvasColor;
-                        return;
-                    }
+                float size = uBaseCellSize;
 
-                    // cubeToTextureCoords (triangle)
-                    int texX = int(q) - minQ;
-                    int texY = (int(uGridRows) - 1 - (int(r) - minR))
-                            + s * int(uGridRows);
+                float q = floor(worldPos.x / size);
+                float r = floor(-worldPos.y / size);
 
-                    // Fetch integer state (NO FILTERING)
-                    uint state = texelFetch(
-                        uGridTexture,
-                        ivec2(texX, texY),
-                        0
-                    ).r;
+                float localX = (worldPos.x / size) - q;
+                float localY = (-worldPos.y / size) - r;
 
-                    // State → Color
-                    outColor = (state == 0u) ? uGridColor : colorFromState(state);
-                }`;
-        } else {
-            return `
-                precision mediump float;
+                float s = (localY < localX) ? 1.0 : 0.0;
 
-                uniform vec2 uResolution;
-                uniform vec2 uOffset;
-                uniform float uScale;
-                uniform float uGridCols;
-                uniform float uGridRows;
-                uniform float uBaseCellSize;
+                float minQ = -floor(uGridCols * 0.5);
+                float maxQ =  ceil(uGridCols * 0.5) - 1.0;
 
-                uniform sampler2D uGridTexture;
-                uniform vec4 uCanvasColor;
-                uniform vec4 uGridColor;
+                float minR = -floor(uGridRows * 0.5);
+                float maxR =  ceil(uGridRows * 0.5) - 1.0;
 
-                varying vec2 vTexCoord;
-
-                void main() {
-
-                    vec2 worldPos =
-                        (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-
-                    float size = uBaseCellSize;
-
-                    float q = floor(worldPos.x / size);
-                    float r = floor(-worldPos.y / size);
-
-                    float localX = (worldPos.x / size) - q;
-                    float localY = (-worldPos.y / size) - r;
-
-                    float s = (localY < localX) ? 1.0 : 0.0;
-
-                    float minQ = -floor(uGridCols * 0.5);
-                    float maxQ =  ceil(uGridCols * 0.5) - 1.0;
-
-                    float minR = -floor(uGridRows * 0.5);
-                    float maxR =  ceil(uGridRows * 0.5) - 1.0;
-
-                    if (q < minQ || q > maxQ || r < minR || r > maxR) {
-                        gl_FragColor = uCanvasColor;
-                        return;
-                    }
-
-                    float texX = q - minQ;
-                    float texY = (uGridRows - 1.0 - (r - minR)) + s * uGridRows;
-
-                    vec2 uv = vec2(
-                        (texX + 0.5) / uGridCols,
-                        (texY + 0.5) / (uGridRows * 2.0)
-                    );
-
-                    vec4 cellColor = texture2D(uGridTexture, uv);
-
-                    gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
+                if (q < minQ || q > maxQ || r < minR || r > maxR) {
+                    gl_FragColor = uCanvasColor;
+                    return;
                 }
-            `;
-        }
+
+                float texX = q - minQ;
+                float texY = (uGridRows - 1.0 - (r - minR)) + s * uGridRows;
+
+                vec2 uv = vec2(
+                    (texX + 0.5) / uGridCols,
+                    (texY + 0.5) / (uGridRows * 2.0)
+                );
+
+                vec4 cellColor = texture2D(uGridTexture, uv);
+
+                gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
+            }`
     }
 
     drawGridShape(ctx) {

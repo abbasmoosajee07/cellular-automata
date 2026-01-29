@@ -4,6 +4,7 @@ class WebGLRenderer {
         this.canvas = canvas;
         this.shapeGrid = shapeGrid;
         this.forceWebGL1 = forceWebGL1;
+        this.chunkedRender = false;
 
         this.gl = this.initWebGL();
         if (!this.gl) throw new Error("WebGL not supported");
@@ -57,7 +58,7 @@ class WebGLRenderer {
 
         // Ask grid for appropriate shader sources
         const vsSource = this.shapeGrid.getVertexShaderSource(this.isWebGL2);
-        const fsSource = this.shapeGrid.getFragmentShaderSource(this.isWebGL2);
+        const fsSource = this.shapeGrid.getFragmentShaderSource(this.isWebGL2, this.chunkedRender);
 
         const vertexShader = this.compileShader(gl.VERTEX_SHADER, vsSource);
         const fragmentShader = this.compileShader(gl.FRAGMENT_SHADER, fsSource);
@@ -246,6 +247,37 @@ class WebGLRenderer {
         if (this.vao) {
             gl.bindVertexArray(null);
         }
+    }
+
+    drawChunk(cameraView, texture, cx, cy, chunkSize) {
+    const gl = this.gl;
+
+    gl.useProgram(this.program);
+
+    if (this.vao) gl.bindVertexArray(this.vao);
+
+    const uniforms = this.shapeGrid.setupUniforms(
+        gl, this.program, cameraView, this.width, this.height
+    );
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(uniforms.gridTexture, 0);
+
+    gl.uniform2i(
+        gl.getUniformLocation(this.program, "uChunkOrigin"),
+        cx * chunkSize,
+        cy * chunkSize
+    );
+
+    gl.uniform1i(
+        gl.getUniformLocation(this.program, "uChunkSize"),
+        chunkSize
+    );
+
+    gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
+
+    if (this.vao) gl.bindVertexArray(null);
     }
 
 }
