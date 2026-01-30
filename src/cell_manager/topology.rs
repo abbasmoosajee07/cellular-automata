@@ -53,10 +53,14 @@ impl Topology {
             TopologyType::Klein => self.klein(q, r, s),
             TopologyType::Sphere => self.sphere(q, r, s),
             TopologyType::Finite => self.finite(q, r, s),
-            TopologyType::Infinite => self.finite(q, r, s),
+            TopologyType::Infinite => self.infinite(q, r, s),
             TopologyType::Cylinder => self.cylinder(q, r, s),
             TopologyType::CrossSurface => self.cross_surface(q, r, s),
         }
+    }
+
+    pub fn infinite(&self, q: i32, r: i32, s: i32) -> Option<[i32; 3]> {
+        Some([q, r, s])
     }
 
     pub fn finite(&self, q: i32, r: i32, s: i32) -> Option<[i32; 3]> {
