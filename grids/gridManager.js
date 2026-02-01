@@ -6,11 +6,15 @@ import { RhomboidalGrid } from './tiles/rhomboid.js';
 import { WebGLRenderer } from '../renderer/WebGL.js';
 import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 
+import { ChunkedRender } from '../renderer/ChunkedRender.js';
+import { DirectRender } from '../renderer/DirectRender.js';
+
 class GridManager {
-    constructor(shape, canvas, init_mesh, useWebGL = false) {
+    constructor(shape, canvas, init_mesh, cell_struct, useWebGL = false) {
         this.shape = shape || "square";
         this.topology = "finite";
         this.useWebGL = useWebGL;
+        this.chunked =  (cell_struct === "chunk_cells");
         this.grid_mesh = init_mesh;
         this.canvas = canvas;
 
@@ -25,6 +29,8 @@ class GridManager {
         this.shapeGrid = this.createShapeGrid(this.shape);
         this.grid_bounds = this.grid_mesh.get_bounds();
         this.initializeRenderer(this.useWebGL);
+
+        this.selectCache();
         this.renderer.colorSchema = this.colorSchema;
         this.updateCanvasSize();
         // this.startRendering();
@@ -58,10 +64,11 @@ class GridManager {
     initializeRenderer(useWebGL) {
         try {
             if (useWebGL) {
-                this.renderer = new WebGLRenderer(this.canvas, this.shapeGrid);
+                this.renderer = new WebGLRenderer(this.canvas, this.shapeGrid, this.chunked);
                 this.shapeGrid.initGridTexture(this.renderer.gl, this.gridSize[0], this.gridSize[1]);
                 this.useWebGL = true;
                 console.log("Using WebGL texture-based renderer");
+
             } else {
                 throw new Error("Force Canvas2D fallback");
             }
@@ -69,6 +76,24 @@ class GridManager {
             this.renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid);
             this.useWebGL = false;
             console.warn("WebGL not supported, using Canvas2D:", error);
+        }
+    }
+
+    selectCache() {
+        if (this.chunked) {
+            if (this.useWebGL) {
+                this.chunkSize = this.grid_mesh.get_chunk_size();
+                this.renderCache = new ChunkedRender(
+                    this,
+                    this.chunkSize
+                );
+            } else {
+                this.renderer.chunkSize = this.grid_mesh.get_chunk_size();
+                this.renderCache = new DirectRender(this);
+            }
+        } else {
+                this.renderer.chunkSize = this.grid_mesh.get_chunk_size();
+                this.renderCache = new DirectRender(this);
         }
     }
 
@@ -147,7 +172,7 @@ class GridManager {
     toggleAt(px, py, drawMode, eraseMode) {
         const world = this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
         const cell = this.shapeGrid.worldToCell(world);
-
+        // console.log("chunk size", this.grid_mesh.get_chunk_size())
         const [q, r, s] = cell;
         if (!this.checkBounds(q, r)) return false;
         // console.log(q, r, s);
@@ -161,8 +186,9 @@ class GridManager {
         }
 
         this.changeCell(q, r, s, newState);
-
-        this.renderer.updateView(this.cameraView);
+        this.renderGrid();
+        // this.renderer.resetView(this.cameraView);
+        // this.renderer.updateView(this.cameraView);
         return true;
     }
 
@@ -244,19 +270,34 @@ class GridManager {
 
     resizeGrid(newCols, newRows, newStates) {
         this.gridSize = [newCols, newRows, newStates];
-        this.grid_mesh.resize(newCols, newRows, newStates);
+        //this.grid_mesh.resize(newCols, newRows, newStates);
         this.shapeGrid.gridRows = newRows;
         this.shapeGrid.gridCols = newCols;
         this.grid_bounds = this.grid_mesh.get_bounds();
+        this.selectCache();
         if (this.useWebGL && this.renderer.gl) {
             this.shapeGrid.initGridTexture(this.renderer.gl, newCols, newRows);
         }
+
     }
 
     renderGrid(updateCells = false) {
-        const geometry = this.shapeGrid.getGridGeometry(this.gridSize);
-        this.renderer.uploadGeometry(geometry);
-        this.renderer.renderGrid(this.cameraView, this.grid_mesh, updateCells);
+        // const geometry = this.shapeGrid.getGridGeometry(this.gridSize);
+        // this.renderer.uploadGeometry(geometry);
+        // this.renderer.renderGrid(this.cameraView, this.grid_mesh, updateCells);
+
+        // Screen → world → cell bounds
+        const tl = this.shapeGrid.worldToCell(
+            this.shapeGrid.screenToWorld(0, 0, this.width, this.height, this.cameraView)
+        );
+        const br = this.shapeGrid.worldToCell(
+            this.shapeGrid.screenToWorld(this.width, this.height, this.width, this.height, this.cameraView)
+        );
+        this.renderCache.renderGrid(tl, br);
+    }
+
+    changeCell(q, r, s, state) {
+        this.renderCache.changeCell(q, r, s, state);
     }
 
 }

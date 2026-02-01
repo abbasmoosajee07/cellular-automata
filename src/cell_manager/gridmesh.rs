@@ -13,7 +13,6 @@ pub struct GridConfig {
     pub height: usize,
     pub depth: usize,
 
-    pub threshold: usize,
     pub cell_struct: String,
     pub chunk_size: usize,
 
@@ -34,24 +33,63 @@ pub struct GridMesh {
 }
 
 impl GridMesh {
+fn build_backend(
+    width: usize,
+    height: usize,
+    depth: usize,
+    topology: String,
+    chunk_size: usize,
+    old_cells: Option<Vec<i32>>,
+) -> CellBackend {
+    let threshold = 20;
+    let use_chunked = topology == "infinite"
+        || width >= threshold
+        || height >= threshold;
+
+    if use_chunked {
+        let mut cm = ChunkedCellManager::new(chunk_size, depth);
+
+        if let Some(cells) = old_cells {
+            for chunk in cells.chunks(4) {
+                if let &[q, r, s, v] = chunk {
+                    cm.set_cell(q, r, s, v as u32);
+                }
+            }
+        }
+
+        CellBackend::Chunked(cm)
+    } else {
+        let mut fm = FlatCellManager::new(width, height, depth);
+
+        if let Some(cells) = old_cells {
+            for chunk in cells.chunks(4) {
+                if let &[q, r, s, v] = chunk {
+                    fm.set_cell(q, r, s, v as u32);
+                }
+            }
+        }
+
+        CellBackend::Flat(fm)
+    }
+}
 
     // CONSTRUCTOR
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> Self {
-        let threshold = 10_000;
-        let use_chunked = width > threshold || height > threshold;
         let cs = chunk_size.unwrap_or(256);
-
-        let mut inner = if use_chunked {
-            CellBackend::Chunked(ChunkedCellManager::new(cs, depth))
-        } else {
-            CellBackend::Flat(FlatCellManager::new(width , height, depth))
-        };
+        let init_topology = "finite";
+        let mut inner = Self::build_backend(
+            width,
+            height,
+            depth,
+            init_topology.to_string(),
+            cs,
+            None,
+        );
 
         let config = GridConfig {
             width,
             height,
             depth,
-            threshold,
             cell_struct: inner.get_cell_struct(),
             chunk_size: cs,
 
@@ -59,12 +97,12 @@ impl GridMesh {
             neighbor_type: "moore".to_string(),
             range: 1,
 
-            topology_type: "finite".to_string(),
+            topology_type: init_topology.to_string(),
             bounds: [
-                -(width as i32 / 2), (width as i32 - 1) / 2, 
+                -(width as i32 / 2), (width as i32 - 1) / 2,
                 -(height as i32 / 2), (height as i32 - 1) / 2,
                 0, depth as i32 - 1
-                ]
+            ],
         };
 
         let neighbor_manager = Neighborhood::new(
@@ -172,39 +210,29 @@ impl GridMesh {
 
     // RESIZING
     pub fn resize(&mut self, new_width: usize, new_height: usize, new_depth: usize) {
-        let use_chunked = new_width > self.config.threshold || new_height > self.config.threshold;
-
         let old_cells = self.inner.each_live_cell();
 
-        self.inner = if use_chunked {
-            let mut cm = ChunkedCellManager::new(self.config.chunk_size, new_depth);
-            for chunk in old_cells.chunks(4) {
-                if let &[q, r, s, v] = chunk {
-                    cm.set_cell(q, r, s, v as u32);
-                }
-            }
-            CellBackend::Chunked(cm)
-        } else {
-            let mut fm = FlatCellManager::new(new_width , new_height , new_depth);
-            for chunk in old_cells.chunks(4) {
-                if let &[q, r, s, v] = chunk {
-                    fm.set_cell(q, r, s, v as u32);
-                }
-            }
-            CellBackend::Flat(fm)
-        };
+        self.inner = Self::build_backend(
+            new_width,
+            new_height,
+            new_depth,
+            self.config.topology_type.to_string(),
+            self.config.chunk_size,
+            Some(old_cells),
+        );
 
         self.config.width = new_width;
         self.config.height = new_height;
         self.config.depth = new_depth;
         self.config.cell_struct = self.inner.get_cell_struct();
-        let new_bounds: [i32; 6] = self.get_bounds();
-        self.config.bounds = new_bounds.clone();
-        self.topology_manager.change_bounds(new_bounds.clone());
+
+        let new_bounds = self.get_bounds();
+        self.config.bounds = new_bounds;
+        self.topology_manager.change_bounds(new_bounds);
     }
 
     // BOUNDS
-    pub fn get_bounds(&self) -> [i32; 6] {
+    pub fn get_bounds1(&self) -> [i32; 6] {
         let cols = self.config.width as i32;
         let rows = self.config.height as i32;
         let states = self.config.depth as i32;
@@ -219,6 +247,29 @@ impl GridMesh {
 
         [min_q, max_q, min_r, max_r, min_s, max_s]
     }
+pub fn get_bounds(&self) -> [i32; 6] {
+    if self.config.topology_type == "infinite" {
+        return [
+            i32::MIN, i32::MAX,
+            i32::MIN, i32::MAX,
+            0, (self.config.depth as i32) - 1,
+        ];
+    }
+
+    let cols = self.config.width as i32;
+    let rows = self.config.height as i32;
+    let states = self.config.depth as i32;
+
+    let min_q = -(cols / 2);
+    let max_q = (cols - 1) / 2;
+    let min_r = -(rows / 2);
+    let max_r = (rows - 1) / 2;
+
+    let min_s = 0;
+    let max_s = states - 1;
+
+    [min_q, max_q, min_r, max_r, min_s, max_s]
+}
 
     pub fn get_cell_extremes(&self) -> [i32; 6] {
         let arr = self.each_live_cell();
@@ -269,19 +320,40 @@ impl GridMesh {
     }
 
     // CHANGE GRID PROPERTIES
+
     pub fn change_grid_properties(
         &mut self,
         shape: String,
         neighbor_type: String,
         range: i32,
-        topology_type: String
+        topology_type: String,
     ) {
+        // Update config
         self.config.shape = shape.clone();
         self.config.range = range;
         self.config.neighbor_type = neighbor_type.clone();
         self.config.topology_type = topology_type.clone();
 
-        self.neighbor_manager.change_cell_properties(&shape, &neighbor_type, range);
-        self.topology_manager.change_topology(&topology_type);
+        // Update managers
+        self.neighbor_manager
+            .change_cell_properties(&shape, &neighbor_type, range);
+
+        self.topology_manager
+            .change_topology(&topology_type);
+
+        // Re-evaluate backend (topology may force chunked)
+        let old_cells = self.inner.each_live_cell();
+
+        self.inner = Self::build_backend(
+            self.config.width,
+            self.config.height,
+            self.config.depth,
+            topology_type.to_string(),
+            self.config.chunk_size,
+            Some(old_cells),
+        );
+
+        self.config.cell_struct = self.inner.get_cell_struct();
     }
+
 }

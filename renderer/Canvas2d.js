@@ -4,6 +4,7 @@ class Canvas2DRenderer {
         this.ctx = canvas.getContext('2d');
         this.shapeGrid = shapeGrid;
         this.shapeGrid.rendererUsed = "canvas2d";
+        this.chunkedRender = false;
 
         this.updateCanvasSize();
     }
@@ -82,12 +83,66 @@ class Canvas2DRenderer {
         )`;
         this.shapeGrid.drawGridShape(ctx);
         this.syncCellsToCanvas(ctx, cells);
+        // this.drawVisibleChunks(ctx, cells, cameraView);
+
         ctx.restore();
     }
 
     updateView(cameraView) {
         return;
     }
+
+getVisibleChunkRange(cameraView) {
+    const shape = this.shapeGrid;
+
+    const tlWorld = shape.screenToWorld(
+        0, 0, this.width, this.height, cameraView
+    );
+    const brWorld = shape.screenToWorld(
+        this.width, this.height, this.width, this.height, cameraView
+    );
+
+    const tlCell = shape.worldToCell(tlWorld);
+    const brCell = shape.worldToCell(brWorld);
+
+    const cs = this.chunkSize;
+
+    return {
+        minCX: Math.floor(Math.min(tlCell[0], brCell[0]) / cs),
+        maxCX: Math.floor(Math.max(tlCell[0], brCell[0]) / cs),
+        minCY: Math.floor(Math.min(tlCell[1], brCell[1]) / cs),
+        maxCY: Math.floor(Math.max(tlCell[1], brCell[1]) / cs),
+    };
+}
+
+drawVisibleChunks(ctx, cells, cameraView) {
+    const cs = this.chunkSize;
+    const depth = 1;
+
+    const { minCX, maxCX, minCY, maxCY } =
+        this.getVisibleChunkRange(cameraView);
+
+    for (let cx = minCX; cx <= maxCX; cx++) {
+        for (let cy = minCY; cy <= maxCY; cy++) {
+
+            const chunk = cells.get_chunk_cells(cx, cy, 0);
+            if (!chunk) continue;
+
+            for (let ly = 0; ly < cs; ly++) {
+                for (let lx = 0; lx < cs; lx++) {
+                    const idx = lx + ly * cs;
+                    const state = chunk[idx];
+                    if (state === 0) continue;
+
+                    const q = cx * cs + lx;
+                    const r = cy * cs + ly;
+
+                    this.shapeGrid.drawShapeCell(ctx, q, r, 0, state);
+                }
+            }
+        }
+    }
+}
 
 }
 

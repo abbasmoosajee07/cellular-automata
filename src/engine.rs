@@ -63,7 +63,14 @@ impl Engine {
     pub fn update_storage(&mut self) {
         let mut new_storage = self.storage.clone();
         let config = self.mesh.config.clone();
-        let [shift_q, _, shift_r,_,  _, shift_s]= config.bounds;
+        // let [shift_q, _, shift_r,_,  _, shift_s]= config.bounds;
+let (shift_q, shift_r, shift_s) = if config.topology_type == "infinite" {
+    let [min_q, _, min_r, _, _, min_s] = self.mesh.get_cell_extremes();
+    (min_q, min_r, min_s)
+} else {
+    let [q, _, r, _, _, s] = config.bounds;
+    (q, r, s)
+};
 
         let mut new_alive: Vec<(i32, i32, i32, u32)> = Vec::new();
         for [q, r, s, state] in self.mesh.inner.iter_cell() {

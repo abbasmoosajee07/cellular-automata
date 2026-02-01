@@ -67,7 +67,7 @@ upload(cx, cy, cz, data) {
     const tex = this.getOrCreate(cx, cy, cz);
 
     const cs = this.chunkSize;
-    console.log(cs)
+    // console.log(cs)
     const layerSize = cs * cs;
 
     // --- SAFETY CHECK ---

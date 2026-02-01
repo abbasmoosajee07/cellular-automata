@@ -1,10 +1,9 @@
 
 class WebGLRenderer {
-    constructor(canvas, shapeGrid, { forceWebGL1 = false } = {}) {
+    constructor(canvas, shapeGrid, chunked, { forceWebGL1 = false } = {}) {
         this.canvas = canvas;
         this.shapeGrid = shapeGrid;
         this.forceWebGL1 = forceWebGL1;
-        this.chunkedRender = false;
 
         this.gl = this.initWebGL();
         if (!this.gl) throw new Error("WebGL not supported");
@@ -12,6 +11,7 @@ class WebGLRenderer {
         // CORRECT capability detection
         this.isWebGL2 = !this.forceWebGL1 && this.gl instanceof WebGL2RenderingContext;
         this.shapeGrid.rendererUsed = this.isWebGL2 ? "webgl2" : "webgl";
+        this.chunkedRender = chunked;
 
         this.initShaders();
         this.initBuffers();
@@ -250,34 +250,65 @@ class WebGLRenderer {
     }
 
     drawChunk(cameraView, texture, cx, cy, chunkSize) {
-    const gl = this.gl;
+        const gl = this.gl;
 
-    gl.useProgram(this.program);
+        gl.useProgram(this.program);
 
-    if (this.vao) gl.bindVertexArray(this.vao);
+        if (this.vao) gl.bindVertexArray(this.vao);
 
-    const uniforms = this.shapeGrid.setupUniforms(
-        gl, this.program, cameraView, this.width, this.height
-    );
+        const uniforms = this.shapeGrid.setupUniforms(
+            gl, this.program, cameraView, this.width, this.height
+        );
 
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(uniforms.gridTexture, 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(uniforms.gridTexture, 0);
 
-    gl.uniform2i(
-        gl.getUniformLocation(this.program, "uChunkOrigin"),
-        cx * chunkSize,
-        cy * chunkSize
-    );
+        gl.uniform2i(
+            gl.getUniformLocation(this.program, "uChunkOrigin"),
+            cx * chunkSize,
+            cy * chunkSize
+        );
 
-    gl.uniform1i(
-        gl.getUniformLocation(this.program, "uChunkSize"),
-        chunkSize
-    );
+        gl.uniform1i(
+            gl.getUniformLocation(this.program, "uChunkSize"),
+            chunkSize
+        );
 
-    gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
 
-    if (this.vao) gl.bindVertexArray(null);
+        if (this.vao) gl.bindVertexArray(null);
+    }
+
+    resetView(cameraView) {
+        const gl = this.gl;
+
+        gl.useProgram(this.program);
+
+        if (this.vao) gl.bindVertexArray(this.vao);
+
+        // const uniforms = this.shapeGrid.setupUniforms(
+        //     gl, this.program, cameraView, this.width, this.height
+        // );
+
+        // gl.activeTexture(gl.TEXTURE0);
+        // gl.bindTexture(gl.TEXTURE_2D, texture);
+        // gl.uniform1i(uniforms.gridTexture, 0);
+
+        // gl.uniform2i(
+        //     gl.getUniformLocation(this.program, "uChunkOrigin"),
+        //     cx * chunkSize,
+        //     cy * chunkSize
+        // );
+
+        // gl.uniform1i(
+        //     gl.getUniformLocation(this.program, "uChunkSize"),
+        //     chunkSize
+        // );
+
+        gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
+
+        if (this.vao) gl.bindVertexArray(null);
     }
 
 }

@@ -41,6 +41,10 @@ class SimulatorController{
         this.setupCanvasControls();
         this.setupMenuControls();
 
+        // for (let cs = 0; cs <= 90; cs++) {
+        //     this.gridManager.changeCell(cs, 0,0, 11);
+        // }
+
         this.gridManager.renderGrid();
     }
 
@@ -88,8 +92,12 @@ class SimulatorController{
         let [cols, rows] = this.gridSize;
         const activeState = this.shapeProps[shape][0] || 1;
 
+        this.grid_config = JSON.parse(wasm_engine.config_string());
+        this.storage_pattern = JSON.parse(wasm_engine.storage_string());
+        let cell_struct = this.grid_config.cell_struct;
+        console.log(this.grid_config)
         this.gridManager = new GridManager(
-            shape, this.gridCanvas, wasm_engine, this.useWebgl
+            shape, this.gridCanvas, wasm_engine, cell_struct, this.useWebgl,
         );
 
         if (preserveState && oldGrid) {
@@ -98,23 +106,26 @@ class SimulatorController{
 
         this.gridManager.topology = this.topologyType;
         this.gridManager.resizeGrid(cols, rows, activeState);
+        this.grid_config = JSON.parse(wasm_engine.config_string());
+        this.storage_pattern = JSON.parse(wasm_engine.storage_string());
+        // let cell_struct = this.grid_config.cell_struct;
+        console.log(this.grid_config)
         this.gridManager.fitGrid();
 
         this.savedView = { ...this.gridManager.cameraView };
 
         this.wasm_engine = this.gridManager.grid_mesh;
 
-        if (preserveState) {
-            this.rangeValue = this.rangeValue || 1;
-            this.wasm_engine.change_grid_properties(
-                shape, this.neighborhoodType,
-                this.rangeValue, this.topologyType
-            );
-        }
+        // if (preserveState) {
+        //     this.rangeValue = this.rangeValue || 1;
+        //     this.wasm_engine.change_grid_properties(
+        //         shape, this.neighborhoodType,
+        //         this.rangeValue, this.topologyType
+        //     );
+        // }
 
         this.gridManager.renderGrid(true);
-        this.grid_config = JSON.parse(this.wasm_engine.config_string());
-        this.storage_pattern = JSON.parse(this.wasm_engine.storage_string());
+
         // console.log(this.storage_pattern);
         // console.log(this.grid_config);
     }
@@ -149,12 +160,19 @@ class SimulatorController{
     async setupGrid({ preserveState = false } = {}) {
         const shape = this.selectedShape || "square";
         const oldGrid = this.gridManager || null;
-        const activeState = this.shapeProps[shape][0] || 1;
+        const activeSize = this.shapeProps[shape][0] || 1;
 
         const wasm_engine =
             preserveState && oldGrid ? oldGrid.grid_mesh
-                : new WasmInterface(this.gridSize[0], this.gridSize[1], activeState);
-
+                : new WasmInterface(this.gridSize[0], this.gridSize[1], activeSize);
+        if (preserveState) {
+            wasm_engine.resize(this.gridSize[0], this.gridSize[1], activeSize);
+            this.rangeValue = this.rangeValue || 1;
+            wasm_engine.change_grid_properties(
+                this.selectedShape, this.neighborhoodType,
+                this.rangeValue, this.topologyType
+            )
+        }
         this._buildGrid({shape, wasm_engine, preserveState,oldGrid});
     }
 
@@ -187,23 +205,19 @@ class SimulatorController{
                 this.gridSize[0] > this.gridLimit ||
                 this.gridSize[1] > this.gridLimit;
 
-            if (this.useWebgl &&
-                exceedsLimit &&
-                !confirm(
-                    "Grid size exceeds WebGL limits.\n\n" +
-                    "Reduce the grid size or switch to Canvas2D(Beware of stability issues)?"
-                )
-            ) {
-                return;
-            }
-
+            // if (this.useWebgl &&
+            //     exceedsLimit &&
+            //     !confirm(
+            //         "Grid size exceeds WebGL limits.\n\n" +
+            //         "Reduce the grid size or switch to Canvas2D(Beware of stability issues)?"
+            //     )
+            // ) {
+            //     return;
+            // }
             this.setupGrid({ preserveState: true });
         });
 
-
         this.updateSim.addEventListener('click', () => {
-            // this.wasm_engine.change_format(this.patternSharer.formatSelect.value);
-
             const previewText = this.wasm_engine.update_preview();
             this.patternSharer.updatePreview(previewText);
         });
@@ -271,11 +285,11 @@ class SimulatorController{
             descId: 'topology-desc',
             defaultValue:  preffered || 'finite',
             types: {
-                /* INFINTE GRID REMOVED UNTILL CHUNKED RNDRING IMPLEMENTED
+                // INFINTE GRID REMOVED UNTILL CHUNKED RNDRING IMPLEMENTED
                 infinite: {
                     label: "Infinite plane",
-                    desc: "Infinitely expands grid in all directions. (MAX GRID SIZE: 16384)"
-                }, */
+                    desc: "Infinitely expands grid in all directions."
+                },
                 finite: {
                     label: "Finite plane",
                     desc: "Cells outside of the plane are always considered to be dead"
