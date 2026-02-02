@@ -21,7 +21,7 @@ class SimulatorController{
 
     async initSim(useWebgl = true) {
         this.useWebgl = useWebgl;
-        this.gridSize = [20, 20];
+        this.gridSize = [20, 20, 1];
         this.selectedShape = "square";
         this.selectNeighbor();
         this.selectTopology();
@@ -87,43 +87,24 @@ class SimulatorController{
         shape,
         wasm_engine,
         preserveState = false,
-        oldGrid = null
+        oldGrid = null,
+        savedView = null,
     }) {
-        let [cols, rows] = this.gridSize;
-        const activeState = this.shapeProps[shape][0] || 1;
-
+        this.wasm_engine = wasm_engine;
         this.grid_config = JSON.parse(wasm_engine.config_string());
         this.storage_pattern = JSON.parse(wasm_engine.storage_string());
-        let cell_struct = this.grid_config.cell_struct;
-        console.log(this.grid_config)
-        this.gridManager = new GridManager(
-            shape, this.gridCanvas, wasm_engine, cell_struct, this.useWebgl,
-        );
 
+        this.gridManager = new GridManager(
+            shape, this.gridSize,
+            wasm_engine, this.grid_config,
+            this.gridCanvas, this.useWebgl,
+        );
+        this.gridManager.fitGrid();
         if (preserveState && oldGrid) {
             Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
         }
 
-        this.gridManager.topology = this.topologyType;
-        this.gridManager.resizeGrid(cols, rows, activeState);
-        this.grid_config = JSON.parse(wasm_engine.config_string());
-        this.storage_pattern = JSON.parse(wasm_engine.storage_string());
-        // let cell_struct = this.grid_config.cell_struct;
-        console.log(this.grid_config)
-        this.gridManager.fitGrid();
-
         this.savedView = { ...this.gridManager.cameraView };
-
-        this.wasm_engine = this.gridManager.grid_mesh;
-
-        // if (preserveState) {
-        //     this.rangeValue = this.rangeValue || 1;
-        //     this.wasm_engine.change_grid_properties(
-        //         shape, this.neighborhoodType,
-        //         this.rangeValue, this.topologyType
-        //     );
-        // }
-
         this.gridManager.renderGrid(true);
 
         // console.log(this.storage_pattern);
@@ -146,7 +127,7 @@ class SimulatorController{
         this.rangeValue = Number(gridConfig.range);
         this.rangeInput.value = this.rangeValue;
 
-        this.gridSize = [Number(gridConfig.width), Number(gridConfig.height)];
+        this.gridSize = [Number(gridConfig.width), Number(gridConfig.height), Number(gridConfig.depth)]
         this.colInput.value = this.gridSize[0];
         this.rowInput.value = this.gridSize[1];
 
@@ -161,19 +142,29 @@ class SimulatorController{
         const shape = this.selectedShape || "square";
         const oldGrid = this.gridManager || null;
         const activeSize = this.shapeProps[shape][0] || 1;
+        const [cols, rows, _] = this.gridSize;
 
-        const wasm_engine =
-            preserveState && oldGrid ? oldGrid.grid_mesh
-                : new WasmInterface(this.gridSize[0], this.gridSize[1], activeSize);
-        if (preserveState) {
-            wasm_engine.resize(this.gridSize[0], this.gridSize[1], activeSize);
-            this.rangeValue = this.rangeValue || 1;
+        let wasm_engine, savedView;
+
+        if (preserveState && oldGrid) {
+            wasm_engine = oldGrid.grid_mesh;
+
+            this.rangeValue ??= 1;
+            savedView = oldGrid.cameraView;
+            console.log(savedView);
+            wasm_engine.resize(cols, rows, activeSize);
             wasm_engine.change_grid_properties(
-                this.selectedShape, this.neighborhoodType,
-                this.rangeValue, this.topologyType
-            )
+                this.selectedShape,
+                this.neighborhoodType,
+                this.rangeValue,
+                this.topologyType
+            );
+        } else {
+            wasm_engine = new WasmInterface(cols, rows, activeSize);
         }
-        this._buildGrid({shape, wasm_engine, preserveState,oldGrid});
+
+        this.gridSize = [cols, rows, activeSize];
+        this._buildGrid({shape, wasm_engine, preserveState, oldGrid});
     }
 
     setupGridControls() {
@@ -201,19 +192,6 @@ class SimulatorController{
 
         // --- Rebuild / Remap Grid Button ---
         this.reMap.addEventListener('click', () => {
-            const exceedsLimit =
-                this.gridSize[0] > this.gridLimit ||
-                this.gridSize[1] > this.gridLimit;
-
-            // if (this.useWebgl &&
-            //     exceedsLimit &&
-            //     !confirm(
-            //         "Grid size exceeds WebGL limits.\n\n" +
-            //         "Reduce the grid size or switch to Canvas2D(Beware of stability issues)?"
-            //     )
-            // ) {
-            //     return;
-            // }
             this.setupGrid({ preserveState: true });
         });
 

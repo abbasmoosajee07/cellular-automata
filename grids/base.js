@@ -1,7 +1,7 @@
 
 class BaseGrid {
 
-    constructor(colorSchema, shape) {
+    constructor(colorSchema, shape, gridSize) {
         this.colorSchema = colorSchema;
         this.shape = shape;
         this.rendererUsed = null;
@@ -10,10 +10,11 @@ class BaseGrid {
         this.radius = 30;
         this.cellSize = 50;
 
-        this.gridCols = 20;
-        this.gridRows = 20;
-        this.rowMult = 1;
+        this.gridCols = gridSize[0];
         this.colMult = 1;
+
+        this.gridRows = gridSize[1];
+        this.rowMult = 1;
 
         this.gridTexture = null;
         this.textureData = null;

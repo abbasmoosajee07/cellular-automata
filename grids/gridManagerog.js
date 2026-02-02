@@ -10,32 +10,31 @@ import { ChunkedRender } from '../renderer/ChunkedRender.js';
 import { DirectRender } from '../renderer/DirectRender.js';
 
 class GridManager {
-    constructor(
-        shape, gridSize,
-        init_engine, grid_config,
-        canvas,  useWebGL = false
-    ) {
-        // Core refs
-        this.canvas = canvas;
+    constructor(shape, canvas, init_mesh, cell_struct, useWebGL = false) {
+        this.shape = shape || "square";
+        this.topology = "finite";
         this.useWebGL = useWebGL;
-        this.grid_mesh = init_engine;
+        this.chunked =  (cell_struct === "1chunk_cells");
+        this.grid_mesh = init_mesh;
+        this.canvas = canvas;
 
         // Grid configuration
-        this.shape = shape;
-        this.gridSize = gridSize;
-        this.chunked = grid_config.cell_struct === "chunk_cells";
-        this.grid_bounds = this.grid_mesh.get_bounds();
+        this.gridSize = [20, 20, 1]
 
-        // Camera & rendering state
+        // console.log(this.grid_mesh)
+        // Camera & rendering
         this.cameraView = { camX: 0, camY: 0, zoom: 0 };
         this.colorSchema = this.createDefaultColorSchema();
 
-        // Grid + renderer setup
+        // Initialize components
         this.shapeGrid = this.createShapeGrid(this.shape);
-
+        this.grid_bounds = this.grid_mesh.get_bounds();
         this.initializeRenderer(this.useWebGL);
-        this.selectCache(this.chunked);
+
+        this.selectCache();
+        this.renderer.colorSchema = this.colorSchema;
         this.updateCanvasSize();
+        // this.startRendering();
     }
 
     createDefaultColorSchema() {
@@ -60,7 +59,7 @@ class GridManager {
         const GridClass = shapeMap[shape];
         if (!GridClass) throw new Error(`Unknown grid shape: ${shape}`);
 
-        return new GridClass(this.colorSchema, this.gridSize);
+        return new GridClass(this.colorSchema);
     }
 
     initializeRenderer(useWebGL) {
@@ -81,8 +80,8 @@ class GridManager {
         }
     }
 
-    selectCache(chunked) {
-        if (chunked) {
+    selectCache() {
+        if (this.chunked) {
             if (this.useWebGL) {
                 this.chunkSize = this.grid_mesh.get_chunk_size();
                 this.renderCache = new ChunkedRender(
@@ -91,11 +90,11 @@ class GridManager {
                 );
             } else {
                 this.renderer.chunkSize = this.grid_mesh.get_chunk_size();
-                this.renderCache = new DirectRender(this);
+                this.renderCache = new DirectRender();
             }
         } else {
                 this.renderer.chunkSize = this.grid_mesh.get_chunk_size();
-                this.renderCache = new DirectRender(this);
+                this.renderCache = new DirectRender();
         }
     }
 
@@ -174,10 +173,10 @@ class GridManager {
     toggleAt(px, py, drawMode, eraseMode) {
         const world = this.shapeGrid.screenToWorld(px, py, this.width, this.height, this.cameraView);
         const cell = this.shapeGrid.worldToCell(world);
+        // console.log("chunk size", this.grid_mesh.get_chunk_size())
         const [q, r, s] = cell;
-
         if (!this.checkBounds(q, r)) return false;
-
+        // console.log(q, r, s);
         let newState;
         if (drawMode && eraseMode) {
             newState = 11;
@@ -188,9 +187,9 @@ class GridManager {
         }
 
         this.changeCell(q, r, s, newState);
-        this.renderGrid();
+        // this.renderGrid();
         // this.renderer.resetView(this.cameraView);
-        // this.renderer.updateView(this.cameraView);
+        this.renderer.updateView(this.cameraView);
         return true;
     }
 
@@ -223,7 +222,7 @@ class GridManager {
 
     selectGridLimits() {
         let [minQ, maxQ, minR, maxR, minS, maxS] =
-            this.chunked
+            this.topology === "infinite"
                 ? this.grid_mesh.get_cell_extremes()
                 : this.grid_bounds;
 
@@ -270,10 +269,21 @@ class GridManager {
         this.cameraView.camY =  worldCY * zoom;
     }
 
+    resizeGrid(newCols, newRows, newStates) {
+        this.gridSize = [newCols, newRows, newStates];
+        this.grid_mesh.resize(newCols, newRows, newStates);
+        this.shapeGrid.gridRows = newRows;
+        this.shapeGrid.gridCols = newCols;
+        this.grid_bounds = this.grid_mesh.get_bounds();
+        if (this.useWebGL && this.renderer.gl) {
+            this.shapeGrid.initGridTexture(this.renderer.gl, newCols, newRows);
+        }
+    }
+
     renderGrid(updateCells = false) {
-        // const geometry = this.shapeGrid.getGridGeometry(this.gridSize);
-        // this.renderer.uploadGeometry(geometry);
-        // this.renderer.renderGrid(this.cameraView, this.grid_mesh, updateCells);
+        const geometry = this.shapeGrid.getGridGeometry(this.gridSize);
+        this.renderer.uploadGeometry(geometry);
+        this.renderer.renderGrid(this.cameraView, this.grid_mesh, updateCells);
 
         // Screen → world → cell bounds
         const tl = this.shapeGrid.worldToCell(
@@ -282,11 +292,7 @@ class GridManager {
         const br = this.shapeGrid.worldToCell(
             this.shapeGrid.screenToWorld(this.width, this.height, this.width, this.height, this.cameraView)
         );
-        this.renderCache.renderGrid(tl, br);
-    }
-
-    changeCell(q, r, s, state) {
-        this.renderCache.changeCell(q, r, s, state);
+        // this.renderCache.renderGrid(tl, br);
     }
 
 }

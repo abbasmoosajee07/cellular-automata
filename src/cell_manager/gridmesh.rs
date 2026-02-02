@@ -1,7 +1,13 @@
-use crate::cell_manager::{
-    CellBackend, FlatCellManager, ChunkedCellManager,
-    Neighborhood, Topology,
+// use std::default;
+
+use crate::{
+    cell_manager::{
+        CellBackend, FlatCellManager, ChunkedCellManager,
+        Neighborhood, Topology,
+    },
+    formats::{PatternConfig},
 };
+
 use serde::{Serialize, Deserialize};
 
 use fastrand;
@@ -33,71 +39,69 @@ pub struct GridMesh {
 }
 
 impl GridMesh {
-fn build_backend(
-    width: usize,
-    height: usize,
-    depth: usize,
-    topology: String,
-    chunk_size: usize,
-    old_cells: Option<Vec<i32>>,
-) -> CellBackend {
-    let threshold = 20;
-    let use_chunked = topology == "infinite"
-        || width >= threshold
-        || height >= threshold;
 
-    if use_chunked {
-        let mut cm = ChunkedCellManager::new(chunk_size, depth);
+    fn build_backend(
+        width: usize,
+        height: usize,
+        depth: usize,
+        topology: String,
+        chunk_size: usize,
+        old_cells: Option<Vec<i32>>,
+    ) -> CellBackend {
+        let threshold = 5000;
+        let use_chunked = topology == "infinite"
+            || width >= threshold
+            || height >= threshold;
 
-        if let Some(cells) = old_cells {
-            for chunk in cells.chunks(4) {
-                if let &[q, r, s, v] = chunk {
-                    cm.set_cell(q, r, s, v as u32);
+        if use_chunked {
+            let mut cm = ChunkedCellManager::new(chunk_size, depth);
+
+            if let Some(cells) = old_cells {
+                for chunk in cells.chunks(4) {
+                    if let &[q, r, s, v] = chunk {
+                        cm.set_cell(q, r, s, v as u32);
+                    }
                 }
             }
-        }
 
-        CellBackend::Chunked(cm)
-    } else {
-        let mut fm = FlatCellManager::new(width, height, depth);
+            CellBackend::Chunked(cm)
+        } else {
+            let mut fm = FlatCellManager::new(width, height, depth);
 
-        if let Some(cells) = old_cells {
-            for chunk in cells.chunks(4) {
-                if let &[q, r, s, v] = chunk {
-                    fm.set_cell(q, r, s, v as u32);
+            if let Some(cells) = old_cells {
+                for chunk in cells.chunks(4) {
+                    if let &[q, r, s, v] = chunk {
+                        fm.set_cell(q, r, s, v as u32);
+                    }
                 }
             }
-        }
 
-        CellBackend::Flat(fm)
+            CellBackend::Flat(fm)
+        }
     }
-}
 
     // CONSTRUCTOR
     pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> Self {
+        let defaultconfig = PatternConfig::default();
         let cs = chunk_size.unwrap_or(256);
-        let init_topology = "finite";
+
         let mut inner = Self::build_backend(
-            width,
-            height,
-            depth,
-            init_topology.to_string(),
+            width, height, depth,
+            defaultconfig.topology_type.clone(),
             cs,
             None,
         );
 
         let config = GridConfig {
-            width,
-            height,
-            depth,
+            width, height, depth,
             cell_struct: inner.get_cell_struct(),
             chunk_size: cs,
 
-            shape: "square".to_string(),
-            neighbor_type: "moore".to_string(),
-            range: 1,
+            shape: defaultconfig.shape,
+            neighbor_type: defaultconfig.neighbor_type,
+            range: defaultconfig.range,
 
-            topology_type: init_topology.to_string(),
+            topology_type: defaultconfig.topology_type,
             bounds: [
                 -(width as i32 / 2), (width as i32 - 1) / 2,
                 -(height as i32 / 2), (height as i32 - 1) / 2,
@@ -247,6 +251,7 @@ fn build_backend(
 
         [min_q, max_q, min_r, max_r, min_s, max_s]
     }
+
 pub fn get_bounds(&self) -> [i32; 6] {
     if self.config.topology_type == "infinite" {
         return [
@@ -320,7 +325,6 @@ pub fn get_bounds(&self) -> [i32; 6] {
     }
 
     // CHANGE GRID PROPERTIES
-
     pub fn change_grid_properties(
         &mut self,
         shape: String,
@@ -354,6 +358,17 @@ pub fn get_bounds(&self) -> [i32; 6] {
         );
 
         self.config.cell_struct = self.inner.get_cell_struct();
+        self.config.bounds = self.get_bounds();
     }
 
+    pub fn handle_infinite(&mut self) {
+    if self.config.topology_type != "infinite" {
+        return;
+        }
+        self.config.bounds = [
+            i32::MIN, i32::MAX,
+            i32::MIN, i32::MAX,
+            0, (self.config.depth as i32) - 1,
+        ];
+    }
 }

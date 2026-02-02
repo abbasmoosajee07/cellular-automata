@@ -1,8 +1,8 @@
 import { BaseGrid } from '../base.js';
 
 class TriangleGrid extends BaseGrid {
-    constructor(colorSchema) {
-        super(colorSchema, "triangle");
+    constructor(colorSchema, gridSize) {
+        super(colorSchema, "triangle", gridSize);
         this.cellSize = 60;
         this.height = this.cellSize * Math.sqrt(3) / 2;
         this.rowMult = 2;
@@ -60,6 +60,82 @@ class TriangleGrid extends BaseGrid {
 
         return [texX, texY];
     }
+
+chunked_WebGL2 () {
+    return `#version 300 es
+        precision highp float;
+        precision highp usampler2D;
+
+        uniform vec2  uResolution;
+        uniform vec2  uOffset;
+        uniform float uScale;
+        uniform float uBaseCellSize;
+
+        // Chunk parameters (CELL SPACE)
+        uniform ivec2 uChunkOrigin; // (q, r)
+        uniform int   uChunkSize;   // width/height in square cells
+
+        // INTEGER state texture (R8UI)
+        uniform usampler2D uGridTexture;
+
+        uniform vec4 uCanvasColor;
+        uniform vec4 uGridColor;
+        uniform vec4 uPalette[256];
+
+        in vec2 vTexCoord;
+        out vec4 outColor;
+
+        vec4 colorFromState(uint state) {
+            return (state < 256u) ? uPalette[int(state)] : uPalette[0];
+        }
+
+        void main() {
+
+            // Screen → World
+            vec2 worldPos =
+                (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+
+            float size = uBaseCellSize;
+
+            // World → square cell
+            float fq = floor(worldPos.x / size);
+            float fr = floor(-worldPos.y / size);
+
+            int q = int(fq);
+            int r = int(fr);
+
+            // Global → chunk-local cell
+            ivec2 local = ivec2(q, r) - uChunkOrigin;
+
+            // Outside chunk → transparent
+            if (local.x < 0 || local.y < 0 ||
+                local.x >= uChunkSize || local.y >= uChunkSize) {
+                discard;
+            }
+
+            // Local position inside square cell
+            float localX = (worldPos.x / size) - fq;
+            float localY = (-worldPos.y / size) - fr;
+
+            // Triangle selector
+            int s = (localY < localX) ? 1 : 0;
+
+            // Chunk texture addressing
+            // 2 triangles per square cell, stacked vertically
+            ivec2 texel = ivec2(
+                local.x,
+                local.y + s * uChunkSize
+            );
+
+            // Fetch integer state
+            uint state = texelFetch(uGridTexture, texel, 0).r;
+
+            // Output color
+            outColor = (state == 0u)
+                ? uGridColor
+                : colorFromState(state);
+        }`;
+}
 
     direct_WebGL2 () {
         return `#version 300 es

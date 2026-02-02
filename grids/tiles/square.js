@@ -1,8 +1,8 @@
 import { BaseGrid } from '../base.js';
 
 class SquareGrid extends BaseGrid {
-    constructor(colorSchema) {
-        super(colorSchema, "square");
+    constructor(colorSchema, gridSize) {
+        super(colorSchema, "square", gridSize);
         this.cellSize = 50;
     }
 

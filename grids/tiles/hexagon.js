@@ -1,8 +1,8 @@
 import { BaseGrid } from '../base.js';
 
 class HexagonGrid extends BaseGrid {
-    constructor(colorSchema) {
-        super(colorSchema, "hexagon");
+    constructor(colorSchema, gridSize) {
+        super(colorSchema, "hexagon", gridSize);
         this.radius = 30;
         this.rowMult = 1;
         this.colMult = 1;
