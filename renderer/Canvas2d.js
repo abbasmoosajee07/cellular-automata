@@ -1,10 +1,13 @@
 class Canvas2DRenderer {
     constructor(canvas, shapeGrid) {
         this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.shapeGrid = shapeGrid;
-        this.shapeGrid.rendererUsed = "canvas2d";
         this.chunkedRender = false;
+        this.shapeGrid = shapeGrid;
+
+        const rendererUsed = "canvas2d";
+        this.ctx = canvas.getContext('2d');
+        this.shapeGrid.addRenderer(rendererUsed);
+        console.log("Renderer Used:", rendererUsed)
 
         this.updateCanvasSize();
     }

@@ -17,11 +17,11 @@ class SimulatorController{
         triangle: [2, ["vonNeumann", "biohazard", "inner", "vertices", "moore"]],
     };
 
-    webglLimit = 16834;
+    GRID_LIMITS = [-2147483648, 2147483647];
 
     async initSim(useWebgl = true) {
         this.useWebgl = useWebgl;
-        this.gridSize = [20, 20, 1];
+        this.gridSize = [null, null, null];
         this.selectedShape = "square";
         this.selectNeighbor();
         this.selectTopology();
@@ -33,17 +33,12 @@ class SimulatorController{
 
         await this.fromPattern({
             patternData: this.patternSharer.getPreview(),
-            preserveState: false
         });
 
         this.setupGridControls();
         this.setupEventListeners();
         this.setupCanvasControls();
         this.setupMenuControls();
-
-        // for (let cs = 0; cs <= 90; cs++) {
-        //     this.gridManager.changeCell(cs, 0,0, 11);
-        // }
 
         this.gridManager.renderGrid();
     }
@@ -83,13 +78,7 @@ class SimulatorController{
         });
     }
 
-    _buildGrid({
-        shape,
-        wasm_engine,
-        preserveState = false,
-        oldGrid = null,
-        savedView = null,
-    }) {
+    _buildGrid({shape, wasm_engine, savedView = null}) {
         this.wasm_engine = wasm_engine;
         this.grid_config = JSON.parse(wasm_engine.config_string());
         this.storage_pattern = JSON.parse(wasm_engine.storage_string());
@@ -99,21 +88,21 @@ class SimulatorController{
             wasm_engine, this.grid_config,
             this.gridCanvas, this.useWebgl,
         );
-        this.gridManager.fitGrid();
-        if (preserveState && oldGrid) {
-            Object.assign(this.gridManager.cameraView, oldGrid.cameraView);
+
+        if (savedView) {
+            Object.assign(this.gridManager.cameraView, savedView);
+        } else {
+            this.gridManager.fitGrid();
         }
 
         this.savedView = { ...this.gridManager.cameraView };
         this.gridManager.renderGrid(true);
 
-        // console.log(this.storage_pattern);
         // console.log(this.grid_config);
+        // console.log(this.storage_pattern);
     }
 
-    async fromPattern({ patternData = "", preserveState = false } = {}) {
-        const oldGrid = this.gridManager ?? null;
-
+    async fromPattern({ patternData = ""} = {}) {
         // Parse pattern + config
         const patternName = this.patternSharer.getPatternName();
         const wasm_engine = WasmInterface.from_pattern(patternName, patternData);
@@ -133,13 +122,11 @@ class SimulatorController{
 
         // Build grid
         const shape = this.selectedShape ?? "square";
-        this._buildGrid({
-            shape, wasm_engine, preserveState, oldGrid,
-        });
+        this._buildGrid({shape, wasm_engine});
     }
 
     async setupGrid({ preserveState = false } = {}) {
-        const shape = this.selectedShape || "square";
+        const shape = this.selectedShape;
         const oldGrid = this.gridManager || null;
         const activeSize = this.shapeProps[shape][0] || 1;
         const [cols, rows, _] = this.gridSize;
@@ -148,10 +135,9 @@ class SimulatorController{
 
         if (preserveState && oldGrid) {
             wasm_engine = oldGrid.grid_mesh;
+            savedView = oldGrid.cameraView;
 
             this.rangeValue ??= 1;
-            savedView = oldGrid.cameraView;
-            console.log(savedView);
             wasm_engine.resize(cols, rows, activeSize);
             wasm_engine.change_grid_properties(
                 this.selectedShape,
@@ -162,9 +148,8 @@ class SimulatorController{
         } else {
             wasm_engine = new WasmInterface(cols, rows, activeSize);
         }
-
         this.gridSize = [cols, rows, activeSize];
-        this._buildGrid({shape, wasm_engine, preserveState, oldGrid});
+        this._buildGrid({shape, wasm_engine, savedView});
     }
 
     setupGridControls() {
@@ -244,16 +229,12 @@ class SimulatorController{
 
     setShape(value) {
         this.selectedShape = value;
-
         // sync radio buttons
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
             radio.checked = (radio.value === value);
         });
-        const stateVal = this.shapeProps[value][0];
-        this.gridLimit = Math.floor(this.webglLimit / stateVal);
         const shape_desc = document.getElementById("shape-desc");
-        shape_desc.textContent = `WebGL MAX Grid Size = ${this.gridLimit}`;
-
+        shape_desc.textContent = `Euclidean Tiling: ${value}`;
         this.selectNeighbor();
     }
 
@@ -527,7 +508,6 @@ class SimulatorController{
             px, py,
             this.drawTiles.checked,
             this.eraseTiles.checked,
-            this.gridManager.infiniteGrid,
         );
     }
 

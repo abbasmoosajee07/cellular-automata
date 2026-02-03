@@ -24,6 +24,10 @@ class BaseGrid {
         this.indexBuffer = null;
     }
 
+    addRenderer(rendererUsed) {
+        this.rendererUsed = rendererUsed;
+    }
+
     buildPalette(maxStates = 16) {
         const palette = new Float32Array(maxStates * 4);
 
@@ -189,12 +193,9 @@ class BaseGrid {
         return null;
     }
 
-    initGridTexture(gl, gridCols, gridRows) {
-        this.gridCols = gridCols;
-        this.gridRows = gridRows;
-
-        this.textureWidth  = gridCols * this.colMult;
-        this.textureHeight = gridRows * this.rowMult;
+    initGridTexture(gl) {
+        this.textureWidth  = this.gridCols * this.colMult;
+        this.textureHeight = this.gridRows * this.rowMult;
 
         const isWebGL2 = this.rendererUsed === "webgl2";
 

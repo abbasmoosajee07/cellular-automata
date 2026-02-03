@@ -6,6 +6,7 @@ class ChunkedRender {
         this.gl = this.renderer.gl;
         this.chunkSize = chunkSize;
         this.cache = new Map(); // "cx,cy,cz" → WebGLTexture
+        console.log("Rendering Strategy: Chunked Rendering")
     }
 
     key(cx, cy, cz) {
@@ -62,45 +63,45 @@ class ChunkedRender {
         return tex;
     }
 
-upload(cx, cy, cz, data) {
-    const gl = this.gl;
-    const tex = this.getOrCreate(cx, cy, cz);
+    upload(cx, cy, cz, data) {
+        const gl = this.gl;
+        const tex = this.getOrCreate(cx, cy, cz);
 
-    const cs = this.chunkSize;
-    // console.log(cs)
-    const layerSize = cs * cs;
+        const cs = this.chunkSize;
+        // console.log(cs)
+        const layerSize = cs * cs;
 
-    // --- SAFETY CHECK ---
-    if (data.length < layerSize) {
-        throw new Error(
-            `Chunk data too small: got ${data.length}, expected ${layerSize}`
+        // --- SAFETY CHECK ---
+        if (data.length < layerSize) {
+            throw new Error(
+                `Chunk data too small: got ${data.length}, expected ${layerSize}`
+            );
+        }
+
+        // --- Extract z = 0 layer only ---
+        const slice = new Uint8Array(layerSize);
+        for (let i = 0; i < layerSize; i++) {
+            slice[i] = data[i] & 0xFF; // u32 → u8
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+        gl.texSubImage2D(
+            gl.TEXTURE_2D,
+            0,
+            0, 0,
+            cs,
+            cs,
+            gl.RED_INTEGER,
+            gl.UNSIGNED_BYTE,
+            slice
         );
+
+        return tex;
     }
 
-    // --- Extract z = 0 layer only ---
-    const slice = new Uint8Array(layerSize);
-    for (let i = 0; i < layerSize; i++) {
-        slice[i] = data[i] & 0xFF; // u32 → u8
-    }
-
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-
-    gl.texSubImage2D(
-        gl.TEXTURE_2D,
-        0,
-        0, 0,
-        cs,
-        cs,
-        gl.RED_INTEGER,
-        gl.UNSIGNED_BYTE,
-        slice
-    );
-
-    return tex;
-}
-
-    renderGrid(tl, br) {
+    renderGrid(tl, br, updateCells) {
         const gl = this.renderer.gl;
         gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -130,14 +131,13 @@ upload(cx, cy, cz, data) {
     }
 
     changeCell(q, r, s, state) {
-        this.gridMesh.set_cell(q, r, s, state);
 
         const cs = this.chunkSize;
         const cx = Math.floor(q / cs);
         const cy = Math.floor(r / cs);
 
-        const data = this.gridMesh.get_chunk_cells(cx, cy, 0);
-        this.upload(cx, cy, 0, data);
+        const data = this.gridMesh.get_chunk_cells(cx, cy, s);
+        this.upload(cx, cy, s, data);
     }
 
 }
