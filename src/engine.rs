@@ -31,9 +31,6 @@ impl Engine {
 
         let cfg = PatternIO::read_pattern(pattern_props, pattern_data);
 
-        let print_cfg =  serde_json::to_string(&cfg).unwrap();
-        println!("Just Uploaded: {}", print_cfg);
-
         let [w, h, d] = cfg.grid_size;
         let mut grid = Self {
             storage: cfg.clone(),
@@ -63,29 +60,30 @@ impl Engine {
     pub fn update_storage(&mut self) {
         let mut new_storage = self.storage.clone();
         let config = self.mesh.config.clone();
-        // let [shift_q, _, shift_r,_,  _, shift_s]= config.bounds;
-let (shift_q, shift_r, shift_s) = if config.topology_type == "infinite" {
-    let [min_q, _, min_r, _, _, min_s] = self.mesh.get_cell_extremes();
-    (min_q, min_r, min_s)
-} else {
-    let [q, _, r, _, _, s] = config.bounds;
-    (q, r, s)
-};
-
+        let use_bounds: [i32; 6] = if config.topology_type == "infinite" {
+            self.mesh.get_cell_extremes()
+        } else {
+            config.bounds
+        };
+        let [min_q, max_q, min_r, max_r, min_s, max_s]= use_bounds;
+        println!("Test: {:?}", use_bounds);
         let mut new_alive: Vec<(i32, i32, i32, u32)> = Vec::new();
         for [q, r, s, state] in self.mesh.inner.iter_cell() {
             if state != 0 {
-                new_alive.push((q - shift_q, r - shift_r, s + shift_s, state as u32));
+                new_alive.push((q - min_q, r - min_r, s + min_s, state as u32));
             }
-        }
-        new_storage.grid_size = [config.width, config.height, config.depth];
-        new_storage.top_left  = [shift_q, shift_r, shift_s];
+        };
+        new_storage.grid_size = [
+            (max_q - min_q + 1) as usize,
+            (max_r - min_r + 1) as usize,
+            (max_s - min_s + 1) as usize,
+        ];
+        new_storage.top_left  = [min_q, min_r, min_s];
         new_storage.neighbor_type = config.neighbor_type.clone();
         new_storage.topology_type = config.topology_type.clone();
         new_storage.shape = config.shape.clone();
         new_storage.range = config.range;
         new_storage.alive = new_alive;
-        println!("Post Print: {:?}", config);
         self.storage = new_storage.clone();
     }
 

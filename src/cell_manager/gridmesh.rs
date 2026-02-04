@@ -236,7 +236,15 @@ impl GridMesh {
     }
 
     // BOUNDS
-    pub fn get_bounds1(&self) -> [i32; 6] {
+    pub fn get_bounds(&self) -> [i32; 6] {
+        if self.config.topology_type == "infinite" {
+            return [
+                i32::MIN, i32::MAX,
+                i32::MIN, i32::MAX,
+                0, (self.config.depth as i32) - 1,
+            ];
+        }
+
         let cols = self.config.width as i32;
         let rows = self.config.height as i32;
         let states = self.config.depth as i32;
@@ -251,30 +259,6 @@ impl GridMesh {
 
         [min_q, max_q, min_r, max_r, min_s, max_s]
     }
-
-pub fn get_bounds(&self) -> [i32; 6] {
-    if self.config.topology_type == "infinite" {
-        return [
-            i32::MIN, i32::MAX,
-            i32::MIN, i32::MAX,
-            0, (self.config.depth as i32) - 1,
-        ];
-    }
-
-    let cols = self.config.width as i32;
-    let rows = self.config.height as i32;
-    let states = self.config.depth as i32;
-
-    let min_q = -(cols / 2);
-    let max_q = (cols - 1) / 2;
-    let min_r = -(rows / 2);
-    let max_r = (rows - 1) / 2;
-
-    let min_s = 0;
-    let max_s = states - 1;
-
-    [min_q, max_q, min_r, max_r, min_s, max_s]
-}
 
     pub fn get_cell_extremes(&self) -> [i32; 6] {
         let arr = self.each_live_cell();
@@ -361,14 +345,4 @@ pub fn get_bounds(&self) -> [i32; 6] {
         self.config.bounds = self.get_bounds();
     }
 
-    pub fn handle_infinite(&mut self) {
-    if self.config.topology_type != "infinite" {
-        return;
-        }
-        self.config.bounds = [
-            i32::MIN, i32::MAX,
-            i32::MIN, i32::MAX,
-            0, (self.config.depth as i32) - 1,
-        ];
-    }
 }
