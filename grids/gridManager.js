@@ -1,13 +1,16 @@
+/* Import Shape Grid Classes */
 import { SquareGrid } from './tiles/square.js';
 import { HexagonGrid } from './tiles/hexagon.js';
 import { TriangleGrid } from './tiles/triangle.js';
 import { RhomboidalGrid } from './tiles/rhomboid.js';
 
+/* Import Renderers */
 import { WebGLRenderer } from '../renderer/WebGL.js';
 import { Canvas2DRenderer } from '../renderer/Canvas2d.js';
 
-import { ChunkedRender } from '../renderer/ChunkedRender.js';
+/* Import Render Caches */
 import { DirectRender } from '../renderer/DirectRender.js';
+import { ChunkedRender } from '../renderer/ChunkedRender.js';
 
 class GridManager {
     constructor(
@@ -34,7 +37,6 @@ class GridManager {
         this.shapeGrid = this.createShapeGrid(shape);
         this.renderer = this.initializeRenderer(useWebGL);
         this.renderCache = this.selectCache(this.chunked);
-        this.renderer.colorSchema = this.colorSchema;
         this.updateCanvasSize();
     }
 
@@ -62,7 +64,7 @@ class GridManager {
                 throw new Error("Force Canvas2D fallback");
             }
         } catch (error) {
-            renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid);
+            renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid, this.chunked);
             this.useWebGL = false;
         }
         return renderer;
@@ -73,8 +75,7 @@ class GridManager {
         this.chunkSize = this.grid_mesh.get_chunk_size();
         if (chunked && this.useWebGL) {
             renderCache = new ChunkedRender(
-                this,
-                this.chunkSize
+                this, this.chunkSize
             );
         } else {
             this.renderer.chunkSize = this.chunkSize;
@@ -85,7 +86,6 @@ class GridManager {
 
     startRendering() {
         const renderLoop = () => {
-            this.drawGrid();
             requestAnimationFrame(renderLoop);
         };
         renderLoop();
@@ -125,7 +125,6 @@ class GridManager {
     }
 
     checkBounds(q, r, s) {
-        if (this.infiniteGrid) return true;
         const [minQ, maxQ, minR, maxR, minS, maxS] = [...this.bounds];
         return !(q < minQ || q > maxQ || r < minR || r > maxR);
     }
@@ -207,13 +206,6 @@ class GridManager {
             11: this.hexToRgb("#ff3700"),
         };
         return schema;
-    }
-
-    setColorSchema(newSchema) {
-        this.colorSchema = newSchema;
-        this.renderer.colorSchema = newSchema
-        this.shapeGrid.colorSchema = newSchema;
-        this.renderGrid(true);
     }
 
     selectGridLimits() {

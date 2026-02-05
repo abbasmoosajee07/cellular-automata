@@ -66,7 +66,7 @@ impl Engine {
             config.bounds
         };
         let [min_q, max_q, min_r, max_r, min_s, max_s]= use_bounds;
-        println!("Test: {:?}", use_bounds);
+
         let mut new_alive: Vec<(i32, i32, i32, u32)> = Vec::new();
         for [q, r, s, state] in self.mesh.inner.iter_cell() {
             if state != 0 {
