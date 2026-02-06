@@ -1,7 +1,7 @@
 class Canvas2DRenderer {
-    constructor(canvas, shapeGrid) {
+    constructor(canvas, shapeGrid, chunked) {
         this.canvas = canvas;
-        this.chunkedRender = false;
+        this.chunkedRender = chunked;
         this.shapeGrid = shapeGrid;
 
         const rendererUsed = "canvas2d";
@@ -9,6 +9,7 @@ class Canvas2DRenderer {
         this.shapeGrid.addRenderer(rendererUsed);
         console.log("Renderer Used:", rendererUsed)
 
+        this.colorSchema = shapeGrid.colorSchema;
         this.updateCanvasSize();
     }
 
@@ -95,57 +96,57 @@ class Canvas2DRenderer {
         return;
     }
 
-getVisibleChunkRange(cameraView) {
-    const shape = this.shapeGrid;
+    getVisibleChunkRange(cameraView) {
+        const shape = this.shapeGrid;
 
-    const tlWorld = shape.screenToWorld(
-        0, 0, this.width, this.height, cameraView
-    );
-    const brWorld = shape.screenToWorld(
-        this.width, this.height, this.width, this.height, cameraView
-    );
+        const tlWorld = shape.screenToWorld(
+            0, 0, this.width, this.height, cameraView
+        );
+        const brWorld = shape.screenToWorld(
+            this.width, this.height, this.width, this.height, cameraView
+        );
 
-    const tlCell = shape.worldToCell(tlWorld);
-    const brCell = shape.worldToCell(brWorld);
+        const tlCell = shape.worldToCell(tlWorld);
+        const brCell = shape.worldToCell(brWorld);
 
-    const cs = this.chunkSize;
+        const cs = this.chunkSize;
 
-    return {
-        minCX: Math.floor(Math.min(tlCell[0], brCell[0]) / cs),
-        maxCX: Math.floor(Math.max(tlCell[0], brCell[0]) / cs),
-        minCY: Math.floor(Math.min(tlCell[1], brCell[1]) / cs),
-        maxCY: Math.floor(Math.max(tlCell[1], brCell[1]) / cs),
-    };
-}
+        return {
+            minCX: Math.floor(Math.min(tlCell[0], brCell[0]) / cs),
+            maxCX: Math.floor(Math.max(tlCell[0], brCell[0]) / cs),
+            minCY: Math.floor(Math.min(tlCell[1], brCell[1]) / cs),
+            maxCY: Math.floor(Math.max(tlCell[1], brCell[1]) / cs),
+        };
+    }
 
-drawVisibleChunks(ctx, cells, cameraView) {
-    const cs = this.chunkSize;
-    const depth = 1;
+    drawVisibleChunks(ctx, cells, cameraView) {
+        const cs = this.chunkSize;
+        const depth = 1;
 
-    const { minCX, maxCX, minCY, maxCY } =
-        this.getVisibleChunkRange(cameraView);
+        const { minCX, maxCX, minCY, maxCY } =
+            this.getVisibleChunkRange(cameraView);
 
-    for (let cx = minCX; cx <= maxCX; cx++) {
-        for (let cy = minCY; cy <= maxCY; cy++) {
+        for (let cx = minCX; cx <= maxCX; cx++) {
+            for (let cy = minCY; cy <= maxCY; cy++) {
 
-            const chunk = cells.get_chunk_cells(cx, cy, 0);
-            if (!chunk) continue;
+                const chunk = cells.get_chunk_cells(cx, cy, 0);
+                if (!chunk) continue;
 
-            for (let ly = 0; ly < cs; ly++) {
-                for (let lx = 0; lx < cs; lx++) {
-                    const idx = lx + ly * cs;
-                    const state = chunk[idx];
-                    if (state === 0) continue;
+                for (let ly = 0; ly < cs; ly++) {
+                    for (let lx = 0; lx < cs; lx++) {
+                        const idx = lx + ly * cs;
+                        const state = chunk[idx];
+                        if (state === 0) continue;
 
-                    const q = cx * cs + lx;
-                    const r = cy * cs + ly;
+                        const q = cx * cs + lx;
+                        const r = cy * cs + ly;
 
-                    this.shapeGrid.drawShapeCell(ctx, q, r, 0, state);
+                        this.shapeGrid.drawShapeCell(ctx, q, r, 0, state);
+                    }
                 }
             }
         }
     }
-}
 
 }
 

@@ -87,7 +87,7 @@ class ChunkedRender {
         const maxCX = Math.floor(Math.max(tl[0], br[0]) / cs);
         const minCY = Math.floor(Math.min(tl[1], br[1]) / cs);
         const maxCY = Math.floor(Math.max(tl[1], br[1]) / cs);
-        // console.log("test");
+
         for (let cx = minCX; cx <= maxCX; cx++) {
             for (let cy = minCY; cy <= maxCY; cy++) {
             const cz = 0;
