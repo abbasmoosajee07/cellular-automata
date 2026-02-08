@@ -139,10 +139,6 @@ impl FlatCellManager {
         self.cells = new_cells;
     }
 
-    pub fn get_cell_struct(&mut self) -> String {
-        "flat_cells".to_string()
-    }
-
     pub fn get_chunk_size(&self) -> usize {
         0 as usize
     }

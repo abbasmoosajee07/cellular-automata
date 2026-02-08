@@ -53,8 +53,8 @@ impl CellBackend {
 
     pub fn get_cell_struct(&mut self) -> String {
         match self {
-            CellBackend::Flat(fm) => fm.get_cell_struct(),
-            CellBackend::Chunked(cm) => cm.get_cell_struct(),
+            CellBackend::Flat(_fm) => "flat_cells".to_string(),
+            CellBackend::Chunked(_cm) => "chunk_cells".to_string(),
         }
     }
 

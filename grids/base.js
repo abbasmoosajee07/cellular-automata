@@ -22,6 +22,7 @@ class BaseGrid {
         // Common WebGL buffers
         this.vertexBuffer = null;
         this.indexBuffer = null;
+        console.log(`Tile Shape: ${shape}`);
     }
 
     addRenderer(rendererUsed) {

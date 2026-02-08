@@ -134,10 +134,6 @@ impl ChunkedCellManager {
         self.depth = new_depth;
     }
 
-    pub fn get_cell_struct(&mut self) -> String {
-        "chunk_cells".to_string()
-    }
-
     pub fn get_chunk_size(&self) -> usize {
         self.chunk_size
     }
