@@ -9,6 +9,7 @@ class ChunkedRender {
         console.log("Rendering Strategy: Chunked Rendering")
         this.rowMult = gridManager.shapeGrid.rowMult;
         this.colMult = gridManager.shapeGrid.colMult;
+        this.isRhomboidal = gridManager.shape === "rhombus";
     }
 
     key(cx, cy, cz) {
@@ -51,14 +52,6 @@ class ChunkedRender {
         const tex = this.getOrCreate(cx, cy, cz);
 
         const cs = this.chunkSize;
-        const layerSize = cs * cs;
-
-        // --- SAFETY CHECK ---
-        if (data.length < layerSize) {
-            throw new Error(
-                `Chunk data too small: got ${data.length}, expected ${layerSize}`
-            );
-        }
 
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
@@ -106,9 +99,30 @@ class ChunkedRender {
         }
     }
 
-    changeCell(q, r, s, state) {
-        //console.log(`coord = (${q},${r},${s})`)
+    upload(cx, cy, cz, data) {
+        const gl = this.gl;
+        const tex = this.getOrCreate(cx, cy, cz);
+        const cs = this.chunkSize;
 
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+        const uploadData = this.renderer.shapeGrid.transformChunkData(data, cs)
+
+        gl.texSubImage2D(
+            gl.TEXTURE_2D,
+            0,
+            0, 0,
+            cs * this.colMult,
+            cs * this.rowMult,
+            gl.RED_INTEGER,
+            gl.UNSIGNED_BYTE,
+            uploadData
+        );
+        return tex;
+    }
+
+    changeCell(q, r, s, state) {
         const cs = this.chunkSize;
         const cx = Math.floor(q / cs);
         const cy = Math.floor(r / cs);

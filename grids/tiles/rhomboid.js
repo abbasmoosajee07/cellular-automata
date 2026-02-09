@@ -123,165 +123,199 @@ class RhomboidalGrid extends BaseGrid {
         return [Math.floor(texX), Math.floor(texY)];
     }
 
-chunked_WebGL2 () {
-    return `#version 300 es
-        precision highp float;
-        precision highp usampler2D;
-
-        in vec2 vTexCoord;
-        out vec4 outColor;
-
-        uniform vec2  uResolution;
-        uniform vec2  uOffset;
-        uniform float uScale;
-        uniform float uRadius;
-
-        // Chunk parameters (HEX SPACE)
-        uniform ivec2 uChunkOrigin; // (q, r)
-        uniform int   uChunkSize;   // hex width/height
-
-        // INTEGER state texture (R8UI)
-        uniform usampler2D uGridTexture;
-
-        uniform vec4 uCanvasColor;
-        uniform vec4 uGridColor;
-        uniform vec4 uPalette[256];
-
-        // --- Hex math --------------------------------------------------------
-
-        vec2 worldToHex(vec2 pos, float r) {
-            float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
-            float s = (2.0/3.0 * pos.y) / r;
-            return vec2(q, s);
+    transformChunkData(data, chunkSize) {
+        const depth = 3; // Always 3 for rhomboidal (the 3 rhombi per hex)
+        const srcSize = chunkSize * chunkSize * depth;
+        
+        // Verify input size
+        if (data.length !== srcSize) {
+            console.warn(`Expected ${srcSize} bytes, got ${data.length}`);
         }
-
-        ivec3 hexRound(vec2 h) {
-            float x = h.x;
-            float z = h.y;
-            float y = -x - z;
-
-            float rx = round(x);
-            float ry = round(y);
-            float rz = round(z);
-
-            float dx = abs(rx - x);
-            float dy = abs(ry - y);
-            float dz = abs(rz - z);
-
-            if (dx > dy && dx > dz)      rx = -ry - rz;
-            else if (dy > dz)           ry = -rx - rz;
-            else                        rz = -rx - ry;
-
-            return ivec3(int(rx), int(rz), int(-rx - rz));
+        
+        // Create output buffer: [chunkSize*3, chunkSize]
+        const output = new Uint8Array(chunkSize * depth * chunkSize);
+        
+        // Transform: Rust layout [q + r*chunkSize + z*chunkSize*chunkSize]
+        //         → GPU layout  [(q*3+z) + r*(chunkSize*3)]
+        for (let r = 0; r < chunkSize; r++) {
+            for (let q = 0; q < chunkSize; q++) {
+                for (let z = 0; z < depth; z++) {
+                    // Read from Rust layout
+                    const srcIdx = q + r * chunkSize + z * chunkSize * chunkSize;
+                    const value = data[srcIdx] || 0;
+                    
+                    // Write to GPU layout
+                    const dstX = q * depth + z;
+                    const dstY = r;
+                    const dstIdx = dstX + dstY * (chunkSize * depth);
+                    
+                    output[dstIdx] = value;
+                }
+            }
         }
+        
+        return output;
+    }
 
-        vec2 getHexVertex(int i, float r) {
-            float angle = 3.14159265359 / 3.0 * float(i) - 3.14159265359 / 6.0;
-            return vec2(r * cos(angle), r * sin(angle));
-        }
+    chunked_WebGL2 () {
+        return `#version 300 es
+            precision highp float;
+            precision highp usampler2D;
 
-        bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
-            vec2 v0 = c - a;
-            vec2 v1 = b - a;
-            vec2 v2 = p - a;
+            in vec2 vTexCoord;
+            out vec4 outColor;
 
-            float dot00 = dot(v0, v0);
-            float dot01 = dot(v0, v1);
-            float dot02 = dot(v0, v2);
-            float dot11 = dot(v1, v1);
-            float dot12 = dot(v1, v2);
+            uniform vec2  uResolution;
+            uniform vec2  uOffset;
+            uniform float uScale;
+            uniform float uRadius;
 
-            float invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
-            float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-            float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+            // Chunk parameters (HEX SPACE)
+            uniform ivec2 uChunkOrigin; // (q, r)
+            uniform int   uChunkSize;   // hex width/height
 
-            return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
-        }
+            // INTEGER state texture (R8UI)
+            uniform usampler2D uGridTexture;
 
-        int getRhombusIndex(vec2 localPos, float r) {
-            vec2 c = vec2(0.0);
+            uniform vec4 uCanvasColor;
+            uniform vec4 uGridColor;
+            uniform vec4 uPalette[256];
 
-            vec2 v0 = getHexVertex(0, r);
-            vec2 v1 = getHexVertex(1, r);
-            vec2 v2 = getHexVertex(2, r);
-            vec2 v3 = getHexVertex(3, r);
-            vec2 v4 = getHexVertex(4, r);
-            vec2 v5 = getHexVertex(5, r);
+            // --- Hex math --------------------------------------------------------
 
-            if (pointInTriangle(localPos, c, v0, v1)) return 0;
-            if (pointInTriangle(localPos, c, v1, v2)) return 0;
-            if (pointInTriangle(localPos, c, v2, v3)) return 1;
-            if (pointInTriangle(localPos, c, v3, v4)) return 1;
-            if (pointInTriangle(localPos, c, v4, v5)) return 2;
-            if (pointInTriangle(localPos, c, v5, v0)) return 2;
-
-            return 0;
-        }
-
-        vec4 applyRhombusShade(vec4 c, int t) {
-            if (t == 0) return c;
-            if (t == 1) return vec4(c.rgb * 0.75, c.a);
-            return vec4(c.rgb * 0.5, c.a);
-        }
-
-        vec4 colorFromState(uint s) {
-            return (s < 256u) ? uPalette[int(s)] : uPalette[0];
-        }
-
-        void main() {
-
-            // Screen → world
-            vec2 worldPos = vec2(
-                (vTexCoord.x * uResolution.x - uResolution.x * 0.5 - uOffset.x) / uScale,
-                -(vTexCoord.y * uResolution.y - uResolution.y * 0.5 - uOffset.y) / uScale
-            );
-
-            vec2 axial = worldToHex(worldPos, uRadius);
-            ivec3 hex  = hexRound(axial);
-
-            int q = hex.x;
-            int r = hex.y;
-
-            // Global → chunk-local hex
-            ivec2 localHex = ivec2(q, r) - uChunkOrigin;
-
-            // Outside chunk → transparent
-            if (localHex.x < 0 || localHex.y < 0 ||
-                localHex.x >= uChunkSize || localHex.y >= uChunkSize) {
-                discard;
+            vec2 worldToHex(vec2 pos, float r) {
+                float q = (sqrt(3.0)/3.0 * pos.x - 1.0/3.0 * pos.y) / r;
+                float s = (2.0/3.0 * pos.y) / r;
+                return vec2(q, s);
             }
 
-            // Hex center
-            vec2 center = vec2(
-                uRadius * sqrt(3.0) * (float(q) + float(r) * 0.5),
-                uRadius * 1.5 * float(r)
-            );
+            ivec3 hexRound(vec2 h) {
+                float x = h.x;
+                float z = h.y;
+                float y = -x - z;
 
-            vec2 localPos = worldPos - center;
+                float rx = round(x);
+                float ry = round(y);
+                float rz = round(z);
 
-            // Outside hex shape
-            if (length(localPos) > uRadius * 1.05) {
-                outColor = uCanvasColor;
-                return;
+                float dx = abs(rx - x);
+                float dy = abs(ry - y);
+                float dz = abs(rz - z);
+
+                if (dx > dy && dx > dz)      rx = -ry - rz;
+                else if (dy > dz)           ry = -rx - rz;
+                else                        rz = -rx - ry;
+
+                return ivec3(int(rx), int(rz), int(-rx - rz));
             }
 
-            int rhombus = getRhombusIndex(localPos, uRadius);
-
-            // Chunk texture coords (3 rhombi per hex)
-            ivec2 texel = ivec2(
-                localHex.x * 3 + rhombus,
-                localHex.y
-            );
-
-            uint state = texelFetch(uGridTexture, texel, 0).r;
-
-            if (state == 0u) {
-                outColor = uGridColor;
-            } else {
-                outColor = applyRhombusShade(colorFromState(state), rhombus);
+            vec2 getHexVertex(int i, float r) {
+                float angle = 3.14159265359 / 3.0 * float(i) - 3.14159265359 / 6.0;
+                return vec2(r * cos(angle), r * sin(angle));
             }
-        }`;
-}
+
+            bool pointInTriangle(vec2 p, vec2 a, vec2 b, vec2 c) {
+                vec2 v0 = c - a;
+                vec2 v1 = b - a;
+                vec2 v2 = p - a;
+
+                float dot00 = dot(v0, v0);
+                float dot01 = dot(v0, v1);
+                float dot02 = dot(v0, v2);
+                float dot11 = dot(v1, v1);
+                float dot12 = dot(v1, v2);
+
+                float invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+                float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+                float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+                return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
+            }
+
+            int getRhombusIndex(vec2 localPos, float r) {
+                vec2 c = vec2(0.0);
+
+                vec2 v0 = getHexVertex(0, r);
+                vec2 v1 = getHexVertex(1, r);
+                vec2 v2 = getHexVertex(2, r);
+                vec2 v3 = getHexVertex(3, r);
+                vec2 v4 = getHexVertex(4, r);
+                vec2 v5 = getHexVertex(5, r);
+
+                if (pointInTriangle(localPos, c, v0, v1)) return 0;
+                if (pointInTriangle(localPos, c, v1, v2)) return 0;
+                if (pointInTriangle(localPos, c, v2, v3)) return 1;
+                if (pointInTriangle(localPos, c, v3, v4)) return 1;
+                if (pointInTriangle(localPos, c, v4, v5)) return 2;
+                if (pointInTriangle(localPos, c, v5, v0)) return 2;
+
+                return 0;
+            }
+
+            vec4 applyRhombusShade(vec4 c, int t) {
+                if (t == 0) return c;
+                if (t == 1) return vec4(c.rgb * 0.75, c.a);
+                return vec4(c.rgb * 0.5, c.a);
+            }
+
+            vec4 colorFromState(uint s) {
+                return (s < 256u) ? uPalette[int(s)] : uPalette[0];
+            }
+
+            void main() {
+
+                // Screen → world
+                vec2 worldPos = vec2(
+                    (vTexCoord.x * uResolution.x - uResolution.x * 0.5 - uOffset.x) / uScale,
+                    -(vTexCoord.y * uResolution.y - uResolution.y * 0.5 - uOffset.y) / uScale
+                );
+
+                vec2 axial = worldToHex(worldPos, uRadius);
+                ivec3 hex  = hexRound(axial);
+
+                int q = hex.x;
+                int r = hex.y;
+
+                // Global → chunk-local hex
+                ivec2 localHex = ivec2(q, r) - uChunkOrigin;
+
+                // Outside chunk → transparent
+                if (localHex.x < 0 || localHex.y < 0 ||
+                    localHex.x >= uChunkSize || localHex.y >= uChunkSize) {
+                    discard;
+                }
+
+                // Hex center
+                vec2 center = vec2(
+                    uRadius * sqrt(3.0) * (float(q) + float(r) * 0.5),
+                    uRadius * 1.5 * float(r)
+                );
+
+                vec2 localPos = worldPos - center;
+
+                // Outside hex shape
+                if (length(localPos) > uRadius * 1.05) {
+                    outColor = uCanvasColor;
+                    return;
+                }
+
+                int rhombus = getRhombusIndex(localPos, uRadius);
+
+                // Chunk texture coords (3 rhombi per hex)
+                ivec2 texel = ivec2(
+                    localHex.x * 3 + rhombus,
+                    localHex.y
+                );
+
+                uint state = texelFetch(uGridTexture, texel, 0).r;
+
+                if (state == 0u) {
+                    outColor = uGridColor;
+                } else {
+                    outColor = applyRhombusShade(colorFromState(state), rhombus);
+                }
+            }`;
+    }
 
     direct_WebGL2 () {
         return `#version 300 es

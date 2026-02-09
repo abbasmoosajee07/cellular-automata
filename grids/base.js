@@ -285,6 +285,10 @@ class BaseGrid {
         }
     }
 
+    transformChunkData(data, chunkSize) {
+        return new Uint8Array(data)
+    }
+
     // Abstract Shape specific methods
     worldToCell(world) {
         throw new Error("Method 'worldToCell(world)' must be implemented.");
