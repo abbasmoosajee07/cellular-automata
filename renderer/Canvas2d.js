@@ -3,6 +3,7 @@ class Canvas2DRenderer {
         this.canvas = canvas;
         this.chunkedRender = chunked;
         this.shapeGrid = shapeGrid;
+        this.strategy = false;
 
         const rendererUsed = "canvas2d";
         this.ctx = canvas.getContext('2d');
@@ -85,9 +86,10 @@ class Canvas2DRenderer {
             ${Math.round(gridBg[2] * 255)},
             ${gridBg[3]}
         )`;
-        this.shapeGrid.drawGridShape(ctx);
+        if (!this.strategy) {
+            this.shapeGrid.drawGridShape(ctx);
+        }
         this.syncCellsToCanvas(ctx, cells);
-        // this.drawVisibleChunks(ctx, cells, cameraView);
 
         ctx.restore();
     }

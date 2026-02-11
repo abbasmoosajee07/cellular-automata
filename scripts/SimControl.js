@@ -384,8 +384,8 @@ class SimulatorController{
         let draggingCam = false;
         let lastX = 0, lastY = 0;
         let lastTouchDistance = null;
-        const MIN_ZOOM = 1E+2;
-        const MAX_ZOOM = 1E-4;
+        const MAX_ZOOM = 1E+2;
+        const MIN_ZOOM = 1E-4;
 
         const getPointer = (e) => {
             if (e.touches) {
@@ -427,7 +427,7 @@ class SimulatorController{
                 if (lastTouchDistance) {
                     const zoomFactor = dist / lastTouchDistance;
                     const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
-                    this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
+                    this.gridManager.cameraView.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
                     this.updateStatusBar(t1.clientX, t1.clientY);
                     this.gridManager.renderGrid();
                 }
@@ -488,7 +488,7 @@ class SimulatorController{
             e.preventDefault();
             const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
             const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
-            this.gridManager.cameraView.zoom = Math.max(MAX_ZOOM, Math.min(MIN_ZOOM, newZoom));
+            this.gridManager.cameraView.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
             this.updateStatusBar(e.clientX, e.clientY);
             this.gridManager.renderGrid();
         }, { passive: false });

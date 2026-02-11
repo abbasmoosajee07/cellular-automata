@@ -4,7 +4,7 @@ class DirectRender {
         this.shapeGrid = gridManager.shapeGrid;
         this.renderer = gridManager.renderer;
         this.grid_mesh = gridManager.grid_mesh;
-        console.log("Rendering Strategy: Direct Rendering")
+        console.log("Rendering Strategy: Direct")
     }
 
     changeCell(q, r, s, state) {

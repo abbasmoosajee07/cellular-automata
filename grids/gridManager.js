@@ -73,12 +73,11 @@ class GridManager {
     selectCache(chunked) {
         let renderCache;
         this.chunkSize = this.grid_mesh.get_chunk_size();
-        if (chunked && this.useWebGL) {
+        if (chunked) {
             renderCache = new ChunkedRender(
-                this, this.chunkSize
+                this, this.chunkSize, this.useWebGL
             );
         } else {
-            this.renderer.chunkSize = this.chunkSize;
             renderCache = new DirectRender(this);
         }
         return renderCache;
