@@ -1,18 +1,15 @@
 class ChunkedRender {
-    constructor(gridManager, chunkSize, renderer) {
+    constructor(gridManager, chunkSize) {
         this.gridManager = gridManager;
         this.renderer = gridManager.renderer;
         this.gridMesh = gridManager.grid_mesh;
-        this.canvas = renderer;
-        if (renderer) {
-            this.gl = this.renderer.gl;
-        }
+
         this.chunkSize = chunkSize;
         this.cache = new Map(); // "cx,cy,cz" → WebGLTexture
         console.log("Rendering Strategy: Chunked")
         this.rowMult = gridManager.shapeGrid.rowMult;
         this.colMult = gridManager.shapeGrid.colMult;
-        this.renderer.strategy = true;
+        this.useWebgl = this.renderer.setupChunkedRender();
     }
 
     key(cx, cy, cz) {
@@ -23,7 +20,7 @@ class ChunkedRender {
         const key = this.key(cx, cy, cz);
         if (this.cache.has(key)) return this.cache.get(key);
 
-        const gl = this.gl;
+        const gl = this.renderer.gl;
         const tex = gl.createTexture();
 
         gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -51,7 +48,7 @@ class ChunkedRender {
     }
 
     upload(cx, cy, cz, data) {
-        const gl = this.gl;
+        const gl = this.renderer.gl;
         const tex = this.getOrCreate(cx, cy, cz);
         const cs = this.chunkSize;
 
@@ -70,11 +67,10 @@ class ChunkedRender {
             gl.UNSIGNED_BYTE,
             uploadData
         );
-        return tex;
     }
 
     renderGrid(tl, br, updateCells) {
-        if (!this.canvas) {
+        if (!this.useWebgl) {
             this.renderer.renderGrid(this.gridManager.cameraView, this.gridMesh, updateCells)
             return
         }
@@ -82,8 +78,6 @@ class ChunkedRender {
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         const cs = this.chunkSize;
-
-        // console.log("Chunk Grid Render", updateCells);
 
         const minCX = Math.floor(Math.min(tl[0], br[0]) / cs);
         const maxCX = Math.floor(Math.max(tl[0], br[0]) / cs);
@@ -119,10 +113,9 @@ class ChunkedRender {
         const cy = Math.floor(r / cs);
 
         const data = this.gridMesh.get_chunk_cells(cx, cy, 0);
-        if (this.canvas) {
+        if (this.useWebgl) {
             this.upload(cx, cy, 0, data);
         }
-        
     }
 
 }

@@ -4,6 +4,7 @@ class DirectRender {
         this.shapeGrid = gridManager.shapeGrid;
         this.renderer = gridManager.renderer;
         this.grid_mesh = gridManager.grid_mesh;
+        this.renderer.setupDirectRender();
         console.log("Rendering Strategy: Direct")
     }
 

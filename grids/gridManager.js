@@ -58,13 +58,13 @@ class GridManager {
         let renderer;
         try {
             if (useWebGL) {
-                renderer = new WebGLRenderer(this.canvas, this.shapeGrid, this.chunked);
+                renderer = new WebGLRenderer(this.canvas, this.shapeGrid);
                 this.useWebGL = true;
             } else {
                 throw new Error("Force Canvas2D fallback");
             }
         } catch (error) {
-            renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid, this.chunked);
+            renderer = new Canvas2DRenderer(this.canvas, this.shapeGrid);
             this.useWebGL = false;
         }
         return renderer;
@@ -72,10 +72,10 @@ class GridManager {
 
     selectCache(chunked) {
         let renderCache;
-        this.chunkSize = this.grid_mesh.get_chunk_size();
         if (chunked) {
+            const chunkSize = this.grid_mesh.get_chunk_size();
             renderCache = new ChunkedRender(
-                this, this.chunkSize, this.useWebGL
+                this, chunkSize
             );
         } else {
             renderCache = new DirectRender(this);

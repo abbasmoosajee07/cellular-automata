@@ -1,9 +1,8 @@
 
 class WebGLRenderer {
-    constructor(canvas, shapeGrid, chunked, { forceWebGL1 = false } = {}) {
+    constructor(canvas, shapeGrid, { forceWebGL1 = false } = {}) {
         this.canvas = canvas;
         this.shapeGrid = shapeGrid;
-        this.chunkedRender = chunked;
 
         this.gl = this.initWebGL(forceWebGL1);
         if (!this.gl) throw new Error("WebGL not supported");
@@ -13,13 +12,25 @@ class WebGLRenderer {
         const rendererUsed = this.isWebGL2 ? "webgl2" : "webgl";
         console.log("Renderer Used:", rendererUsed)
 
+        this.cachedGeometry = null;
+        this.shapeGrid.addRenderer(rendererUsed);
+    }
+
+    setupBackend() {
         this.initShaders();
         this.initBuffers();
         this.updateCanvasSize();
+    }
 
-        this.cachedGeometry = null;
-        this.shapeGrid.addRenderer(rendererUsed);
+    setupDirectRender() {
+        this.setupBackend()
         this.shapeGrid.initGridTexture(this.gl);
+    }
+
+    setupChunkedRender() {
+        this.chunked = true;
+        this.setupBackend()
+        return true;
     }
 
     initWebGL(forceWebGL1) {
@@ -59,7 +70,7 @@ class WebGLRenderer {
 
         // Ask grid for appropriate shader sources
         const vsSource = this.shapeGrid.getVertexShaderSource(this.isWebGL2);
-        const fsSource = this.shapeGrid.getFragmentShaderSource(this.isWebGL2, this.chunkedRender);
+        const fsSource = this.shapeGrid.getFragmentShaderSource(this.isWebGL2, this.chunked);
 
         const vertexShader = this.compileShader(gl.VERTEX_SHADER, vsSource);
         const fragmentShader = this.compileShader(gl.FRAGMENT_SHADER, fsSource);
