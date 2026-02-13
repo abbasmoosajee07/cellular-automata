@@ -1,6 +1,6 @@
 
 class WebGLRenderer {
-    constructor(canvas, shapeGrid, { forceWebGL1 = true } = {}) {
+    constructor(canvas, shapeGrid, { forceWebGL1 = false } = {}) {
         this.canvas = canvas;
         this.shapeGrid = shapeGrid;
 

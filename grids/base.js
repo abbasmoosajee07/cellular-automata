@@ -250,7 +250,13 @@ class BaseGrid {
             gl1_chunked: () => this.chunked_WebGL1(),
             gl1_direct:  () => this.direct_WebGL1(),
         };
-        // console.log(shaderMap[key]());
+
+        // // Debug Console Print
+        // const fragShaders = shaderMap[key]().split('\n')
+        //             .map(line => line.trimStart())
+        //             .join('\n');
+        // console.log(fragShaders);
+
         return shaderMap[key]();
     }
 
@@ -299,10 +305,13 @@ class BaseGrid {
             uniform vec2  uResolution;
             uniform vec2  uOffset;
             uniform float uScale;
+            uniform float uRadius;
             uniform float uBaseCellSize;
 
             uniform usampler2D uGridTexture;
             uniform vec4 uCanvasColor;
+            uniform vec4 uGridColor;
+
             uniform vec4 uPalette[256];
 
             in vec2 vTexCoord;
@@ -315,6 +324,7 @@ class BaseGrid {
             uniform vec2  uResolution;
             uniform vec2  uOffset;
             uniform float uScale;
+            uniform float uRadius;
             uniform float uBaseCellSize;
 
             uniform sampler2D uGridTexture;
@@ -340,19 +350,23 @@ class BaseGrid {
             }`;
     }
 
-    glsl_gridbounds_webgl2() {
-        return `int minQ = -int(floor(uGridCols * 0.5));
+    glsl_gridbounds_WebGL2() {
+        return `
+            int minQ = -int(floor(uGridCols * 0.5));
             int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
             int minR = -int(floor(uGridRows * 0.5));
-            int maxR =  int(ceil (uGridRows * 0.5)) - 1;`;
+            int maxR =  int(ceil (uGridRows * 0.5)) - 1;
+        `;
     }
 
-    glsl_gridbounds_webgl() {
-        return `float minQ = -floor(uGridCols * 0.5);
+    glsl_gridbounds_WebGL1() {
+        return `
+            float minQ = -floor(uGridCols * 0.5);
             float maxQ =  ceil(uGridCols * 0.5) - 1.0;
 
             float minR = -floor(uGridRows * 0.5);
-            float maxR =  ceil(uGridRows * 0.5) - 1.0;`;
+            float maxR =  ceil(uGridRows * 0.5) - 1.0;
+        `;
     }
 
     // Abstract Shape specific methods

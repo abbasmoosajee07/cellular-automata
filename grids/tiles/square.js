@@ -35,7 +35,7 @@ class SquareGrid extends BaseGrid {
         return [q + centerCol, r + centerRow];
     }
 
-    glsl_worldToCell() {
+    glsl_worldToCell_WebGL2() {
         return `
             ivec2 worldToCell(vec2 worldPos) {
                 return ivec2(
@@ -45,7 +45,7 @@ class SquareGrid extends BaseGrid {
             }`;
     }
 
-    glsl_webgl1_worldToCell() {
+    glsl_worldToCell_WebGL1() {
         return `
             vec2 worldToCell(vec2 worldPos) {
                 return floor(vec2(
@@ -59,11 +59,11 @@ class SquareGrid extends BaseGrid {
         return `${this.glsl_webgl2_header()}
 
             // Chunk-specific uniforms
-            uniform ivec2 uChunkOrigin; // chunk origin in cell space
-            uniform int   uChunkSize;   // chunk width/height
+            uniform ivec2 uChunkOrigin;
+            uniform int   uChunkSize;
 
             ${this.glsl_screenToWorld()}
-            ${this.glsl_worldToCell()}
+            ${this.glsl_worldToCell_WebGL2()}
             ${this.glsl_colorFromState()}
 
             void main() {
@@ -92,7 +92,7 @@ class SquareGrid extends BaseGrid {
             uniform float uGridRows;
 
             ${this.glsl_screenToWorld()}
-            ${this.glsl_worldToCell()}
+            ${this.glsl_worldToCell_WebGL2()}
             ${this.glsl_colorFromState()}
 
             void main() {
@@ -100,7 +100,7 @@ class SquareGrid extends BaseGrid {
                 ivec2 cell     = worldToCell(worldPos);
 
                 // Centered grid bounds
-                ${this.glsl_gridbounds_webgl2()};
+                ${this.glsl_gridbounds_WebGL2()};
 
                 if (cell.x < minQ || cell.x > maxQ ||
                     cell.y < minR || cell.y > maxR) {
@@ -118,12 +118,12 @@ class SquareGrid extends BaseGrid {
     chunked_WebGL1() {
         return `${this.glsl_webgl1_header()}
 
-            // Chunk-specific uniforms (float equivalents of the WebGL2 ivec2/int)
-            uniform vec2  uChunkOrigin; // chunk origin in cell space
-            uniform float uChunkSize;   // chunk width/height (square chunk)
+            // Chunk-specific uniforms
+            uniform vec2  uChunkOrigin;
+            uniform float uChunkSize;
 
             ${this.glsl_screenToWorld()}
-            ${this.glsl_webgl1_worldToCell()}
+            ${this.glsl_worldToCell_WebGL1()}
 
             void main() {
                 vec2 worldPos = screenToWorld(vTexCoord);
@@ -133,8 +133,8 @@ class SquareGrid extends BaseGrid {
                 vec2 local = cell - uChunkOrigin;
 
                 // Outside this chunk → transparent
-                if (local.x < 0.0 || local.y < 0.0 ||
-                    local.x >= uChunkSize || local.y >= uChunkSize) {
+                if (local.x < 0.0 || local.x >= uChunkSize ||
+                    local.y < 0.0 || local.y >= uChunkSize) {
                     discard;
                 }
 
@@ -142,7 +142,7 @@ class SquareGrid extends BaseGrid {
                 vec2 texCoord = (local + 0.5) / uChunkSize;
 
                 vec4 cellColor = texture2D(uGridTexture, texCoord);
-                gl_FragColor = (cellColor.a <= 0.0) ? uCanvasColor : cellColor;
+                gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
             }`;
     }
 
@@ -153,14 +153,14 @@ class SquareGrid extends BaseGrid {
             uniform float uGridRows;
 
             ${this.glsl_screenToWorld()}
-            ${this.glsl_webgl1_worldToCell()}
+            ${this.glsl_worldToCell_WebGL1()}
 
             void main() {
                 vec2 worldPos = screenToWorld(vTexCoord);
                 vec2 cell     = worldToCell(worldPos);
 
                 // Centered grid bounds
-                ${this.glsl_gridbounds_webgl()}
+                ${this.glsl_gridbounds_WebGL1()}
 
                 if (cell.x < minQ || cell.x > maxQ ||
                     cell.y < minR || cell.y > maxR) {

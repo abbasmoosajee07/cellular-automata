@@ -72,8 +72,6 @@ class TriangleGrid extends BaseGrid {
             ${this.glsl_colorFromState()}
 
             void main() {
-
-                // Screen → World
                 vec2  worldPos = screenToWorld(vTexCoord);
                 float size = uBaseCellSize;
 
@@ -88,8 +86,8 @@ class TriangleGrid extends BaseGrid {
                 ivec2 local = ivec2(q, r) - uChunkOrigin;
 
                 // Outside chunk → transparent
-                if (local.x < 0 || local.y < 0 ||
-                    local.x >= uChunkSize || local.y >= uChunkSize) {
+                if (local.x < 0 || local.x >= uChunkSize ||
+                    local.y < 0 || local.y >= uChunkSize) {
                     discard;
                 }
 
@@ -107,10 +105,8 @@ class TriangleGrid extends BaseGrid {
                     local.y + s * uChunkSize
                 );
 
-                // Fetch integer state
-                uint state = texelFetch(uGridTexture, texel, 0).r;
-
-                // Output color
+                // Fetch integer state to get Color
+                uint state = texelFetch(uGridTexture, ivec2(texX, texY), 0).r;
                 outColor = colorFromState(state);
             }`;
     }
@@ -126,8 +122,6 @@ class TriangleGrid extends BaseGrid {
             ${this.glsl_colorFromState()}
 
             void main() {
-
-                // Screen → World
                 vec2  worldPos = screenToWorld(vTexCoord);
                 float size = uBaseCellSize;
 
@@ -141,7 +135,7 @@ class TriangleGrid extends BaseGrid {
                 int s = (localY < localX) ? 1 : 0;
 
                 // Grid bounds
-                ${this.glsl_gridbounds_webgl2()};
+                ${this.glsl_gridbounds_WebGL2()};
 
                 if (int(q) < minQ || int(q) > maxQ ||
                     int(r) < minR || int(r) > maxR) {
@@ -154,10 +148,8 @@ class TriangleGrid extends BaseGrid {
                 int texY = (int(uGridRows) - 1 - (int(r) - minR))
                         + s * int(uGridRows);
 
-                // Fetch integer state
+                // Fetch integer state to get Color
                 uint state = texelFetch(uGridTexture, ivec2(texX, texY), 0).r;
-
-                // State → Color
                 outColor = colorFromState(state);
         }`;
     }
@@ -203,7 +195,7 @@ class TriangleGrid extends BaseGrid {
                 );
 
                 vec4 cellColor = texture2D(uGridTexture, uv);
-                gl_FragColor = (cellColor.a <= 0.0) ? uCanvasColor : cellColor;
+                gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
             }`;
     }
 
@@ -227,7 +219,7 @@ class TriangleGrid extends BaseGrid {
                 float localY = (-worldPos.y / size) - r;
                 float s = (localY < localX) ? 1.0 : 0.0;
 
-                ${this.glsl_gridbounds_webgl()}
+                ${this.glsl_gridbounds_WebGL1()}
 
                 if (q < minQ || q > maxQ || r < minR || r > maxR) {
                     gl_FragColor = uCanvasColor;

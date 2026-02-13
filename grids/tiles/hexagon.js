@@ -67,38 +67,22 @@ class HexagonGrid extends BaseGrid {
         return [Math.floor(texX), Math.floor(texY)];
     }
 
-    chunked_WebGL2 () {
-        return `#version 300 es
-            precision highp float;
-            precision highp usampler2D;
-
-            in vec2 vTexCoord;
-            out vec4 outColor;
-
-            uniform vec2  uResolution;
-            uniform vec2  uOffset;
-            uniform float uScale;
-            uniform float uRadius;
-
-            // Chunk parameters (HEX SPACE)
-            uniform ivec2 uChunkOrigin; // (q, r)
-            uniform int   uChunkSize;   // hex width/height
-
-            // INTEGER grid texture
-            uniform usampler2D uGridTexture;
-
-            uniform vec4 uCanvasColor;   // background
-            uniform vec4 uGridColor;     // empty cell color
-            uniform vec4 uPalette[256];  // state → color
-
-            // --- Hex math -------------------------------------------------------
-
+    glsl_worldCubeMath() {
+        return `
             vec3 worldToCube(vec2 worldPos, float size) {
                 float q = (sqrt(3.0)/3.0 * worldPos.x - -worldPos.y / 3.0) / size;
                 float r = (2.0/3.0 * -worldPos.y) / size;
                 return vec3(q, r, -q - r);
             }
+            vec2 cubeToWorld(vec3 cube, float size) {
+                float x = size * (sqrt(3.0) * cube.x + sqrt(3.0)/2.0 * cube.y);
+                float y = size * (3.0/2.0 * cube.y);
+                return vec2(x, y);
+            }`;
+    }
 
+    glsl_hexMath_WebGL2() {
+        return `
             vec3 cubeRound(vec3 cube) {
                 vec3 r = round(cube);
                 vec3 d = abs(r - cube);
@@ -109,14 +93,7 @@ class HexagonGrid extends BaseGrid {
                     r.y = -r.x - r.z;
                 else
                     r.z = -r.x - r.y;
-
                 return r;
-            }
-
-            vec2 cubeToWorld(vec3 cube, float size) {
-                float x = size * (sqrt(3.0) * cube.x + sqrt(3.0)/2.0 * cube.y);
-                float y = size * (3.0/2.0 * cube.y);
-                return vec2(x, y);
             }
 
             bool pointInHex(vec2 local, float size) {
@@ -130,43 +107,74 @@ class HexagonGrid extends BaseGrid {
                 vec2 d = abs(axial - r);
 
                 return max(d.x, d.y) <= 0.5;
-            }
+            }`;
+    }
 
-            vec4 colorFromState(uint state) {
-                return (state < 256u) ? uPalette[int(state)] : uPalette[0];
-            }
+    glsl_hexMath_WebGL1() {
+        return `
+            vec3 cubeRound(vec3 cube) {
+            float rx = floor(cube.x + 0.5);
+            float ry = floor(cube.y + 0.5);
+            float rz = floor(cube.z + 0.5);
+
+            float dx = abs(rx - cube.x);
+            float dy = abs(ry - cube.y);
+            float dz = abs(rz - cube.z);
+
+            if (dx > dy && dx > dz)
+                rx = -ry - rz;
+            else if (dy > dz)
+                ry = -rx - rz;
+            else
+                rz = -rx - ry;
+
+            return vec3(rx, ry, rz);
+        }
+
+        bool pointInHex(vec2 local, float size) {
+            vec2 p = vec2(
+                local.x / (sqrt(3.0) * size),
+                local.y / (1.5 * size)
+            );
+
+            vec2 axial = vec2(p.x - p.y * 0.5, p.y);
+            vec2 r = floor(axial + 0.5);
+            vec2 d = abs(axial - r);
+
+            return max(d.x, d.y) <= 0.5;
+        }`;
+    }
+
+    chunked_WebGL2 () {
+        return `${this.glsl_webgl2_header()}
+
+            // Chunk-specific uniforms
+            uniform ivec2 uChunkOrigin;
+            uniform int   uChunkSize;
+
+            // --- Import Hex math -------------------------------------------------------
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_worldCubeMath()}
+            ${this.glsl_hexMath_WebGL2()}
+            ${this.glsl_colorFromState()}
 
             void main() {
-
-                // Screen → World
-                vec2 worldPos =
-                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-
-                // World → Hex
+                vec2 worldPos = screenToWorld(vTexCoord);
                 vec3 cube = worldToCube(worldPos, uRadius);
                 vec3 hex  = cubeRound(cube);
 
-                int q = int(hex.x);
-                int r = int(hex.y);
-
                 // Global → chunk-local hex
-                ivec2 local = ivec2(q, r) - uChunkOrigin;
+                ivec2 local = ivec2(int(hex.x), int(hex.y)) - uChunkOrigin;
 
                 // Outside this chunk → transparent
-                if (local.x < 0 || local.y < 0 ||
-                    local.x >= uChunkSize || local.y >= uChunkSize) {
+                if (local.x < 0 || local.x >= uChunkSize ||
+                    local.y < 0 || local.y >= uChunkSize) {
                     discard;
                 }
 
                 // Hex center & local position
                 vec2 center = cubeToWorld(hex, uRadius);
                 vec2 localPos = worldPos - center;
-
-                // Outside hex shape
-                if (!pointInHex(localPos, uRadius)) {
-                    outColor = uCanvasColor;
-                    return;
-                }
 
                 // Chunk texture coordinates
                 ivec2 texel = ivec2(local.x, local.y);
@@ -175,107 +183,33 @@ class HexagonGrid extends BaseGrid {
                 uint state = texelFetch(uGridTexture, texel, 0).r;
 
                 // Output color
-                outColor = (state == 0u)
-                    ? uGridColor
-                    : colorFromState(state);
+                outColor = colorFromState(state);
             }`;
     }
 
     direct_WebGL2 () {
-        return `#version 300 es
-            precision highp float;
-            precision highp usampler2D;
+        return `${this.glsl_webgl2_header()}
 
-            in vec2 vTexCoord;
-            out vec4 outColor;
-
-            uniform vec2  uResolution;
-            uniform vec2  uOffset;
-            uniform float uScale;
+            // Grid-dimension uniforms
             uniform float uGridCols;
             uniform float uGridRows;
-            uniform float uRadius;
 
-            // INTEGER grid texture
-            uniform usampler2D uGridTexture;
-
-            uniform vec4 uCanvasColor;   // background
-            uniform vec4 uGridColor;     // empty cell color
-            uniform vec4 uPalette[256];  // state → color
-
-            // World → Cube
-            vec3 worldToCube(vec2 worldPos, float size) {
-                float q = (sqrt(3.0)/3.0 * worldPos.x - -worldPos.y / 3.0) / size;
-                float r = (2.0/3.0 * -worldPos.y) / size;
-                return vec3(q, r, -q - r);
-            }
-
-            // Cube rounding
-            vec3 cubeRound(vec3 cube) {
-                vec3 r = round(cube);
-
-                vec3 d = abs(r - cube);
-
-                if (d.x > d.y && d.x > d.z)
-                    r.x = -r.y - r.z;
-                else if (d.y > d.z)
-                    r.y = -r.x - r.z;
-                else
-                    r.z = -r.x - r.y;
-
-                return r;
-            }
-
-            // Cube → World center
-            vec2 cubeToWorld(vec3 cube, float size) {
-                float x = size * (sqrt(3.0) * cube.x + sqrt(3.0)/2.0 * cube.y);
-                float y = size * (3.0/2.0 * cube.y);
-                return vec2(x, y);
-            }
-
-            // Inside-hex test
-            bool pointInHex(vec2 local, float size) {
-                vec2 p = vec2(
-                    local.x / (sqrt(3.0) * size),
-                    local.y / (1.5 * size)
-                );
-
-                vec2 axial = vec2(p.x - p.y * 0.5, p.y);
-                vec2 r = round(axial);
-                vec2 d = abs(axial - r);
-
-                return max(d.x, d.y) <= 0.5;
-            }
-
-            // State → Color
-            vec4 colorFromState(uint state) {
-                return uPalette[int(state)];
-            }
+            // --- Import Hex math -------------------------------------------------------
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_worldCubeMath()}
+            ${this.glsl_hexMath_WebGL2()}
+            ${this.glsl_colorFromState()}
 
             void main() {
-
-                // Screen → World
-                vec2 worldPos =
-                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-
-                // World → Hex cell
+                vec2  worldPos = screenToWorld(vTexCoord);
                 vec3 cube = worldToCube(worldPos, uRadius);
                 vec3 hex  = cubeRound(cube);
 
                 vec2 center = cubeToWorld(hex, uRadius);
                 vec2 local  = worldPos - center;
 
-                // Outside any hex
-                if (!pointInHex(local, uRadius)) {
-                    outColor = uCanvasColor;
-                    return;
-                }
-
                 // Grid bounds
-                int minQ = -int(floor(uGridCols * 0.5));
-                int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
-                int minR = -int(floor(uGridRows * 0.5));
-                int maxR =  int(ceil (uGridRows * 0.5)) - 1;
+                ${this.glsl_gridbounds_WebGL2()}
 
                 int q = int(hex.x);
                 int r = int(hex.y);
@@ -286,102 +220,75 @@ class HexagonGrid extends BaseGrid {
                 }
 
                 // Cube → texture coords
-                ivec2 texel = ivec2(
-                    q - minQ,
-                    r - minR
-                );
+                ivec2 texel = ivec2( q - minQ, r - minR );
 
                 // Fetch integer state
                 uint state = texelFetch(uGridTexture, texel, 0).r;
 
                 // Output color
-                outColor = (state == 0u)
-                    ? uGridColor
-                    : colorFromState(state);
+                outColor = colorFromState(state);
             }`
     }
 
-    direct_WebGL1 () {
-        return `precision mediump float;
-            uniform vec2  uResolution;
-            uniform vec2  uOffset;
-            uniform float uScale;
-            uniform float uGridCols;
-            uniform float uGridRows;
-            uniform float uRadius;
+    chunked_WebGL1() {
+        return `${this.glsl_webgl1_header()}
 
-            uniform sampler2D uGridTexture;
-            uniform vec4 uCanvasColor;
-            uniform vec4 uGridColor;
+            uniform vec2  uChunkOrigin;
+            uniform float uChunkSize;
 
-            varying vec2 vTexCoord;
-
-            vec3 worldToCube(vec2 worldPos, float size) {
-                float q = (sqrt(3.0)/3.0 * worldPos.x - -worldPos.y/3.0) / size;
-                float r = (2.0/3.0 * -worldPos.y) / size;
-                return vec3(q, r, -q - r);
-            }
-
-            vec3 cubeRound(vec3 cube) {
-                float rx = floor(cube.x + 0.5);
-                float ry = floor(cube.y + 0.5);
-                float rz = floor(cube.z + 0.5);
-
-                float dx = abs(rx - cube.x);
-                float dy = abs(ry - cube.y);
-                float dz = abs(rz - cube.z);
-
-                if (dx > dy && dx > dz)
-                    rx = -ry - rz;
-                else if (dy > dz)
-                    ry = -rx - rz;
-                else
-                    rz = -rx - ry;
-
-                return vec3(rx, ry, rz);
-            }
-
-            vec2 cubeToWorld(vec3 cube, float size) {
-                float q = cube.x;
-                float r = cube.y;
-                float x = size * (sqrt(3.0)*q + sqrt(3.0)/2.0*r);
-                float y = size * (3.0/2.0*r);
-                return vec2(x, y);
-            }
-
-            bool pointInHex(vec2 local, float size) {
-                vec2 p = vec2(
-                    local.x / (sqrt(3.0)*size),
-                    local.y / (1.5*size)
-                );
-
-                vec2 axial = vec2(p.x - p.y * 0.5, p.y);
-                vec2 r = floor(axial + 0.5);
-                vec2 d = abs(axial - r);
-
-                return max(d.x, d.y) <= 0.5;
-            }
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_worldCubeMath()}
+            ${this.glsl_hexMath_WebGL1()}
 
             void main() {
+                vec2 worldPos = screenToWorld(vTexCoord);
+                vec3 cube = worldToCube(worldPos, uRadius);
+                vec3 hex  = cubeRound(cube);
 
-                vec2 worldPos =
-                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                // Global → chunk-local cell (float, no ivec2 in WebGL1)
+                float localQ = hex.x - uChunkOrigin.x;
+                float localR = hex.y - uChunkOrigin.y;
 
+                // Outside this chunk → transparent
+                if (localQ < 0.0 || localQ >= uChunkSize ||
+                    localR < 0.0 || localR >= uChunkSize) {
+                    discard;
+                }
+
+                // Hex centre in world space → local offset for shape test
+                vec2 center   = cubeToWorld(hex, uRadius);
+                vec2 localPos = worldPos - center;
+
+                // Chunk-local UV (matches chunked_WebGL2 texel = ivec2(local.x, local.y))
+                vec2 texCoord = vec2(
+                    (localQ + 0.5) / uChunkSize,
+                    (localR + 0.5) / uChunkSize
+                );
+
+                vec4 cellColor = texture2D(uGridTexture, texCoord);
+                gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
+            }`;
+    }
+
+    direct_WebGL1 () {
+        return `${this.glsl_webgl1_header()}
+
+            uniform float uGridCols;
+            uniform float uGridRows;
+
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_worldCubeMath()}
+            ${this.glsl_hexMath_WebGL1()}
+
+            void main() {
+                vec2 worldPos = screenToWorld(vTexCoord);
                 vec3 cube = worldToCube(worldPos, uRadius);
                 vec3 hex  = cubeRound(cube);
 
                 vec2 center = cubeToWorld(hex, uRadius);
                 vec2 local  = worldPos - center;
 
-                if (!pointInHex(local, uRadius)) {
-                    gl_FragColor = uCanvasColor;
-                    return;
-                }
-
-                float minQ = -floor(uGridCols * 0.5);
-                float maxQ =  ceil(uGridCols * 0.5) - 1.0;
-                float minR = -floor(uGridRows * 0.5);
-                float maxR =  ceil(uGridRows * 0.5) - 1.0;
+                ${this.glsl_gridbounds_WebGL1()}
 
                 if (hex.x < minQ || hex.x > maxQ ||
                     hex.y < minR || hex.y > maxR) {
@@ -395,7 +302,6 @@ class HexagonGrid extends BaseGrid {
                 );
 
                 vec4 cellColor = texture2D(uGridTexture, texCoord);
-
                 gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
             }`
     }
