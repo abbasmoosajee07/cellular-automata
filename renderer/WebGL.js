@@ -1,6 +1,6 @@
 
 class WebGLRenderer {
-    constructor(canvas, shapeGrid, { forceWebGL1 = false } = {}) {
+    constructor(canvas, shapeGrid, { forceWebGL1 = true } = {}) {
         this.canvas = canvas;
         this.shapeGrid = shapeGrid;
 
@@ -266,7 +266,18 @@ class WebGLRenderer {
 
         gl.useProgram(this.program);
 
-        if (this.vao) gl.bindVertexArray(this.vao);
+        if (this.vao) {
+            // WebGL2: VAO already has buffers + attrib pointers recorded
+            gl.bindVertexArray(this.vao);
+        } else {
+            // WebGL1: must bind buffers and set attrib pointers every draw call
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+            gl.enableVertexAttribArray(this.attribLocations.position);
+            gl.vertexAttribPointer(
+                this.attribLocations.position, 2, gl.FLOAT, false, this.stride, this.positionOffset
+            );
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        }
 
         const uniforms = this.shapeGrid.setupUniforms(
             gl, this.program, cameraView, this.width, this.height
@@ -276,16 +287,28 @@ class WebGLRenderer {
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.uniform1i(uniforms.gridTexture, 0);
 
-        gl.uniform2i(
-            gl.getUniformLocation(this.program, "uChunkOrigin"),
-            cx * chunkSize,
-            cy * chunkSize
-        );
-
-        gl.uniform1i(
-            gl.getUniformLocation(this.program, "uChunkSize"),
-            chunkSize
-        );
+        // WebGL2 chunk shader uses ivec2/int uniforms; WebGL1 shader uses vec2/float.
+        if (this.isWebGL2) {
+            gl.uniform2i(
+                gl.getUniformLocation(this.program, "uChunkOrigin"),
+                cx * chunkSize,
+                cy * chunkSize
+            );
+            gl.uniform1i(
+                gl.getUniformLocation(this.program, "uChunkSize"),
+                chunkSize
+            );
+        } else {
+            gl.uniform2f(
+                gl.getUniformLocation(this.program, "uChunkOrigin"),
+                cx * chunkSize,
+                cy * chunkSize
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(this.program, "uChunkSize"),
+                chunkSize
+            );
+        }
 
         gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
 

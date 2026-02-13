@@ -7,6 +7,7 @@ class ChunkedRender {
         this.chunkSize = chunkSize;
         this.cache = new Map(); // "cx,cy,cz" → WebGLTexture
         console.log("Rendering Strategy: Chunked")
+        this.isWebGL2 = this.renderer.isWebGL2;
         this.rowMult = gridManager.shapeGrid.rowMult;
         this.colMult = gridManager.shapeGrid.colMult;
         this.useWebgl = this.renderer.setupChunkedRender();
@@ -31,16 +32,24 @@ class ChunkedRender {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+        const w = this.chunkSize * this.colMult;
+        const h = this.chunkSize * this.rowMult;
+
+        // Passing null for initial data is unreliable in some WebGL1 drivers.
+        // Always supply a correctly-sized zeroed buffer instead.
+        const bytesPerPixel = this.isWebGL2 ? 1 : 4;
+        const emptyData = new Uint8Array(w * h * bytesPerPixel);
+
         gl.texImage2D(
             gl.TEXTURE_2D,
             0,
-            gl.R8UI,
-            this.chunkSize * this.colMult,
-            this.chunkSize * this.rowMult,
+            this.isWebGL2 ? gl.R8UI : gl.RGBA,
+            w,
+            h,
             0,
-            gl.RED_INTEGER,
+            this.isWebGL2 ? gl.RED_INTEGER : gl.RGBA,
             gl.UNSIGNED_BYTE,
-            null
+            emptyData
         );
 
         this.cache.set(key, tex);
@@ -51,24 +60,42 @@ class ChunkedRender {
         const gl = this.renderer.gl;
         const tex = this.getOrCreate(cx, cy, cz);
         const cs = this.chunkSize;
+        const w  = cs * this.colMult;
+        const h  = cs * this.rowMult;
 
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
-        const uploadData = this.renderer.shapeGrid.transformChunkData(data, cs)
+        let uploadData = this.renderer.shapeGrid.transformChunkData(data, cs);
+
+        if (!this.isWebGL2) {
+            // WebGL1 texture is RGBA (4 bytes/pixel). transformChunkData returns
+            // 1 byte/cell (state index). Expand each state to its RGBA color so
+            // the shader can sample the color directly via texture2D.
+            const colorSchema = this.renderer.shapeGrid.colorSchema;
+            const rgba = new Uint8Array(w * h * 4);
+            for (let i = 0; i < uploadData.length; i++) {
+                const state = uploadData[i];
+                const color = colorSchema[state] || colorSchema.grid || [1, 1, 1, 1];
+                rgba[i * 4]     = Math.round(color[0] * 255);
+                rgba[i * 4 + 1] = Math.round(color[1] * 255);
+                rgba[i * 4 + 2] = Math.round(color[2] * 255);
+                rgba[i * 4 + 3] = state === 0 ? 0 : Math.round((color[3] ?? 1) * 255);
+            }
+            uploadData = rgba;
+        }
 
         gl.texSubImage2D(
             gl.TEXTURE_2D,
             0,
             0, 0,
-            cs * this.colMult,
-            cs * this.rowMult,
-            gl.RED_INTEGER,
+            w,
+            h,
+            this.isWebGL2 ? gl.RED_INTEGER : gl.RGBA,
             gl.UNSIGNED_BYTE,
             uploadData
         );
     }
-
     renderGrid(tl, br, updateCells) {
         if (!this.useWebgl) {
             this.renderer.renderGrid(this.gridManager.cameraView, this.gridMesh, updateCells)

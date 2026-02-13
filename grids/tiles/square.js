@@ -35,46 +35,42 @@ class SquareGrid extends BaseGrid {
         return [q + centerCol, r + centerRow];
     }
 
-    chunked_WebGL2 () {
-        return `#version 300 es
-            precision highp float;
-            precision highp usampler2D;
-
-            uniform vec2  uResolution;
-            uniform vec2  uOffset;
-            uniform float uScale;
-            uniform float uBaseCellSize;
-
-            uniform ivec2 uChunkOrigin; // chunk origin in cell space
-            uniform int   uChunkSize;   // chunk width/height
-
-            uniform usampler2D uGridTexture;
-
-            uniform vec4 uCanvasColor;
-            uniform vec4 uPalette[256];
-
-            in vec2 vTexCoord;
-            out vec4 outColor;
-
-            vec4 colorFromState(uint state) {
-                return (state < 256u) ? uPalette[state] : uPalette[0];
-            }
-
-            void main() {
-
-                // Screen → world
-                vec2 worldPos =
-                    (vTexCoord * uResolution
-                    - uResolution * 0.5
-                    - uOffset) / uScale;
-
-                // World → global cell
-                ivec2 cell = ivec2(
+    glsl_worldToCell() {
+        return `
+            ivec2 worldToCell(vec2 worldPos) {
+                return ivec2(
                     round(worldPos.x / uBaseCellSize),
                     round(-worldPos.y / uBaseCellSize)
                 );
+            }`;
+    }
 
-                // Global → chunk-local cell
+    glsl_webgl1_worldToCell() {
+        return `
+            vec2 worldToCell(vec2 worldPos) {
+                return floor(vec2(
+                    worldPos.x / uBaseCellSize,
+                    -worldPos.y / uBaseCellSize
+                ) + 0.5);
+            }`;
+    }
+
+    chunked_WebGL2() {
+        return `${this.glsl_webgl2_header()}
+
+            // Chunk-specific uniforms
+            uniform ivec2 uChunkOrigin; // chunk origin in cell space
+            uniform int   uChunkSize;   // chunk width/height
+
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_worldToCell()}
+            ${this.glsl_colorFromState()}
+
+            void main() {
+                vec2  worldPos = screenToWorld(vTexCoord);
+                ivec2 cell     = worldToCell(worldPos);
+
+                // Global cell → chunk-local cell
                 ivec2 local = cell - uChunkOrigin;
 
                 // Outside this chunk → transparent
@@ -83,137 +79,104 @@ class SquareGrid extends BaseGrid {
                     discard;
                 }
 
-                // Sample chunk texture
                 uint state = texelFetch(uGridTexture, local, 0).r;
-
                 outColor = colorFromState(state);
             }`;
     }
 
-    direct_WebGL2 () {
-        return `#version 300 es
-            precision highp float;
-            precision highp usampler2D;
+    direct_WebGL2() {
+        return `${this.glsl_webgl2_header()}
 
-            uniform vec2  uResolution;
-            uniform vec2  uOffset;
-            uniform float uScale;
+            // Grid-dimension uniforms (not needed by chunked variant)
             uniform float uGridCols;
             uniform float uGridRows;
-            uniform float uBaseCellSize;
 
-            // SINGLE-CHANNEL STATE TEXTURE
-            uniform usampler2D uGridTexture;
-
-            uniform vec4 uCanvasColor;
-            uniform vec4 uGridColor;
-
-            // PALETTE: state → color
-            uniform vec4 uPalette[256];
-
-            in vec2 vTexCoord;
-            out vec4 outColor;
-
-            // State → Color mapping (palette)
-            vec4 colorFromState(uint state) {
-                if (state >= 256u) {
-                    return uPalette[0]; // safe fallback
-                }
-                return uPalette[state];
-            }
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_worldToCell()}
+            ${this.glsl_colorFromState()}
 
             void main() {
+                vec2  worldPos = screenToWorld(vTexCoord);
+                ivec2 cell     = worldToCell(worldPos);
 
-                // Screen → World (centered)
-                vec2 worldPos =
-                    (vTexCoord * uResolution
-                    - uResolution * 0.5
-                    - uOffset) / uScale;
+                // Centered grid bounds
+                ${this.glsl_gridbounds_webgl2()};
 
-                // World → Cell (centered grid)
-                ivec2 cell = ivec2(
-                    round(worldPos.x / uBaseCellSize),
-                    round(-worldPos.y / uBaseCellSize)
-                );
-
-                // Grid bounds (centered)
-                int minQ = -int(floor(uGridCols * 0.5));
-                int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
-                int minR = -int(floor(uGridRows * 0.5));
-                int maxR =  int(ceil (uGridRows * 0.5)) - 1;
-
-                // Outside grid
                 if (cell.x < minQ || cell.x > maxQ ||
                     cell.y < minR || cell.y > maxR) {
                     outColor = uCanvasColor;
                     return;
                 }
 
-                // Cell → Texture coordinates
-                ivec2 texel = ivec2(
-                    cell.x - minQ,
-                    cell.y - minR
-                );
-
-                // Fetch state (NO filtering)
-                uint state = texelFetch(uGridTexture, texel, 0).r;
-
-                // Output color via palette
+                // Offset cell into texture space and fetch state
+                ivec2 texel = ivec2(cell.x - minQ, cell.y - minR);
+                uint  state = texelFetch(uGridTexture, texel, 0).r;
                 outColor = colorFromState(state);
-            }`
+            }`;
     }
 
-    direct_WebGL1 () {
-        return `precision mediump float;
-            uniform vec2  uResolution;
-            uniform vec2  uOffset;
-            uniform float uScale;
-            uniform float uGridCols;
-            uniform float uGridRows;
-            uniform float uBaseCellSize;
+    chunked_WebGL1() {
+        return `${this.glsl_webgl1_header()}
 
-            uniform sampler2D uGridTexture;
-            uniform vec4 uCanvasColor;
-            uniform vec4 uGridColor;
+            // Chunk-specific uniforms (float equivalents of the WebGL2 ivec2/int)
+            uniform vec2  uChunkOrigin; // chunk origin in cell space
+            uniform float uChunkSize;   // chunk width/height (square chunk)
 
-            varying vec2 vTexCoord;
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_webgl1_worldToCell()}
 
             void main() {
+                vec2 worldPos = screenToWorld(vTexCoord);
+                vec2 cell     = worldToCell(worldPos);
 
-                // screen → world (centered)
-                vec2 worldPos =
-                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
+                // Global cell → chunk-local cell
+                vec2 local = cell - uChunkOrigin;
 
-                // world → cell (WebGL1-safe rounding)
-                vec2 cell = floor(vec2(
-                    worldPos.x / uBaseCellSize,
-                -worldPos.y / uBaseCellSize
-                ) + 0.5);
+                // Outside this chunk → transparent
+                if (local.x < 0.0 || local.y < 0.0 ||
+                    local.x >= uChunkSize || local.y >= uChunkSize) {
+                    discard;
+                }
 
-                // grid bounds
-                float minQ = -floor(uGridCols * 0.5);
-                float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+                // Normalised UV within the chunk texture
+                vec2 texCoord = (local + 0.5) / uChunkSize;
 
-                float minR = -floor(uGridRows * 0.5);
-                float maxR =  ceil(uGridRows * 0.5) - 1.0;
+                vec4 cellColor = texture2D(uGridTexture, texCoord);
+                gl_FragColor = (cellColor.a <= 0.0) ? uCanvasColor : cellColor;
+            }`;
+    }
 
-                // outside grid
+    direct_WebGL1() {
+        return `${this.glsl_webgl1_header()}
+
+            uniform float uGridCols;
+            uniform float uGridRows;
+
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_webgl1_worldToCell()}
+
+            void main() {
+                vec2 worldPos = screenToWorld(vTexCoord);
+                vec2 cell     = worldToCell(worldPos);
+
+                // Centered grid bounds
+                ${this.glsl_gridbounds_webgl()}
+
                 if (cell.x < minQ || cell.x > maxQ ||
                     cell.y < minR || cell.y > maxR) {
                     gl_FragColor = uCanvasColor;
                     return;
                 }
 
-                // sample cell center
+                // Normalised UV for RGBA texture lookup
                 vec2 texCoord = vec2(
                     (cell.x - minQ + 0.5) / uGridCols,
                     (cell.y - minR + 0.5) / uGridRows
                 );
 
                 vec4 cellColor = texture2D(uGridTexture, texCoord);
-
                 gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
-            }`
+            }`;
     }
 
     drawGridShape(ctx) {

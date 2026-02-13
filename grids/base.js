@@ -130,11 +130,10 @@ class BaseGrid {
 
         const c = this.colorSchema.canvas;
         gl.uniform4f(uniformLocations.canvasColor, c[0], c[1], c[2], c[3]); // OK
-        const g = this.colorSchema.grid;
+        const g = this.colorSchema[0];
         gl.uniform4f(uniformLocations.gridColor, g[0], g[1], g[2], g[3]); // NEW
 
         gl.uniform4fv(uniformLocations.paletteLoc, this.buildPalette(256));
-
         return uniformLocations;
     }
 
@@ -243,13 +242,16 @@ class BaseGrid {
     }
 
     getFragmentShaderSource(isWebGL2 = false, isChunked = false) {
-        if (isWebGL2 && isChunked) {
-            return this.chunked_WebGL2();
-        } else if (isWebGL2 && !isChunked) {
-            return this.direct_WebGL2();
-        } else {
-            return this.direct_WebGL1();
-        }
+        const key = `${isWebGL2 ? 'gl2' : 'gl1'}_${isChunked ? 'chunked' : 'direct'}`;
+
+        const shaderMap = {
+            gl2_chunked: () => this.chunked_WebGL2(),
+            gl2_direct:  () => this.direct_WebGL2(),
+            gl1_chunked: () => this.chunked_WebGL1(),
+            gl1_direct:  () => this.direct_WebGL1(),
+        };
+        // console.log(shaderMap[key]());
+        return shaderMap[key]();
     }
 
     clearGrid(gl) {
@@ -289,6 +291,70 @@ class BaseGrid {
         return new Uint8Array(data)
     }
 
+    glsl_webgl2_header() {
+        return `#version 300 es
+            precision highp float;
+            precision highp usampler2D;
+
+            uniform vec2  uResolution;
+            uniform vec2  uOffset;
+            uniform float uScale;
+            uniform float uBaseCellSize;
+
+            uniform usampler2D uGridTexture;
+            uniform vec4 uCanvasColor;
+            uniform vec4 uPalette[256];
+
+            in vec2 vTexCoord;
+            out vec4 outColor;`;
+    }
+
+    glsl_webgl1_header() {
+        return `precision mediump float;
+
+            uniform vec2  uResolution;
+            uniform vec2  uOffset;
+            uniform float uScale;
+            uniform float uBaseCellSize;
+
+            uniform sampler2D uGridTexture;
+            uniform vec4 uCanvasColor;
+            uniform vec4 uGridColor;
+
+            varying vec2 vTexCoord;`;
+    }
+
+    glsl_colorFromState() {
+        return `
+            vec4 colorFromState(uint state) {
+                return (state < 256u) ? uPalette[state] : uPalette[0];
+            }`;
+    }
+
+    glsl_screenToWorld() {
+        return `
+            vec2 screenToWorld(vec2 texCoord) {
+                return (texCoord * uResolution
+                        - uResolution * 0.5
+                        - uOffset) / uScale;
+            }`;
+    }
+
+    glsl_gridbounds_webgl2() {
+        return `int minQ = -int(floor(uGridCols * 0.5));
+            int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
+            int minR = -int(floor(uGridRows * 0.5));
+            int maxR =  int(ceil (uGridRows * 0.5)) - 1;`;
+    }
+
+    glsl_gridbounds_webgl() {
+        return `float minQ = -floor(uGridCols * 0.5);
+            float maxQ =  ceil(uGridCols * 0.5) - 1.0;
+
+            float minR = -floor(uGridRows * 0.5);
+            float maxR =  ceil(uGridRows * 0.5) - 1.0;`;
+    }
+
     // Abstract Shape specific methods
     worldToCell(world) {
         throw new Error("Method 'worldToCell(world)' must be implemented.");
@@ -310,7 +376,10 @@ class BaseGrid {
         throw new Error("Chunked WebGL2 Fragment shaders must be implemented");
         return ``
     }
-
+    chunked_WebGL1 () {
+        throw new Error("Chunked WebGL1 Fragment shaders must be implemented");
+        return ``
+    }
     direct_WebGL2 () {
         throw new Error("Direct WebGL2 Fragment shaders must be implemented");
         return ``

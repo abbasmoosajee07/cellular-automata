@@ -62,39 +62,19 @@ class TriangleGrid extends BaseGrid {
     }
 
     chunked_WebGL2 () {
-        return `#version 300 es
-            precision highp float;
-            precision highp usampler2D;
+        return `${this.glsl_webgl2_header()}
 
-            uniform vec2  uResolution;
-            uniform vec2  uOffset;
-            uniform float uScale;
-            uniform float uBaseCellSize;
+            // Chunk-specific uniforms
+            uniform ivec2 uChunkOrigin; // chunk origin in cell space
+            uniform int   uChunkSize;   // chunk width/height
 
-            // Chunk parameters (CELL SPACE)
-            uniform ivec2 uChunkOrigin; // (q, r)
-            uniform int   uChunkSize;   // width/height in square cells
-
-            // INTEGER state texture (R8UI)
-            uniform usampler2D uGridTexture;
-
-            uniform vec4 uCanvasColor;
-            uniform vec4 uGridColor;
-            uniform vec4 uPalette[256];
-
-            in vec2 vTexCoord;
-            out vec4 outColor;
-
-            vec4 colorFromState(uint state) {
-                return (state < 256u) ? uPalette[int(state)] : uPalette[0];
-            }
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_colorFromState()}
 
             void main() {
 
                 // Screen → World
-                vec2 worldPos =
-                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-
+                vec2  worldPos = screenToWorld(vTexCoord);
                 float size = uBaseCellSize;
 
                 // World → square cell
@@ -131,46 +111,24 @@ class TriangleGrid extends BaseGrid {
                 uint state = texelFetch(uGridTexture, texel, 0).r;
 
                 // Output color
-                outColor = (state == 0u)
-                    ? uGridColor
-                    : colorFromState(state);
+                outColor = colorFromState(state);
             }`;
     }
 
     direct_WebGL2 () {
-        return `#version 300 es
-            precision highp float;
-            precision highp usampler2D;
+        return `${this.glsl_webgl2_header()}
 
-            uniform vec2  uResolution;
-            uniform vec2  uOffset;
-            uniform float uScale;
+            // Grid-dimension uniforms
             uniform float uGridCols;
             uniform float uGridRows;
-            uniform float uBaseCellSize;
 
-            // INTEGER state texture (R8UI)
-            uniform usampler2D uGridTexture;
-
-            uniform vec4 uCanvasColor;
-            uniform vec4 uGridColor;
-
-            // Optional palette (recommended)
-            uniform vec4 uPalette[256];
-
-            in vec2 vTexCoord;
-            out vec4 outColor;
-
-            vec4 colorFromState(uint state) {
-                return uPalette[int(state)];
-            }
+            ${this.glsl_screenToWorld()}
+            ${this.glsl_colorFromState()}
 
             void main() {
 
                 // Screen → World
-                vec2 worldPos =
-                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-
+                vec2  worldPos = screenToWorld(vTexCoord);
                 float size = uBaseCellSize;
 
                 // World → triangle cell
@@ -183,11 +141,7 @@ class TriangleGrid extends BaseGrid {
                 int s = (localY < localX) ? 1 : 0;
 
                 // Grid bounds
-                int minQ = -int(floor(uGridCols * 0.5));
-                int maxQ =  int(ceil (uGridCols * 0.5)) - 1;
-
-                int minR = -int(floor(uGridRows * 0.5));
-                int maxR =  int(ceil (uGridRows * 0.5)) - 1;
+                ${this.glsl_gridbounds_webgl2()};
 
                 if (int(q) < minQ || int(q) > maxQ ||
                     int(r) < minR || int(r) > maxR) {
@@ -200,38 +154,70 @@ class TriangleGrid extends BaseGrid {
                 int texY = (int(uGridRows) - 1 - (int(r) - minR))
                         + s * int(uGridRows);
 
-                // Fetch integer state (NO FILTERING)
-                uint state = texelFetch(
-                    uGridTexture,
-                    ivec2(texX, texY),
-                    0
-                ).r;
+                // Fetch integer state
+                uint state = texelFetch(uGridTexture, ivec2(texX, texY), 0).r;
 
                 // State → Color
-                outColor = (state == 0u) ? uGridColor : colorFromState(state);
+                outColor = colorFromState(state);
+        }`;
+    }
+
+    chunked_WebGL1() {
+        return `${this.glsl_webgl1_header()}
+
+            uniform vec2  uChunkOrigin;
+            uniform float uChunkSize;
+
+            ${this.glsl_screenToWorld()}
+
+            void main() {
+                vec2 worldPos = screenToWorld(vTexCoord);
+                float size = uBaseCellSize;
+
+                // World → square cell (mirrors WebGL2: floor, not round)
+                float fq = floor( worldPos.x / size);
+                float fr = floor(-worldPos.y / size);
+
+                // Chunk-local cell coords
+                float localQ = fq - uChunkOrigin.x;
+                float localR = fr - uChunkOrigin.y;
+
+                // Outside this chunk → transparent
+                if (localQ < 0.0 || localQ >= uChunkSize ||
+                    localR < 0.0 || localR >= uChunkSize) {
+                    discard;
+                }
+
+                // Sub-cell position → triangle selector
+                float localX = ( worldPos.x / size) - fq;
+                float localY = (-worldPos.y / size) - fr;
+                float s = (localY < localX) ? 1.0 : 0.0;
+
+                // Chunk texture UV — matches WebGL2: texel.y = local.y + s * chunkSize
+                float texX = localQ;
+                float texY = localR + s * uChunkSize;
+
+                vec2 uv = vec2(
+                    (texX + 0.5) / uChunkSize,
+                    (texY + 0.5) / (uChunkSize * 2.0)
+                );
+
+                vec4 cellColor = texture2D(uGridTexture, uv);
+                gl_FragColor = (cellColor.a <= 0.0) ? uCanvasColor : cellColor;
             }`;
     }
 
     direct_WebGL1 () {
-        return `precision mediump float;
-            uniform vec2 uResolution;
-            uniform vec2 uOffset;
-            uniform float uScale;
+        return `${this.glsl_webgl1_header()}
+
             uniform float uGridCols;
             uniform float uGridRows;
-            uniform float uBaseCellSize;
 
-            uniform sampler2D uGridTexture;
-            uniform vec4 uCanvasColor;
-            uniform vec4 uGridColor;
-
-            varying vec2 vTexCoord;
+            ${this.glsl_screenToWorld()}
 
             void main() {
 
-                vec2 worldPos =
-                    (vTexCoord * uResolution - uResolution * 0.5 - uOffset) / uScale;
-
+                vec2 worldPos = screenToWorld(vTexCoord);
                 float size = uBaseCellSize;
 
                 float q = floor(worldPos.x / size);
@@ -239,14 +225,9 @@ class TriangleGrid extends BaseGrid {
 
                 float localX = (worldPos.x / size) - q;
                 float localY = (-worldPos.y / size) - r;
-
                 float s = (localY < localX) ? 1.0 : 0.0;
 
-                float minQ = -floor(uGridCols * 0.5);
-                float maxQ =  ceil(uGridCols * 0.5) - 1.0;
-
-                float minR = -floor(uGridRows * 0.5);
-                float maxR =  ceil(uGridRows * 0.5) - 1.0;
+                ${this.glsl_gridbounds_webgl()}
 
                 if (q < minQ || q > maxQ || r < minR || r > maxR) {
                     gl_FragColor = uCanvasColor;
@@ -256,13 +237,12 @@ class TriangleGrid extends BaseGrid {
                 float texX = q - minQ;
                 float texY = (uGridRows - 1.0 - (r - minR)) + s * uGridRows;
 
-                vec2 uv = vec2(
+                vec2 texCoord = vec2(
                     (texX + 0.5) / uGridCols,
                     (texY + 0.5) / (uGridRows * 2.0)
                 );
 
-                vec4 cellColor = texture2D(uGridTexture, uv);
-
+                vec4 cellColor = texture2D(uGridTexture, texCoord);
                 gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
             }`
     }
