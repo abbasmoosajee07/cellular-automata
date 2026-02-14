@@ -6,11 +6,12 @@ class ChunkedRender {
 
         this.chunkSize = chunkSize;
         this.cache = new Map(); // "cx,cy,cz" → WebGLTexture
-        console.log("Rendering Strategy: Chunked")
-        this.isWebGL2 = this.renderer.isWebGL2;
+
         this.rowMult = gridManager.shapeGrid.rowMult;
         this.colMult = gridManager.shapeGrid.colMult;
-        this.useWebgl = this.renderer.setupChunkedRender();
+        this.rendererUsed = gridManager.shapeGrid.rendererUsed;
+        this.renderer.setupRenderStrategy("chunked");
+        console.log("Rendering Strategy: Chunked")
     }
 
     key(cx, cy, cz) {
@@ -23,6 +24,7 @@ class ChunkedRender {
 
         const gl = this.renderer.gl;
         const tex = gl.createTexture();
+        const isWebGL2 = (this.rendererUsed === "webgl2");
 
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
@@ -35,19 +37,17 @@ class ChunkedRender {
         const w = this.chunkSize * this.colMult;
         const h = this.chunkSize * this.rowMult;
 
-        // Passing null for initial data is unreliable in some WebGL1 drivers.
-        // Always supply a correctly-sized zeroed buffer instead.
-        const bytesPerPixel = this.isWebGL2 ? 1 : 4;
+        // Passing null for initial data
+        const bytesPerPixel = isWebGL2 ? 1 : 4;
         const emptyData = new Uint8Array(w * h * bytesPerPixel);
 
         gl.texImage2D(
             gl.TEXTURE_2D,
             0,
-            this.isWebGL2 ? gl.R8UI : gl.RGBA,
-            w,
-            h,
+            isWebGL2 ? gl.R8UI : gl.RGBA,
+            w, h,
             0,
-            this.isWebGL2 ? gl.RED_INTEGER : gl.RGBA,
+            isWebGL2 ? gl.RED_INTEGER : gl.RGBA,
             gl.UNSIGNED_BYTE,
             emptyData
         );
@@ -62,16 +62,14 @@ class ChunkedRender {
         const cs = this.chunkSize;
         const w  = cs * this.colMult;
         const h  = cs * this.rowMult;
+        const isWebGL2 = ((this.rendererUsed === "webgl2"));
 
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
         let uploadData = this.renderer.shapeGrid.transformChunkData(data, cs);
 
-        if (!this.isWebGL2) {
-            // WebGL1 texture is RGBA (4 bytes/pixel). transformChunkData returns
-            // 1 byte/cell (state index). Expand each state to its RGBA color so
-            // the shader can sample the color directly via texture2D.
+        if (!isWebGL2) {
             const colorSchema = this.renderer.shapeGrid.colorSchema;
             const rgba = new Uint8Array(w * h * 4);
             for (let i = 0; i < uploadData.length; i++) {
@@ -89,15 +87,15 @@ class ChunkedRender {
             gl.TEXTURE_2D,
             0,
             0, 0,
-            w,
-            h,
-            this.isWebGL2 ? gl.RED_INTEGER : gl.RGBA,
+            w, h,
+            isWebGL2 ? gl.RED_INTEGER : gl.RGBA,
             gl.UNSIGNED_BYTE,
             uploadData
         );
     }
+
     renderGrid(tl, br, updateCells) {
-        if (!this.useWebgl) {
+        if (this.rendererUsed === "canvas2d") {
             this.renderer.renderGrid(this.gridManager.cameraView, this.gridMesh, updateCells)
             return
         }
@@ -140,7 +138,7 @@ class ChunkedRender {
         const cy = Math.floor(r / cs);
 
         const data = this.gridMesh.get_chunk_cells(cx, cy, 0);
-        if (this.useWebgl) {
+        if (this.rendererUsed !== "canvas2d") {
             this.upload(cx, cy, 0, data);
         }
     }

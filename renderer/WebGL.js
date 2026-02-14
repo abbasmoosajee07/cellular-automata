@@ -16,21 +16,14 @@ class WebGLRenderer {
         this.shapeGrid.addRenderer(rendererUsed);
     }
 
-    setupBackend() {
+    setupRenderStrategy(strategy) {
+        this.chunked = (strategy === "chunked");
         this.initShaders();
         this.initBuffers();
         this.updateCanvasSize();
-    }
-
-    setupDirectRender() {
-        this.setupBackend()
-        this.shapeGrid.initGridTexture(this.gl);
-    }
-
-    setupChunkedRender() {
-        this.chunked = true;
-        this.setupBackend()
-        return true;
+        if (!this.chunked) {
+            this.shapeGrid.initGridTexture(this.gl);
+        }
     }
 
     initWebGL(forceWebGL1) {

@@ -7,18 +7,12 @@ class Canvas2DRenderer {
         const rendererUsed = "canvas2d";
         this.ctx = canvas.getContext('2d');
         this.shapeGrid.addRenderer(rendererUsed);
-        console.log("Renderer Used:", rendererUsed)
-
         this.updateCanvasSize();
+        console.log("Renderer Used:", rendererUsed)
     }
 
-    setupDirectRender() {
-        this.chunked = false;
-    }
-
-    setupChunkedRender() {
-        this.chunked = true;
-        return false;
+    setupRenderStrategy(strategy) {
+        this.chunked = (strategy === "chunked");
     }
 
     updateCanvasSize() {
@@ -70,7 +64,7 @@ class Canvas2DRenderer {
 
     renderGrid(cameraView, cells, updateCells) {
         const ctx = this.ctx;
-        const { canvas: canvasColor, grid: gridColor } = this.colorSchema;
+        const { canvas: canvasColor, 0: gridColor } = this.colorSchema;
 
         // Reset + clear
         ctx.setTransform(1, 0, 0, 1, 0, 0);

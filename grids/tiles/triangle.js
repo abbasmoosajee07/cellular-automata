@@ -105,8 +105,8 @@ class TriangleGrid extends BaseGrid {
                     local.y + s * uChunkSize
                 );
 
-                // Fetch integer state to get Color
-                uint state = texelFetch(uGridTexture, ivec2(texX, texY), 0).r;
+                // Fetch integer state
+                uint state = texelFetch(uGridTexture, texel, 0).r;
                 outColor = colorFromState(state);
             }`;
     }
@@ -135,7 +135,7 @@ class TriangleGrid extends BaseGrid {
                 int s = (localY < localX) ? 1 : 0;
 
                 // Grid bounds
-                ${this.glsl_gridbounds_WebGL2()};
+                ${this.glsl_gridbounds_webgl2()};
 
                 if (int(q) < minQ || int(q) > maxQ ||
                     int(r) < minR || int(r) > maxR) {
