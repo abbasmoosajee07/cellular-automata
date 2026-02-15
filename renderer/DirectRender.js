@@ -12,10 +12,14 @@ class DirectRender {
         this.renderer.renderCell(this.gridManager.cameraView, q, r, s, state);
     }
 
-    renderGrid(tl, br, updateCells = false) {
+    renderGrid(tl, br, cameraView, updateCells = false) {
         const geometry = this.shapeGrid.getGridGeometry(this.gridManager.gridSize);
         this.renderer.uploadGeometry(geometry);
-        this.renderer.renderGrid(this.gridManager.cameraView, this.grid_mesh, updateCells);
+        this.renderer.directGridRender(cameraView, this.grid_mesh, updateCells);
+    }
+
+    clearCache() {
+        this.renderer.clearAll();
     }
 }
 

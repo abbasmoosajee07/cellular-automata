@@ -208,7 +208,14 @@ class WebGLRenderer {
         this.uploadTexture();
     }
 
-    renderGrid(cameraView, cells, updateCells) {
+    directGridRender(cameraView, cells, updateCells) {
+        if (updateCells) {
+            this.syncCellsToTexture(cells);
+        }
+        this.updateView(cameraView);
+    }
+
+    chunkedGridRender(cameraView, cells, updateCells) {
         if (updateCells) {
             this.syncCellsToTexture(cells);
         }

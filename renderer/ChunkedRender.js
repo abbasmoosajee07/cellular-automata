@@ -56,7 +56,7 @@ class ChunkedRender {
         return tex;
     }
 
-    upload(cx, cy, cz, data) {
+    uploadChunk(cx, cy, cz) {
         const gl = this.renderer.gl;
         const tex = this.getOrCreate(cx, cy, cz);
         const cs = this.chunkSize;
@@ -67,10 +67,12 @@ class ChunkedRender {
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
-        let uploadData = this.renderer.shapeGrid.transformChunkData(data, cs);
+        const data = this.gridMesh.get_chunk_cells(cx, cy, cz);
+        if (!data || data.length === 0) return;
+        let uploadData = this.gridManager.shapeGrid.transformChunkData(data, cs);
 
         if (!isWebGL2) {
-            const colorSchema = this.renderer.shapeGrid.colorSchema;
+            const colorSchema = this.gridManager.colorSchema;
             const rgba = new Uint8Array(w * h * 4);
             for (let i = 0; i < uploadData.length; i++) {
                 const state = uploadData[i];
@@ -94,15 +96,15 @@ class ChunkedRender {
         );
     }
 
-    renderGrid(tl, br, updateCells) {
+    renderGrid(tl, br, cameraView, updateCells) {
+        // tl = topleft, br = bottomright
         if (this.rendererUsed === "canvas2d") {
-            this.renderer.renderGrid(this.gridManager.cameraView, this.gridMesh, updateCells)
-            return
+            this.renderer.chunkedGridRender(cameraView, this.gridMesh, updateCells)
+            return;
         }
+        const cs = this.chunkSize;
         const gl = this.renderer.gl;
         gl.clear(gl.COLOR_BUFFER_BIT);
-
-        const cs = this.chunkSize;
 
         const minCX = Math.floor(Math.min(tl[0], br[0]) / cs);
         const maxCX = Math.floor(Math.max(tl[0], br[0]) / cs);
@@ -116,9 +118,7 @@ class ChunkedRender {
 
                 // Only upload if chunk is dirty or doesn't exist
                 if (updateCells || !this.cache.has(key)) {
-                    const data = this.gridMesh.get_chunk_cells(cx, cy, cz);
-                    if (!data || data.length === 0) continue;
-                    this.upload(cx, cy, cz, data);
+                    this.uploadChunk(cx, cy, cz);
                 }
 
                 const texture = this.cache.get(key);
@@ -133,14 +133,19 @@ class ChunkedRender {
     }
 
     changeCell(q, r, s, state) {
+        if (this.rendererUsed === "canvas2d") {
+            return;
+        }
         const cs = this.chunkSize;
         const cx = Math.floor(q / cs);
         const cy = Math.floor(r / cs);
+        this.uploadChunk(cx, cy, 0);
+    }
 
-        const data = this.gridMesh.get_chunk_cells(cx, cy, 0);
-        if (this.rendererUsed !== "canvas2d") {
-            this.upload(cx, cy, 0, data);
-        }
+    clearCache() {
+        this.cache = new Map();
+        this.renderer.clearAll();
+        this.gridManager.renderGrid();
     }
 
 }

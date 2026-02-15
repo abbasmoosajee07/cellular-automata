@@ -130,7 +130,7 @@ class GridManager {
 
     clearAll() {
         this.grid_mesh.clear();
-        this.renderer.clearAll();
+        this.renderCache.clearCache();
     }
 
     drawLineBetweenPoints(startWorld, endWorld, mode) {
@@ -198,8 +198,8 @@ class GridManager {
 
     createDefaultColorSchema() {
         const schema  = {
-            canvas: [0.0, 0.0, 0.0, 1.0],
-            0: [0.1, 0.1, 1.1, 0.75],
+            canvas: [3.0, 0.0, 0.0, 1.0],
+            0: [0.0, 0.0, 1.0, 0.5],
             1: this.hexToRgb("#32cd32"),
             11: this.hexToRgb("#ff3700"),
         };
@@ -261,7 +261,8 @@ class GridManager {
         // Screen → world → cell bounds
         const tl = this.screenToCell(0, 0);
         const br = this.screenToCell(this.width, this.height);
-        this.renderCache.renderGrid(tl, br, updateCells);
+        const cameraView = this.cameraView;
+        this.renderCache.renderGrid(tl, br, cameraView, updateCells);
     }
 
 }

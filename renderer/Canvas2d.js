@@ -62,7 +62,7 @@ class Canvas2DRenderer {
         return `rgba(${(r * 255) | 0}, ${(g * 255) | 0}, ${(b * 255) | 0}, ${a})`;
     }
 
-    renderGrid(cameraView, cells, updateCells) {
+    directGridRender(cameraView, cells, updateCells) {
         const ctx = this.ctx;
         const { canvas: canvasColor, 0: gridColor } = this.colorSchema;
 
@@ -74,11 +74,6 @@ class Canvas2DRenderer {
         ctx.fillStyle = this.rgba(canvasColor);
         ctx.fillRect(0, 0, this.width, this.height);
 
-        if (this.chunked) {
-            ctx.fillStyle = this.rgba(gridColor);
-            ctx.fillRect(0, 0, this.width, this.height);
-        }
-
         // ----- Camera Transform -----
         ctx.save();
         ctx.translate(this.width / 2, this.height / 2);
@@ -86,10 +81,35 @@ class Canvas2DRenderer {
         ctx.translate(cameraView.camX, -cameraView.camY);
 
         // ----- Grid Background (non-chunked only) -----
-        if (!this.chunked) {
-            ctx.fillStyle = this.rgba(gridColor);
-            this.shapeGrid.drawGridShape(ctx);
-        }
+        ctx.fillStyle = this.rgba(gridColor);
+        this.shapeGrid.drawGridShape(ctx);
+
+        // ----- Cells -----
+        this.syncCellsToCanvas(ctx, cells);
+
+        ctx.restore();
+    }
+
+    chunkedGridRender(cameraView, cells, updateCells) {
+        const ctx = this.ctx;
+        const { canvas: canvasColor, 0: gridColor } = this.colorSchema;
+
+        // Reset + clear
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        // ----- Background -----
+        ctx.fillStyle = this.rgba(canvasColor);
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.fillStyle = this.rgba(gridColor);
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // ----- Camera Transform -----
+        ctx.save();
+        ctx.translate(this.width / 2, this.height / 2);
+        ctx.scale(cameraView.zoom, cameraView.zoom);
+        ctx.translate(cameraView.camX, -cameraView.camY);
 
         // ----- Cells -----
         this.syncCellsToCanvas(ctx, cells);
