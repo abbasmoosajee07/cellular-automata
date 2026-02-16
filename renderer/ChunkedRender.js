@@ -99,7 +99,7 @@ class ChunkedRender {
     renderGrid(tl, br, cameraView, updateCells) {
         // tl = topleft, br = bottomright
         if (this.rendererUsed === "canvas2d") {
-            this.renderer.chunkedGridRender(cameraView, this.gridMesh, updateCells)
+            this.renderer.renderGrid(cameraView, this.gridMesh, updateCells)
             return;
         }
         const cs = this.chunkSize;

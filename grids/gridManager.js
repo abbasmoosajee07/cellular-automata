@@ -198,7 +198,7 @@ class GridManager {
 
     createDefaultColorSchema() {
         const schema  = {
-            canvas: [3.0, 0.0, 0.0, 1.0],
+            canvas: [3.0, 0.0, 0.0, 0.0],
             0: [0.0, 0.0, 1.0, 0.5],
             1: this.hexToRgb("#32cd32"),
             11: this.hexToRgb("#ff3700"),

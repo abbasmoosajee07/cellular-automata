@@ -8,7 +8,7 @@ class Canvas2DRenderer {
         this.ctx = canvas.getContext('2d');
         this.shapeGrid.addRenderer(rendererUsed);
         this.updateCanvasSize();
-        console.log("Renderer Used:", rendererUsed)
+        console.log("Renderer Used:", rendererUsed);
     }
 
     setupRenderStrategy(strategy) {
@@ -16,111 +16,81 @@ class Canvas2DRenderer {
     }
 
     updateCanvasSize() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        this.canvas.width = width;
-        this.canvas.height = height;
-        this.width = width;
-        this.height = height;
+        this.width  = window.innerWidth;
+        this.height = window.innerHeight;
+        this.canvas.width  = this.width;
+        this.canvas.height = this.height;
     }
 
-    uploadGeometry(geometry) {
-        this.cachedGeometry = geometry;
-    }
-
-    clearAll() {
-        return;
-    }
-
-    syncCellsToCanvas(ctx, cells) {
-        const arr = cells.each_live_cell();
-        for (let i = 0; i < arr.length; i += 4) {
-            const q = arr[i];
-            const r = arr[i + 1];
-            const s = arr[i + 2];
-            const state = arr[i + 3];
-
-            this.shapeGrid.drawShapeCell(ctx, q, r, s, state);
-        }
-    }
-
-    renderCell(cameraView, q, r, s, state) {
-        const ctx = this.ctx;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // --- Camera transform ---
-        ctx.save();
-        ctx.translate(this.width / 2, this.height / 2);
-        ctx.scale(cameraView.zoom, cameraView.zoom);
-        ctx.translate(cameraView.camX, -cameraView.camY);
-        this.shapeGrid.drawShapeCell(ctx, q, r, s, state)
-    }
-
-    rgba(color) {
-        const [r, g, b, a] = color;
+    rgba([r, g, b, a]) {
         return `rgba(${(r * 255) | 0}, ${(g * 255) | 0}, ${(b * 255) | 0}, ${a})`;
     }
 
-    directGridRender(cameraView, cells, updateCells) {
-        const ctx = this.ctx;
-        const { canvas: canvasColor, 0: gridColor } = this.colorSchema;
-
-        // Reset + clear
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, this.width, this.height);
-
-        // ----- Background -----
-        ctx.fillStyle = this.rgba(canvasColor);
-        ctx.fillRect(0, 0, this.width, this.height);
-
-        // ----- Camera Transform -----
-        ctx.save();
+    // Shared camera setup — call once at the start of each full render.
+    _applyCameraTransform(ctx, cameraView) {
         ctx.translate(this.width / 2, this.height / 2);
         ctx.scale(cameraView.zoom, cameraView.zoom);
         ctx.translate(cameraView.camX, -cameraView.camY);
-
-        // ----- Grid Background (non-chunked only) -----
-        ctx.fillStyle = this.rgba(gridColor);
-        this.shapeGrid.drawGridShape(ctx);
-
-        // ----- Cells -----
-        this.syncCellsToCanvas(ctx, cells);
-
-        ctx.restore();
     }
 
-    chunkedGridRender(cameraView, cells, updateCells) {
-        const ctx = this.ctx;
-        const { canvas: canvasColor, 0: gridColor } = this.colorSchema;
-
-        // Reset + clear
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, this.width, this.height);
-
-        // ----- Background -----
-        ctx.fillStyle = this.rgba(canvasColor);
-        ctx.fillRect(0, 0, this.width, this.height);
-
-        ctx.fillStyle = this.rgba(gridColor);
-        ctx.fillRect(0, 0, this.width, this.height);
-
-        // ----- Camera Transform -----
-        ctx.save();
-        ctx.translate(this.width / 2, this.height / 2);
-        ctx.scale(cameraView.zoom, cameraView.zoom);
-        ctx.translate(cameraView.camX, -cameraView.camY);
-
-        // ----- Cells -----
-        this.syncCellsToCanvas(ctx, cells);
-
-        ctx.restore();
+    // Sync every live cell from the grid mesh to the canvas.
+    _syncCells(ctx, cells) {
+        const arr = cells.each_live_cell();
+        for (let i = 0; i < arr.length; i += 4) {
+            this.shapeGrid.drawShapeCell(ctx, arr[i], arr[i + 1], arr[i + 2], arr[i + 3]);
+        }
     }
 
-    updateView(cameraView) {
+    uploadGeometry(geometry) {
         return;
     }
 
+    // Draw a single cell on top of the current frame (used by DirectRender.changeCell).
+    renderCell(cameraView, q, r, s, state) {
+        const ctx = this.ctx;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.save();
+        this._applyCameraTransform(ctx, cameraView);
+        this.shapeGrid.drawShapeCell(ctx, q, r, s, state);
+        ctx.restore();
+    }
+
+    // Full redraw — used by both DirectRender and ChunkedRender for Canvas2D.
+    renderGrid(cameraView, cells, updateCells) {
+        const ctx = this.ctx;
+        const { canvas: canvasColor, 0: gridColor } = this.colorSchema;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        // Background
+        if (this.chunked) {
+            ctx.fillStyle = this.rgba(gridColor);
+            ctx.fillRect(0, 0, this.width, this.height);
+        } else {
+            ctx.fillStyle = this.rgba(canvasColor);
+            ctx.fillRect(0, 0, this.width, this.height);
+        }
+
+        ctx.save();
+        this._applyCameraTransform(ctx, cameraView);
+
+        if (!this.chunked) {
+            // In direct mode, draw the grid background shape behind the cells.
+            ctx.fillStyle = this.rgba(gridColor);
+            this.shapeGrid.drawGridShape(ctx);
+        }
+
+        this._syncCells(ctx, cells);
+
+        ctx.restore();
+    }
+
+    clearAll() {
+        const ctx = this.ctx;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.width, this.height);
+    }
 }
 
 export { Canvas2DRenderer };
