@@ -10,6 +10,11 @@ fn local_index(chunk_size: usize, lx: usize, ly: usize, lz: usize) -> usize {
     lx + ly * chunk_size + lz * chunk_size * chunk_size
 }
 
+fn prev_power_of_two(n: usize) -> usize {
+    if n == 0 { return 1; }
+    1 << (usize::BITS - n.leading_zeros() - 1) as usize
+}
+
 impl ChunkedCellManager {
     pub fn new(chunk_size: usize, depth: usize) -> ChunkedCellManager {
         ChunkedCellManager {
@@ -17,6 +22,37 @@ impl ChunkedCellManager {
             depth,
             chunks: HashMap::new(),
         }
+    }
+
+    pub fn optimal_chunk_size(
+        width: usize,
+        height: usize,
+        depth: usize,
+        topology: &str,
+        density_hint: Option<f32>,
+    ) -> usize {
+        // Target: chunk data fits in L2 cache (~256KB)
+        const TARGET_BYTES: usize = 256 * 1024; // 256 KB
+
+        let depth_clamped = depth.max(1);
+        let bytes_per_layer = 4usize; // size_of::<u32>()
+        let max_cells_per_chunk = TARGET_BYTES / (depth_clamped * bytes_per_layer);
+
+        // cs² ≤ max_cells_per_chunk  =>  cs ≤ sqrt(max_cells_per_chunk)
+        let cs_from_cache = (max_cells_per_chunk as f64).sqrt() as usize;
+
+        let density = density_hint.unwrap_or(0.5).clamp(0.0, 1.0);
+
+        let cs = if topology == "infinite" {
+            let sparsity_scale = 1.0 - density * 0.75; // 0.25..1.0
+            ((cs_from_cache as f64) * sparsity_scale as f64) as usize
+        } else {
+            let max_from_grid = (width.min(height) / 2).max(1);
+            cs_from_cache.min(max_from_grid)
+        };
+
+        let cs_clamped = cs.clamp(4, 256);
+        prev_power_of_two(cs_clamped)
     }
 
     /// Convert a world coordinate to (chunk, local) pair — handles negatives safely

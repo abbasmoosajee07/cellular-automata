@@ -9,10 +9,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>,) -> Self {
+    pub fn new(width: usize, height: usize, depth: usize) -> Self {
         Self {
             storage: PatternConfig::default(),
-            mesh: GridMesh::new(width, height, depth, chunk_size),
+            mesh: GridMesh::new(width, height, depth),
         }
     }
 
@@ -34,7 +34,7 @@ impl Engine {
         let [w, h, d] = cfg.grid_size;
         let mut grid = Self {
             storage: cfg.clone(),
-            mesh: GridMesh::new(w as usize, h as usize, d as usize, None),
+            mesh: GridMesh::new(w as usize, h as usize, d as usize),
         };
 
         grid.mesh.change_grid_properties(

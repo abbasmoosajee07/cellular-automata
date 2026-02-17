@@ -10,9 +10,9 @@ pub struct WasmInterface {
 #[wasm_bindgen]
 impl WasmInterface {
     #[wasm_bindgen(constructor)]
-    pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> WasmInterface {
+    pub fn new(width: usize, height: usize, depth: usize) -> WasmInterface {
         WasmInterface {
-            engine: Engine::new(width, height, depth, chunk_size),
+            engine: Engine::new(width, height, depth),
         }
     }
 

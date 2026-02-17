@@ -45,7 +45,6 @@ impl GridMesh {
         height: usize,
         depth: usize,
         topology: String,
-        chunk_size: usize,
         old_cells: Option<Vec<i32>>,
     ) -> CellBackend {
         let threshold = 5000;
@@ -54,6 +53,7 @@ impl GridMesh {
             || height >= threshold;
 
         if use_chunked {
+            let chunk_size = ChunkedCellManager::optimal_chunk_size(width, height, depth, &topology, None);
             let mut cm = ChunkedCellManager::new(chunk_size, depth);
 
             if let Some(cells) = old_cells {
@@ -81,21 +81,19 @@ impl GridMesh {
     }
 
     // CONSTRUCTOR
-    pub fn new(width: usize, height: usize, depth: usize, chunk_size: Option<usize>) -> Self {
+    pub fn new(width: usize, height: usize, depth: usize) -> Self {
         let defaultconfig = PatternConfig::default();
-        let cs = chunk_size.unwrap_or(256);
 
         let mut inner = Self::build_backend(
             width, height, depth,
             defaultconfig.topology_type.clone(),
-            cs,
             None,
         );
 
         let config = GridConfig {
             width, height, depth,
             cell_struct: inner.get_cell_struct(),
-            chunk_size: cs,
+            chunk_size: inner.get_chunk_size(),
 
             shape: defaultconfig.shape,
             neighbor_type: defaultconfig.neighbor_type,
@@ -221,7 +219,6 @@ impl GridMesh {
             new_height,
             new_depth,
             self.config.topology_type.to_string(),
-            self.config.chunk_size,
             Some(old_cells),
         );
 
@@ -337,7 +334,6 @@ impl GridMesh {
             self.config.height,
             self.config.depth,
             topology_type.to_string(),
-            self.config.chunk_size,
             Some(old_cells),
         );
 
