@@ -131,8 +131,6 @@ class WebGLRenderer {
         this.gl.viewport(0, 0, width, height);
     }
 
-    // Store a geometry snapshot so updateView can read the texture reference.
-    // Called once at init and again if grid dimensions ever change.
     uploadGeometry(geometry) {
         this.cachedGeometry = geometry;
     }
@@ -166,7 +164,6 @@ class WebGLRenderer {
     }
 
     // Patch a single cell into the GPU texture and redraw.
-    // Only called by DirectRender in WebGL mode.
     renderCell(cameraView, q, r, s, state) {
         const info = this.shapeGrid.setCellState(q, r, s, state);
         if (this.isWebGL2) {
@@ -186,7 +183,6 @@ class WebGLRenderer {
     }
 
     // Single entry-point for full-grid redraws (direct mode).
-    // Chunked mode bypasses this entirely — ChunkedRender calls drawChunk directly.
     renderGrid(cameraView, cells, updateCells) {
         if (updateCells) {
             this.syncCellsToTexture(cells);

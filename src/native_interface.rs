@@ -15,7 +15,7 @@ pub fn run_native_tests() {
         println!("Just Uploaded: {}\n", print_cfg);
         cm
     } else {
-        let mut cm = Engine::new(250, 250, 1, None);
+        let mut cm = Engine::new(250, 250, 1);
         // Randomize cells (TIMED)
         let start_rand = Instant::now();
         cm.mesh.random_cells();

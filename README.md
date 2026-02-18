@@ -9,6 +9,7 @@ A web-based simulation of different variations of Cellular Automata
 - Step backward / undo (navigate history easily).
 - ~~Variable neighborhood sizes (Moore, Von Neumann, Hex grids)~~.
 - ~~Toroidal / bounded edges (wrap-around vs finite world)~~.
+- ~~Add infinite grid using chunked rendering.(i32 limits:(-2147483648, 2147483647))~~
 - Adjustable simulation speed (slow-motion vs. fast-forward).
 - Multi-layered grids (stacked CA worlds that interact).
 
