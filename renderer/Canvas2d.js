@@ -55,7 +55,6 @@ class Canvas2DRenderer {
         ctx.restore();
     }
 
-    // Full redraw — used by both DirectRender and ChunkedRender for Canvas2D.
     renderGrid(cameraView, cells, updateCells) {
         const ctx = this.ctx;
         const { canvas: canvasColor, 0: gridColor } = this.colorSchema;
@@ -82,6 +81,34 @@ class Canvas2DRenderer {
         }
 
         this._syncCells(ctx, cells);
+
+        ctx.restore();
+    }
+
+    drawChunk(cameraView, cx, cy, chunkSize, data) {
+        if (!data || data.length === 0) return;
+
+        const ctx = this.ctx;
+        const cellSize = this.shapeGrid.cellSize;
+
+        ctx.save();
+        this._applyCameraTransform(ctx, cameraView);
+
+        const originQ = cx * chunkSize;
+        const originR = cy * chunkSize;
+
+        for (let ly = 0; ly < chunkSize; ly++) {
+            for (let lx = 0; lx < chunkSize; lx++) {
+                // chunk data is flat: index = lx + ly * chunkSize (depth=1, lz=0)
+                const idx = lx + ly * chunkSize;
+                const state = data[idx];
+                if (state === 0) continue;
+
+                const q = originQ + lx;
+                const r = originR + ly;
+                this.shapeGrid.drawShapeCell(ctx, q, r, 0, state);
+            }
+        }
 
         ctx.restore();
     }

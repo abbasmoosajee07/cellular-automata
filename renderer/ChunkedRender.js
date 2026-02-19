@@ -11,7 +11,7 @@ class ChunkedRender {
         this.colMult = gridManager.shapeGrid.colMult;
         this.rendererUsed = gridManager.shapeGrid.rendererUsed;
         this.renderer.setupRenderStrategy("chunked");
-        console.log("Rendering Strategy: Chunked")
+        console.log(`Rendering Strategy: ${chunkSize} sized square chunks`)
     }
 
     key(cx, cy, cz) {
@@ -97,37 +97,36 @@ class ChunkedRender {
     }
 
     renderGrid(tl, br, cameraView, updateCells) {
-        // tl = topleft, br = bottomright
-        if (this.rendererUsed === "canvas2d") {
-            this.renderer.renderGrid(cameraView, this.gridMesh, updateCells)
-            return;
-        }
         const cs = this.chunkSize;
-        const gl = this.renderer.gl;
-        gl.clear(gl.COLOR_BUFFER_BIT);
 
         const minCX = Math.floor(Math.min(tl[0], br[0]) / cs);
         const maxCX = Math.floor(Math.max(tl[0], br[0]) / cs);
         const minCY = Math.floor(Math.min(tl[1], br[1]) / cs);
         const maxCY = Math.floor(Math.max(tl[1], br[1]) / cs);
 
+        const isCanvas = this.rendererUsed === "canvas2d";
+
+        if (isCanvas) {
+            const ctx = this.renderer.ctx;
+            const { 0: gridColor } = this.renderer.colorSchema;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, this.renderer.width, this.renderer.height);
+            ctx.fillStyle = this.renderer.rgba(gridColor);
+            ctx.fillRect(0, 0, this.renderer.width, this.renderer.height);
+        } else {
+            this.renderer.gl.clear(this.renderer.gl.COLOR_BUFFER_BIT);
+        }
+
         for (let cx = minCX; cx <= maxCX; cx++) {
             for (let cy = minCY; cy <= maxCY; cy++) {
-                const cz = 0;
-                const key = this.key(cx, cy, cz);
-
-                // Only upload if chunk is dirty or doesn't exist
-                if (updateCells || !this.cache.has(key)) {
-                    this.uploadChunk(cx, cy, cz);
+                if (isCanvas) {
+                    const data = this.gridMesh.get_chunk_cells(cx, cy, 0);
+                    this.renderer.drawChunk(cameraView, cx, cy, cs, data);
+                } else {
+                    const key = this.key(cx, cy, 0);
+                    if (updateCells || !this.cache.has(key)) this.uploadChunk(cx, cy, 0);
+                    this.renderer.drawChunk(cameraView, this.cache.get(key), cx, cy, cs);
                 }
-
-                const texture = this.cache.get(key);
-                this.renderer.drawChunk(
-                    this.gridManager.cameraView,
-                    texture,
-                    cx, cy,
-                    cs
-                );
             }
         }
     }
@@ -143,7 +142,13 @@ class ChunkedRender {
     }
 
     clearCache() {
-        this.cache = new Map();
+        const gl = this.renderer.gl;
+        if (gl) {
+            for (const texture of this.cache.values()) {
+                gl.deleteTexture(texture);
+            }
+        }
+        this.cache.clear();
         this.renderer.clearAll();
         this.gridManager.renderGrid();
     }
