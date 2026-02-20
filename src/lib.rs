@@ -2,6 +2,11 @@
 // =========================
 // Cell System
 // =========================
+pub mod tiles {
+    pub mod tile_manager;
+
+    pub use tile_manager::TileManager;
+}
 pub mod cell_manager {
     pub mod flat_cells;
     pub mod chunk_cells;
