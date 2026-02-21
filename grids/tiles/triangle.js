@@ -135,7 +135,7 @@ class TriangleGrid extends BaseGrid {
                 int s = (localY < localX) ? 1 : 0;
 
                 // Grid bounds
-                ${this.glsl_gridbounds_webgl2()};
+                ${this.glsl_gridbounds_WebGL2()};
 
                 if (int(q) < minQ || int(q) > maxQ ||
                     int(r) < minR || int(r) > maxR) {

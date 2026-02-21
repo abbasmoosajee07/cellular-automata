@@ -5,7 +5,7 @@
 //     triangle: [2, ["vonNeumann", "biohazard", "inner", "vertices", "moore"]],
 // };
 
-fn shape_splits(shape: &str) -> i32 {
+fn shape_splits(shape: &str) -> usize {
     match shape {
         "square" => 1,
         "hexagon" => 1,
@@ -18,14 +18,14 @@ fn shape_splits(shape: &str) -> i32 {
 #[derive(Clone, Debug)]
 pub struct TileManager {
     pub shape: String,
-    pub splits: i32,
+    pub splits: usize,
 }
 
 impl TileManager {
     pub fn new(shape: String) -> Self {
         let splits = shape_splits(&shape);
 
-        Self { shape, splits }
+        Self { shape, splits}
     }
 }
 

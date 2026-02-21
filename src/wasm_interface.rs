@@ -10,9 +10,9 @@ pub struct WasmInterface {
 #[wasm_bindgen]
 impl WasmInterface {
     #[wasm_bindgen(constructor)]
-    pub fn new(width: usize, height: usize, depth: usize) -> WasmInterface {
+    pub fn new(shape: String, width: usize, height: usize) -> WasmInterface {
         WasmInterface {
-            engine: Engine::new(width, height, depth),
+            engine: Engine::new(shape, width, height),
         }
     }
 
@@ -52,8 +52,8 @@ impl WasmInterface {
         self.engine.mesh.random_cells();
     }
 
-    pub fn resize(&mut self, w: usize, h: usize, d: usize) {
-        self.engine.mesh.resize(w, h, d);
+    pub fn resize(&mut self, w: usize, h: usize) {
+        self.engine.mesh.resize(w, h);
     }
 
     #[wasm_bindgen]

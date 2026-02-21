@@ -11,10 +11,10 @@ class SimulatorController{
     ];
 
     shapeProps = {
-        square: [1, ["moore", "vonNeumann", "cross", "checkerboard", "star"]],
-        hexagon: [1, ["hexagonal", "tripod", "asterix"]],
-        rhombus: [3, ["Qbert"]],
-        triangle: [2, ["vonNeumann", "biohazard", "inner", "vertices", "moore"]],
+        square: ["moore", "vonNeumann", "cross", "checkerboard", "star"],
+        hexagon: ["hexagonal", "tripod", "asterix"],
+        rhombus: ["Qbert"],
+        triangle: ["vonNeumann", "biohazard", "inner", "vertices", "moore"],
     };
 
     GRID_LIMITS = [-2147483648, 2147483647];
@@ -82,6 +82,7 @@ class SimulatorController{
         this.wasm_engine = wasm_engine;
         this.grid_config = JSON.parse(wasm_engine.config_string());
         this.storage_pattern = JSON.parse(wasm_engine.storage_string());
+        this.gridSize = [Number(this.grid_config.width), Number(this.grid_config.height), Number(this.grid_config.depth)]
 
         this.gridManager = new GridManager(
             shape, this.gridSize,
@@ -128,7 +129,6 @@ class SimulatorController{
     async setupGrid({ preserveState = false } = {}) {
         const shape = this.selectedShape;
         const oldGrid = this.gridManager || null;
-        const activeSize = this.shapeProps[shape][0] || 1;
         const [cols, rows, _] = this.gridSize;
 
         let wasm_engine, savedView;
@@ -138,7 +138,7 @@ class SimulatorController{
             savedView = oldGrid.cameraView;
 
             this.rangeValue ??= 1;
-            wasm_engine.resize(cols, rows, activeSize);
+            wasm_engine.resize(cols, rows);
             wasm_engine.change_grid_properties(
                 this.selectedShape,
                 this.neighborhoodType,
@@ -146,9 +146,8 @@ class SimulatorController{
                 this.topologyType
             );
         } else {
-            wasm_engine = new WasmInterface(cols, rows, activeSize);
+            wasm_engine = new WasmInterface(shape, cols, rows);
         }
-        this.gridSize = [cols, rows, activeSize];
         this._buildGrid({shape, wasm_engine, savedView});
     }
 
@@ -332,7 +331,7 @@ class SimulatorController{
             }
         };
 
-        const usedNeighborhoods = this.shapeProps[this.selectedShape][1] || [];
+        const usedNeighborhoods = this.shapeProps[this.selectedShape] || [];
         // Filter only relevant types for this shape
         const filteredTypes = Object.fromEntries(
             usedNeighborhoods

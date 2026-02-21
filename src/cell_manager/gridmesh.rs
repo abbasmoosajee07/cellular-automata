@@ -2,10 +2,10 @@
 
 use crate::{
     cell_manager::{
-        CellBackend, FlatCellManager, ChunkedCellManager,
-        Neighborhood, Topology,
+        CellBackend, ChunkedCellManager, FlatCellManager, Neighborhood, Topology
     },
-    formats::{PatternConfig},
+    formats::PatternConfig,
+    tiles:: {TileManager},
 };
 
 use serde::{Serialize, Deserialize};
@@ -36,6 +36,7 @@ pub struct GridMesh {
     pub inner: CellBackend,
     pub neighbor_manager: Neighborhood,
     pub topology_manager: Topology,
+    pub tile_manager: TileManager,
 }
 
 impl GridMesh {
@@ -81,9 +82,10 @@ impl GridMesh {
     }
 
     // CONSTRUCTOR
-    pub fn new(width: usize, height: usize, depth: usize) -> Self {
+    pub fn new(shape: String, width: usize, height: usize) -> Self {
         let defaultconfig = PatternConfig::default();
-
+        let tile_manager = TileManager::new(shape.to_string());
+        let depth = tile_manager.splits;
         let mut inner = Self::build_backend(
             width, height, depth,
             defaultconfig.topology_type.clone(),
@@ -95,7 +97,7 @@ impl GridMesh {
             cell_struct: inner.get_cell_struct(),
             chunk_size: inner.get_chunk_size(),
 
-            shape: defaultconfig.shape,
+            shape: shape.to_string(),
             neighbor_type: defaultconfig.neighbor_type,
             range: defaultconfig.range,
 
@@ -123,6 +125,7 @@ impl GridMesh {
             inner,
             neighbor_manager,
             topology_manager,
+            tile_manager,
         }
     }
 
@@ -211,20 +214,19 @@ impl GridMesh {
     }
 
     // RESIZING
-    pub fn resize(&mut self, new_width: usize, new_height: usize, new_depth: usize) {
+    pub fn resize(&mut self, new_width: usize, new_height: usize) {
         let old_cells = self.inner.each_live_cell();
 
         self.inner = Self::build_backend(
             new_width,
             new_height,
-            new_depth,
+            self.config.depth,
             self.config.topology_type.to_string(),
             Some(old_cells),
         );
 
         self.config.width = new_width;
         self.config.height = new_height;
-        self.config.depth = new_depth;
         self.config.cell_struct = self.inner.get_cell_struct();
 
         let new_bounds = self.get_bounds();
@@ -313,11 +315,13 @@ impl GridMesh {
         range: i32,
         topology_type: String,
     ) {
+        let tile_manager = TileManager::new(shape.to_string());
         // Update config
         self.config.shape = shape.clone();
         self.config.range = range;
         self.config.neighbor_type = neighbor_type.clone();
         self.config.topology_type = topology_type.clone();
+        self.config.depth = tile_manager.splits;
 
         // Update managers
         self.neighbor_manager

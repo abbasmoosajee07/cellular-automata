@@ -15,7 +15,7 @@ pub fn run_native_tests() {
         println!("Just Uploaded: {}\n", print_cfg);
         cm
     } else {
-        let mut cm = Engine::new(250, 250, 1);
+        let mut cm = Engine::new("square".to_string(), 250, 250);
         // Randomize cells (TIMED)
         let start_rand = Instant::now();
         cm.mesh.random_cells();
@@ -23,8 +23,7 @@ pub fn run_native_tests() {
         println!("Random fill time: {:?}", rand_elapsed);
         cm
     };
-    cm.mesh.resize(10, 10, 1);
-
+    cm.mesh.resize(10, 10);
     cm.mesh.change_grid_properties(
         "square".to_string(),
         "moore".to_string(),

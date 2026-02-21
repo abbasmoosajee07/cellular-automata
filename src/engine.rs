@@ -9,10 +9,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn new(width: usize, height: usize, depth: usize) -> Self {
+    pub fn new(shape: String, width: usize, height: usize) -> Self {
         Self {
             storage: PatternConfig::default(),
-            mesh: GridMesh::new(width, height, depth),
+            mesh: GridMesh::new(shape, width, height),
         }
     }
 
@@ -31,10 +31,10 @@ impl Engine {
 
         let cfg = PatternIO::read_pattern(pattern_props, pattern_data);
 
-        let [w, h, d] = cfg.grid_size;
+        let [w, h, _d] = cfg.grid_size;
         let mut grid = Self {
             storage: cfg.clone(),
-            mesh: GridMesh::new(w as usize, h as usize, d as usize),
+            mesh: GridMesh::new(cfg.shape.clone(), w as usize, h as usize),
         };
 
         grid.mesh.change_grid_properties(
