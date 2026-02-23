@@ -11,14 +11,12 @@ pub mod cell_manager {
     pub mod flat_cells;
     pub mod chunk_cells;
     pub mod cell_backend;
-    pub mod neighborhood;
     pub mod topology;
     pub mod gridmesh;
 
     pub use cell_backend::CellBackend;
     pub use chunk_cells::ChunkedCellManager;
     pub use flat_cells::FlatCellManager;
-    pub use neighborhood::Neighborhood;
     pub use topology::Topology;
     pub use gridmesh::GridMesh;
 }

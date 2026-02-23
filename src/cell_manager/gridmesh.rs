@@ -2,10 +2,10 @@
 
 use crate::{
     cell_manager::{
-        CellBackend, ChunkedCellManager, FlatCellManager, Neighborhood, Topology
+        CellBackend, ChunkedCellManager, FlatCellManager, Topology
     },
     formats::PatternConfig,
-    tiles:: {TileManager},
+    tiles::TileManager,
 };
 
 use serde::{Serialize, Deserialize};
@@ -34,7 +34,6 @@ pub struct GridConfig {
 pub struct GridMesh {
     pub config: GridConfig,
     pub inner: CellBackend,
-    pub neighbor_manager: Neighborhood,
     pub topology_manager: Topology,
     pub tile_manager: TileManager,
 }
@@ -84,7 +83,11 @@ impl GridMesh {
     // CONSTRUCTOR
     pub fn new(shape: String, width: usize, height: usize) -> Self {
         let defaultconfig = PatternConfig::default();
-        let tile_manager = TileManager::new(shape.to_string());
+        let tile_manager = TileManager::configure(
+            shape.to_string(),
+            defaultconfig.neighbor_type.clone(),
+            defaultconfig.range,
+        );
         let depth = tile_manager.splits;
         let mut inner = Self::build_backend(
             width, height, depth,
@@ -109,12 +112,6 @@ impl GridMesh {
             ],
         };
 
-        let neighbor_manager = Neighborhood::new(
-            &config.shape,
-            &config.neighbor_type,
-            config.range,
-        );
-
         let topology_manager = Topology::new(
             &config.topology_type,
             config.bounds,
@@ -123,7 +120,6 @@ impl GridMesh {
         Self {
             config,
             inner,
-            neighbor_manager,
             topology_manager,
             tile_manager,
         }
@@ -160,9 +156,8 @@ impl GridMesh {
     // NEIGHBORHOOD
     pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<(i32, i32, i32)> {
         let mut all_neighbors = Vec::new();
-        let use_neighbors = self.neighbor_manager.get_neighbor_offsets(s);
 
-        for &(dq, dr, ds) in use_neighbors {
+        for &(dq, dr, ds) in self.tile_manager.neighbor_offsets(s) {
             if let Some([nq, nr, ns]) =
                 self.topology_manager.check_bounds(q + dq, r + dr, s + ds)
             {
@@ -315,20 +310,21 @@ impl GridMesh {
         range: i32,
         topology_type: String,
     ) {
-        let tile_manager = TileManager::new(shape.to_string());
+        // Rebuild or update tile_manager depending on whether shape changed
+        if self.tile_manager.shape != shape {
+            self.tile_manager = TileManager::configure(shape.clone(), neighbor_type.clone(), range);
+        } else {
+            self.tile_manager.set_neighborhood(&neighbor_type, range);
+        }
+
         // Update config
         self.config.shape = shape.clone();
         self.config.range = range;
         self.config.neighbor_type = neighbor_type.clone();
         self.config.topology_type = topology_type.clone();
-        self.config.depth = tile_manager.splits;
+        self.config.depth = self.tile_manager.splits;
 
-        // Update managers
-        self.neighbor_manager
-            .change_cell_properties(&shape, &neighbor_type, range);
-
-        self.topology_manager
-            .change_topology(&topology_type);
+        self.topology_manager.change_topology(&topology_type);
 
         // Re-evaluate backend (topology may force chunked)
         let old_cells = self.inner.each_live_cell();
