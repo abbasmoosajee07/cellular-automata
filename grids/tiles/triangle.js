@@ -107,7 +107,13 @@ class TriangleGrid extends BaseGrid {
 
                 // Fetch integer state
                 uint state = texelFetch(uGridTexture, texel, 0).r;
-                outColor = colorFromState(state);
+                vec4 baseColor = colorFromState(state);
+                if (state == 0u) {
+                    outColor = baseColor;
+                } else {
+                    float shade = (s == 0) ? 1.0 : 0.75;
+                    outColor = vec4(baseColor.rgb * shade, baseColor.a);
+                }
             }`;
     }
 
@@ -150,7 +156,13 @@ class TriangleGrid extends BaseGrid {
 
                 // Fetch integer state to get Color
                 uint state = texelFetch(uGridTexture, ivec2(texX, texY), 0).r;
-                outColor = colorFromState(state);
+                vec4 baseColor = colorFromState(state);
+                if (state == 0u) {
+                    outColor = baseColor;
+                } else {
+                    float shade = (s == 0) ? 1.0 : 0.75;
+                    outColor = vec4(baseColor.rgb * shade, baseColor.a);
+                }
         }`;
     }
 
@@ -195,7 +207,12 @@ class TriangleGrid extends BaseGrid {
                 );
 
                 vec4 cellColor = texture2D(uGridTexture, uv);
-                gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
+                if (cellColor.a <= 0.0) {
+                    gl_FragColor = uGridColor;
+                } else {
+                    float shade = (s == 0.0) ? 1.0 : 0.75;
+                    gl_FragColor = vec4(cellColor.rgb * shade, cellColor.a);
+                }
             }`;
     }
 
@@ -235,7 +252,12 @@ class TriangleGrid extends BaseGrid {
                 );
 
                 vec4 cellColor = texture2D(uGridTexture, texCoord);
-                gl_FragColor = (cellColor.a <= 0.0) ? uGridColor : cellColor;
+                if (cellColor.a <= 0.0) {
+                    gl_FragColor = uGridColor;
+                } else {
+                    float shade = (s == 0.0) ? 1.0 : 0.75;
+                    gl_FragColor = vec4(cellColor.rgb * shade, cellColor.a);
+                }
             }`
     }
 
@@ -262,10 +284,12 @@ class TriangleGrid extends BaseGrid {
         const worldY = r * cellSize;
 
         const drawColor = this.colorSchema[state] || [1, 1, 1, 1];
+        const shadeMultipliers = [1.0, 0.75];
+        const shade = shadeMultipliers[s] ?? 1.0;
         ctx.fillStyle = `rgba(
-            ${Math.round(drawColor[0] * 255)},
-            ${Math.round(drawColor[1] * 255)},
-            ${Math.round(drawColor[2] * 255)},
+            ${Math.round(drawColor[0] * 255 * shade)},
+            ${Math.round(drawColor[1] * 255 * shade)},
+            ${Math.round(drawColor[2] * 255 * shade)},
             ${drawColor[3]}
         )`;
 
