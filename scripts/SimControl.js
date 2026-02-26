@@ -134,7 +134,7 @@ class SimulatorController{
         let wasm_engine, savedView;
 
         if (preserveState && oldGrid) {
-            wasm_engine = oldGrid.grid_mesh;
+            wasm_engine = this.wasm_engine;
             savedView = oldGrid.cameraView;
 
             this.rangeValue ??= 1;
@@ -516,7 +516,7 @@ class SimulatorController{
 
         // Step 1: Run Game of Life simulation
         const simStartTime = performance.now();
-        this.gridManager.grid_mesh.random_cells();
+        this.wasm_engine.random_cells();
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
 
@@ -541,7 +541,7 @@ class SimulatorController{
 
         // Step 1: Run Game of Life simulation
         const simStartTime = performance.now();
-        this.gridManager.grid_mesh.step_game_of_life();
+        this.wasm_engine.step_game_of_life();
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
 
@@ -562,7 +562,7 @@ class SimulatorController{
     }
 
     fillNeighbors() {
-        this.gridManager.grid_mesh.floodfill();
+        this.wasm_engine.floodfill();
         this.gridManager.renderGrid(true);
     }
 }

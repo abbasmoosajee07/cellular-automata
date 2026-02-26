@@ -4,10 +4,12 @@ class Canvas2DRenderer {
         this.shapeGrid = shapeGrid;
         this.colorSchema = shapeGrid.colorSchema;
 
+        this.cachedGeometry = null;
+        this.updateCanvasSize();
+
         const rendererUsed = "canvas2d";
         this.ctx = canvas.getContext('2d');
         this.shapeGrid.addRenderer(rendererUsed);
-        this.updateCanvasSize();
         console.log("Renderer Used:", rendererUsed);
     }
 
@@ -37,11 +39,14 @@ class Canvas2DRenderer {
     _syncCells(ctx, cells) {
         const arr = cells.each_live_cell();
         for (let i = 0; i < arr.length; i += 4) {
-            this.shapeGrid.drawShapeCell(ctx, arr[i], arr[i + 1], arr[i + 2], arr[i + 3]);
+            this.shapeGrid.drawShapeCell(
+                ctx, arr[i], arr[i + 1], arr[i + 2], arr[i + 3]
+            );
         }
     }
 
     uploadGeometry(geometry) {
+        this.cachedGeometry = geometry;
         return;
     }
 
@@ -87,10 +92,9 @@ class Canvas2DRenderer {
 
     drawChunk(cameraView, cx, cy, chunkSize, data) {
         if (!data || data.length === 0) return;
+        const shapeNo = this.cachedGeometry.shapeNo;
 
         const ctx = this.ctx;
-        const cellSize = this.shapeGrid.cellSize;
-
         ctx.save();
         this._applyCameraTransform(ctx, cameraView);
 
@@ -99,14 +103,15 @@ class Canvas2DRenderer {
 
         for (let ly = 0; ly < chunkSize; ly++) {
             for (let lx = 0; lx < chunkSize; lx++) {
-                // chunk data is flat: index = lx + ly * chunkSize (depth=1, lz=0)
-                const idx = lx + ly * chunkSize;
-                const state = data[idx];
-                if (state === 0) continue;
+                for (let lz = 0; lz < shapeNo; lz++) {
+                    const idx = lx + (ly * chunkSize) + (lz * chunkSize * chunkSize);
+                    const state = data[idx];
+                    if (state === 0) continue;
 
-                const q = originQ + lx;
-                const r = originR + ly;
-                this.shapeGrid.drawShapeCell(ctx, q, r, 0, state);
+                    const q = originQ + lx;
+                    const r = originR + ly;
+                    this.shapeGrid.drawShapeCell(ctx, q, r, lz, state);
+                }
             }
         }
 

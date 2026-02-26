@@ -2,7 +2,7 @@ class ChunkedRender {
     constructor(gridManager, chunkSize) {
         this.gridManager = gridManager;
         this.renderer = gridManager.renderer;
-        this.gridMesh = gridManager.grid_mesh;
+        this.engine = gridManager.engine;
 
         this.chunkSize = chunkSize;
         this.cache = new Map(); // "cx,cy,cz" → WebGLTexture
@@ -67,7 +67,7 @@ class ChunkedRender {
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
-        const data = this.gridMesh.get_chunk_cells(cx, cy, cz);
+        const data = this.engine.get_chunk_cells(cx, cy, cz);
         if (!data || data.length === 0) return;
         let uploadData = this.gridManager.shapeGrid.transformChunkData(data, cs);
 
@@ -120,7 +120,7 @@ class ChunkedRender {
         for (let cx = minCX; cx <= maxCX; cx++) {
             for (let cy = minCY; cy <= maxCY; cy++) {
                 if (isCanvas) {
-                    const data = this.gridMesh.get_chunk_cells(cx, cy, 0);
+                    const data = this.engine.get_chunk_cells(cx, cy, 0);
                     this.renderer.drawChunk(cameraView, cx, cy, cs, data);
                 } else {
                     const key = this.key(cx, cy, 0);

@@ -156,6 +156,7 @@ class BaseGrid {
             textureHeight: this.textureHeight * this.rowMult,
             gridCols: gridSize[0],
             gridRows: gridSize[1],
+            shapeNo: gridSize[2],
             baseCellSize: this.cellSize || this.radius || 50,
             vertexCount: 4,
             indexCount: 6
@@ -224,25 +225,6 @@ class BaseGrid {
             gl.UNSIGNED_BYTE,
             this.textureData
         );
-    }
-
-    getFragmentShaderSource(isWebGL2 = false, isChunked = false) {
-        const key = `${isWebGL2 ? 'gl2' : 'gl1'}_${isChunked ? 'chunked' : 'direct'}`;
-
-        const shaderMap = {
-            gl2_chunked: () => this.chunked_WebGL2(),
-            gl2_direct:  () => this.direct_WebGL2(),
-            gl1_chunked: () => this.chunked_WebGL1(),
-            gl1_direct:  () => this.direct_WebGL1(),
-        };
-
-        // // Debug Console Print
-        // const fragShaders = shaderMap[key]().split('\n')
-        //             .map(line => line.trimStart())
-        //             .join('\n');
-        // console.log(fragShaders);
-
-        return shaderMap[key]();
     }
 
     clearGrid(gl) {
@@ -354,6 +336,25 @@ class BaseGrid {
         `;
     }
 
+    getFragmentShaderSource(isWebGL2 = false, isChunked = false) {
+        const key = `${isWebGL2 ? 'gl2' : 'gl1'}_${isChunked ? 'chunked' : 'direct'}`;
+
+        const shaderMap = {
+            gl2_chunked: () => this.chunked_WebGL2(),
+            gl2_direct:  () => this.direct_WebGL2(),
+            gl1_chunked: () => this.chunked_WebGL1(),
+            gl1_direct:  () => this.direct_WebGL1(),
+        };
+
+        // // Debug Console Print
+        // const fragShaders = shaderMap[key]().split('\n')
+        //             .map(line => line.trimStart())
+        //             .join('\n');
+        // console.log(fragShaders);
+
+        return shaderMap[key]();
+    }
+
     // Abstract Shape specific methods
     worldToCell(world) {
         throw new Error("Method 'worldToCell(world)' must be implemented.");
@@ -375,10 +376,12 @@ class BaseGrid {
         throw new Error("Chunked WebGL2 Fragment shaders must be implemented");
         return ``
     }
+
     chunked_WebGL1 () {
         throw new Error("Chunked WebGL1 Fragment shaders must be implemented");
         return ``
     }
+
     direct_WebGL2 () {
         throw new Error("Direct WebGL2 Fragment shaders must be implemented");
         return ``

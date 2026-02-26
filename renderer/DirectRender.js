@@ -1,9 +1,8 @@
 class DirectRender {
     constructor(gridManager) {
         this.gridManager = gridManager;
-        this.shapeGrid   = gridManager.shapeGrid;
         this.renderer    = gridManager.renderer;
-        this.grid_mesh   = gridManager.grid_mesh;
+        this.engine   = gridManager.engine;
 
         this.renderer.setupRenderStrategy("direct");
         console.log("Rendering Strategy: Direct");
@@ -14,9 +13,7 @@ class DirectRender {
     }
 
     renderGrid(tl, br, cameraView, updateCells = false) {
-        const geometry = this.shapeGrid.getGridGeometry(this.gridManager.gridSize);
-        this.renderer.uploadGeometry(geometry);
-        this.renderer.renderGrid(cameraView, this.grid_mesh, updateCells);
+        this.renderer.renderGrid(cameraView, this.engine, updateCells);
     }
 
     clearCache() {

@@ -21,7 +21,7 @@ class GridManager {
         // Core refs
         this.canvas = canvas;
         this.useWebGL = useWebGL;
-        this.grid_mesh = init_engine;
+        this.engine = init_engine;
 
         // Grid configuration
         this.shape = shape;
@@ -38,6 +38,9 @@ class GridManager {
         this.renderer = this.initializeRenderer(useWebGL);
         this.renderCache = this.selectCache(this.chunked);
         this.updateCanvasSize();
+
+        const geometry = this.shapeGrid.getGridGeometry(this.gridSize);
+        this.renderer.uploadGeometry(geometry);
     }
 
     createShapeGrid(shape) {
@@ -73,7 +76,7 @@ class GridManager {
     selectCache(chunked) {
         let renderCache;
         if (chunked) {
-            const chunkSize = this.grid_mesh.get_chunk_size();
+            const chunkSize = this.engine.get_chunk_size();
             renderCache = new ChunkedRender(
                 this, chunkSize
             );
@@ -119,7 +122,7 @@ class GridManager {
     }
 
     changeCell(q, r, s, state) {
-        this.grid_mesh.set_cell(q, r, s, state);
+        this.engine.set_cell(q, r, s, state);
         this.renderCache.changeCell(q, r, s, state);
     }
 
@@ -129,7 +132,7 @@ class GridManager {
     }
 
     clearAll() {
-        this.grid_mesh.clear();
+        this.engine.clear();
         this.renderCache.clearCache();
     }
 
@@ -209,7 +212,7 @@ class GridManager {
     selectGridLimits() {
         let [minQ, maxQ, minR, maxR, minS, maxS] =
             this.chunked
-                ? this.grid_mesh.get_cell_extremes()
+                ? this.engine.get_cell_extremes()
                 : this.bounds;
 
         // Clamp lower bounds
