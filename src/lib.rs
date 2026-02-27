@@ -4,8 +4,16 @@
 // =========================
 pub mod tiles {
     pub mod tile_manager;
+    pub mod square;
+    pub mod hexagon;
+    pub mod triangle;
+    pub mod rhomboid;
 
     pub use tile_manager::TileManager;
+    pub use square::Square;
+    pub use hexagon::Hexagon;
+    pub use triangle::Triangle;
+    pub use rhomboid::Rhomboidal;
 }
 pub mod cell_manager {
     pub mod flat_cells;
