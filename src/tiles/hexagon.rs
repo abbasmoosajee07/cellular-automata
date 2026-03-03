@@ -6,6 +6,10 @@ impl Hexagon {
         1
     }
 
+    pub fn valid_neighborhoods() -> Vec<&'static str> {
+        vec!["hexagonal", "tripod", "asterix"]
+    }
+
     pub fn build_offsets(neighbor_type: &str, range: i32) -> Vec<Vec<(i32, i32, i32)>> {
         vec![Self::get_offsets(neighbor_type, range)]
     }

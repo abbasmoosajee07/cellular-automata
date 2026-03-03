@@ -42,18 +42,22 @@ impl Shape {
             Self::Triangle => Triangle::build_offsets(neighbor_type, range),
         }
     }
+    fn _valid_neighborhoods(&self) -> Vec<&'static str> {
+        match self {
+            Self::Square   => Square::valid_neighborhoods(),
+            Self::Hexagon  => Hexagon::valid_neighborhoods(),
+            Self::Rhombus  => Rhomboidal::valid_neighborhoods(),
+            Self::Triangle => Triangle::valid_neighborhoods(),
+        }
+    }
 }
 
-/// Owns all per-shape knowledge: tile splits, neighborhood type, and the
-/// precomputed per-sublayer offset tables used by the simulation loop.
 #[derive(Clone, Debug)]
 pub struct TileManager {
     pub shape: String,
     pub splits: usize,
     pub neighbor_type: String,
     pub range: i32,
-    /// One entry per sublayer (length == `splits`).
-    /// Single-sublayer shapes always have length 1.
     pub offsets: Vec<Vec<(i32, i32, i32)>>,
 }
 

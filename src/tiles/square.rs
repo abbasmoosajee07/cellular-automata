@@ -1,9 +1,13 @@
 pub struct Square {
-    
+
 }
 impl Square {
     pub fn get_splits() -> usize {
         1
+    }
+
+    pub fn valid_neighborhoods() -> Vec<&'static str> {
+        vec!["moore", "vonNeumann", "cross", "checkerboard", "star"]
     }
 
     pub fn build_offsets(neighbor_type: &str, range: i32) -> Vec<Vec<(i32, i32, i32)>> {

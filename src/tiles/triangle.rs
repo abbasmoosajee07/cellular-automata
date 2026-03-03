@@ -6,6 +6,10 @@ impl Triangle {
         2
     }
 
+    pub fn valid_neighborhoods() -> Vec<&'static str> {
+        vec!["vonNeumann", "biohazard", "inner", "vertices", "moore"]
+    }
+
     pub fn build_offsets(neighbor_type: &str, range: i32) -> Vec<Vec<(i32, i32, i32)>> {
         Self::get_offsets(neighbor_type, range)
     }
