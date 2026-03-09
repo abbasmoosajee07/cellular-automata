@@ -1,4 +1,10 @@
 {
+  "1beacon": {
+    "label": "1beacon",
+    "desc": "",
+    "format": ["cells", "rle"],
+    "lines": 11
+  },
   "base": {
     "label": "Base",
     "desc": "",
@@ -16,5 +22,11 @@
     "desc": "",
     "format": ["cells", "rle"],
     "lines": 14
+  },
+  "tubber": {
+    "label": "Tubber",
+    "desc": "",
+    "format": ["cells", "rle"],
+    "lines": 18
   }
 }
