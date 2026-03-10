@@ -10,7 +10,7 @@ pub fn run_native_tests() {
     let use_pattern = true;
 
     let mut cm = if use_pattern {
-        let cm = Engine::read_file("patterns/glider.cells").unwrap();
+        let cm = Engine::read_file("patterns/base.cells").unwrap();
         let print_cfg =  serde_json::to_string(&cm.storage).unwrap();
         println!("Just Uploaded: {}\n", print_cfg);
         cm
@@ -18,12 +18,12 @@ pub fn run_native_tests() {
         let mut cm = Engine::new("square".to_string(), 250, 250);
         // Randomize cells (TIMED)
         let start_rand = Instant::now();
-        cm.mesh.random_cells();
+        cm.random_cells();
         let rand_elapsed = start_rand.elapsed();
         println!("Random fill time: {:?}", rand_elapsed);
         cm
     };
-    cm.mesh.resize(10, 10);
+    // cm.mesh.resize(10, 10);
     cm.mesh.change_grid_properties(
         "square".to_string(),
         "moore".to_string(),
@@ -33,8 +33,8 @@ pub fn run_native_tests() {
 
     println!("Native Print: {:?}\n", cm.mesh.config);
 
-    let cells = cm.mesh.each_live_cell();
-    println!("Initial active cell count: {}", cells.len() / 4);
+    // let cells = cm.mesh.count_live_cells();
+    println!("Initial active cell count: {}", cm.automata.live);
 
     // Run one step of Game of Life (TIMED)
     println!("--- Running one GoL step ---");
@@ -43,8 +43,7 @@ pub fn run_native_tests() {
     let step_elapsed = start_step.elapsed();
 
     // Show the new set of live cells
-    let cells_after = cm.mesh.each_live_cell();
-    println!("Cells after GoL step: {}", cells_after.len() / 4);
+    println!("Cells after GoL step: {}", cm.automata.live);
     println!("GoL step time: {:?}", step_elapsed);
     println!("=== GoL Test Completed ===\n");
 

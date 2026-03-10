@@ -169,30 +169,31 @@ impl GridMesh {
     }
 
     // FLOOD FILL
-    pub fn floodfill(&mut self) {
+    pub fn floodfill(&mut self) -> i32 {
         let arr = self.each_live_cell();
         let mut neighbors_to_activate = Vec::new();
-
+        let mut cells_filled = 0;
         let mut i = 0;
-        while i + 3 < arr.len() {
-            let q = arr[i];
-            let r = arr[i + 1];
-            let s = arr[i + 2];
-            let state = arr[i + 3];
 
+        while i + 3 < arr.len() {
+            let state = arr[i + 3];
             if state == 1 {
+                cells_filled += 1; // count already-active cells
                 neighbors_to_activate.extend(
-                    self.get_neighbors(q, r, s)
+                    self.get_neighbors(arr[i], arr[i + 1], arr[i + 2])
                 );
             }
-
             i += 4;
         }
 
-        // Activate neighbors
         for (nq, nr, ns) in neighbors_to_activate {
+            if self.get_cell(nq, nr, ns) != 1 { // only count if not already active
+                cells_filled += 1;
+            }
             self.set_cell(nq, nr, ns, 1);
         }
+
+        cells_filled
     }
 
     pub fn count_live_cells(&self) -> i32 {
@@ -288,18 +289,23 @@ impl GridMesh {
     }
 
     // RANDOM FILL
-    pub fn random_cells(&mut self) {
+    pub fn random_cells(&mut self) -> i32 {
         let [min_q, max_q, min_r, max_r, min_s, max_s] = self.config.bounds;
         let rand_limit: i32 = 1000;
         let density: f32 = 0.42;
+        let mut cells_filled = 0;
+
         for s in min_s..=max_s {
             for q in min_q.max(-rand_limit)..=max_q.min(rand_limit) {
                 for r in min_r.max(-rand_limit)..=max_r.min(rand_limit) {
                     let status = if fastrand::f32() < density { 1 } else { 0 };
+                    if status == 1 { cells_filled += 1; }
                     self.set_cell(q, r, s, status);
                 }
             }
         }
+
+        cells_filled
     }
 
     // CHANGE GRID PROPERTIES

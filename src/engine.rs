@@ -1,18 +1,26 @@
 use crate::{GridMesh, PatternIO, formats::PatternConfig};
 use crate::automata::{ConwayLife};
-// use std::env;
 use std::{fs, path::{Path}};
+
+#[derive(Clone, Debug, Default)]
+pub struct Automata {
+    pub live: i32,
+    pub gen_no: i32,
+}
 
 pub struct Engine {
     pub storage: PatternConfig,
     pub mesh: GridMesh,
+    pub automata: Automata,
 }
 
 impl Engine {
     pub fn new(shape: String, width: usize, height: usize) -> Self {
+
         Self {
             storage: PatternConfig::default(),
             mesh: GridMesh::new(shape, width, height),
+            automata: Automata { live: 0, gen_no: 0 },
         }
     }
 
@@ -35,6 +43,7 @@ impl Engine {
         let mut grid = Self {
             storage: cfg.clone(),
             mesh: GridMesh::new(cfg.shape.clone(), w as usize, h as usize),
+            automata: Automata { live: 0, gen_no: 0 },
         };
 
         grid.mesh.change_grid_properties(
@@ -48,6 +57,7 @@ impl Engine {
                 grid.mesh.set_cell(*y + shift_q, *x + shift_r, *z + shift_s, *state);
             }
         }
+        grid.automata.live = grid.mesh.count_live_cells();
         grid
 
     }
@@ -55,6 +65,20 @@ impl Engine {
     // CONWAY GAME OF LIFE UPDATE
     pub fn step_game_of_life(&mut self) {
         ConwayLife::step_game_of_life(&mut self.mesh);
+        self.automata.live = self.mesh.count_live_cells();
+        self.automata.gen_no += 1;
+    }
+
+    pub fn random_cells(&mut self) {
+        let active_cells = self.mesh.random_cells();
+        self.automata.live = active_cells;
+        self.automata.gen_no += 1;
+    }
+
+    pub fn floodfill(&mut self) {
+        let active_cells = self.mesh.floodfill();
+        self.automata.live = active_cells;
+        self.automata.gen_no += 1;
     }
 
     pub fn update_storage(&mut self) {
