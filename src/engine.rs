@@ -1,12 +1,6 @@
 use crate::{GridMesh, PatternIO, formats::PatternConfig};
-use crate::automata::{ConwayLife};
+use crate::automata::{ConwayLife, Automata};
 use std::{fs, path::{Path}};
-
-#[derive(Clone, Debug, Default)]
-pub struct Automata {
-    pub live: i32,
-    pub gen_no: i32,
-}
 
 pub struct Engine {
     pub storage: PatternConfig,

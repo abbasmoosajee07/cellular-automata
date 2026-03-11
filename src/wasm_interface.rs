@@ -48,10 +48,6 @@ impl WasmInterface {
         self.engine.mesh.each_live_cell()
     }
 
-    pub fn random_cells(&mut self) {
-        self.engine.random_cells();
-    }
-
     pub fn resize(&mut self, w: usize, h: usize) {
         self.engine.mesh.resize(w, h);
     }
@@ -69,12 +65,19 @@ impl WasmInterface {
         self.engine.mesh.get_cell_extremes().to_vec()
     }
 
-    pub fn floodfill(&mut self) {
-        self.engine.floodfill();
+    pub fn random_cells(&mut self) -> String {
+        self.engine.random_cells();
+        self.automata_config()
     }
 
-    pub fn step_game_of_life(&mut self) {
+    pub fn step_game_of_life(&mut self) -> String {
         self.engine.step_game_of_life();
+        self.automata_config()
+    }
+
+    pub fn floodfill(&mut self) -> String {
+        self.engine.floodfill();
+        self.automata_config()
     }
 
     pub fn change_format(&mut self, new_format: &str) {
@@ -85,8 +88,13 @@ impl WasmInterface {
     pub fn config_string(&self) -> String {
         serde_json::to_string(&self.engine.mesh.config).unwrap()
     }
+
     pub fn storage_string(&self) -> String {
         serde_json::to_string(&self.engine.storage).unwrap()
+    }
+
+    pub fn automata_config(&self) -> String {
+        serde_json::to_string(&self.engine.automata).unwrap()
     }
 
     pub fn get_chunk_size(&self) -> usize {

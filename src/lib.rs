@@ -31,7 +31,10 @@ pub mod cell_manager {
 pub use cell_manager::gridmesh::GridMesh;
 // Automata
 pub mod automata {
+    mod automata;
     mod conway_life;
+
+    pub use automata::Automata;
     pub use conway_life::ConwayLife;
 }
 
