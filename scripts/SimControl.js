@@ -7,7 +7,8 @@ class SimulatorController{
         "gridCanvas", "menuPanel", "menuToggle", "reMap", "autoFit", "simCtrl",
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
-        "status_zoom", "status_camera", "updateSim", "loadSim",
+        "status_zoom", "status_camera", "status_pop", "status_gen",
+        "updateSim", "loadSim",
     ];
 
     shapeProps = {
@@ -124,6 +125,8 @@ class SimulatorController{
         // Build grid
         const shape = this.selectedShape ?? "square";
         this._buildGrid({shape, wasm_engine});
+        const props = this.wasm_engine.automata_string();
+        this.updateAutomataStatus(props);
     }
 
     async setupGrid({ preserveState = false } = {}) {
@@ -427,7 +430,7 @@ class SimulatorController{
                     const zoomFactor = dist / lastTouchDistance;
                     const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
                     this.gridManager.cameraView.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
-                    this.updateStatusBar(t1.clientX, t1.clientY);
+                    this.updateCameraStatus(t1.clientX, t1.clientY);
                     this.gridManager.renderGrid();
                 }
                 lastTouchDistance = dist;
@@ -436,7 +439,7 @@ class SimulatorController{
 
             // --- ALWAYS UPDATE POINTER + STATUS BAR ---
             const pointer = getPointer(e);
-            this.updateStatusBar(pointer.x, pointer.y);
+            this.updateCameraStatus(pointer.x, pointer.y);
 
             // --- PAINTING ---
             if (painting) {
@@ -488,7 +491,7 @@ class SimulatorController{
             const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
             const newZoom = this.gridManager.cameraView.zoom * zoomFactor;
             this.gridManager.cameraView.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
-            this.updateStatusBar(e.clientX, e.clientY);
+            this.updateCameraStatus(e.clientX, e.clientY);
             this.gridManager.renderGrid();
         }, { passive: false });
 
@@ -496,7 +499,7 @@ class SimulatorController{
         this.gridCanvas.style.touchAction = 'none';
     }
 
-    updateStatusBar(px, py) {
+    updateCameraStatus(px, py) {
         this.status_zoom.textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
         const [q, r, s] = this.gridManager.screenToCell(px, py)
         this.status_camera.textContent = `(${q},${r},${s})`;
@@ -516,7 +519,7 @@ class SimulatorController{
 
         // Step 1: Run Game of Life simulation
         const simStartTime = performance.now();
-        this.wasm_engine.random_cells();
+        const props = this.wasm_engine.random_cells();
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
 
@@ -533,6 +536,7 @@ class SimulatorController{
         console.log(`Random Fill: ${simulationTime.toFixed(2)}ms | ` +
                     `Render: ${renderTime.toFixed(2)}ms | ` +
                     `Total: ${totalTime.toFixed(2)}ms`);
+        this.updateAutomataStatus(props);
     }
 
     simulate_step() {
@@ -541,7 +545,7 @@ class SimulatorController{
 
         // Step 1: Run Game of Life simulation
         const simStartTime = performance.now();
-        this.wasm_engine.step_game_of_life();
+        const props = this.wasm_engine.step_game_of_life();
         const simEndTime = performance.now();
         const simulationTime = simEndTime - simStartTime;
 
@@ -559,10 +563,19 @@ class SimulatorController{
         console.log(`Simulation: ${simulationTime.toFixed(2)}ms | ` +
                     `Render: ${renderTime.toFixed(2)}ms | ` +
                     `Total: ${totalTime.toFixed(2)}ms`);
+        this.updateAutomataStatus(props);
+    }
+
+    updateAutomataStatus(raw_info) {
+        const info = JSON.parse(raw_info);
+        this.status_pop.textContent = info.live;
+        this.status_gen.textContent = info.gen_no;
+        console.log(info);
     }
 
     fillNeighbors() {
-        this.wasm_engine.floodfill();
+        const props = this.wasm_engine.floodfill();
+        this.updateAutomataStatus(props);
         this.gridManager.renderGrid(true);
     }
 }

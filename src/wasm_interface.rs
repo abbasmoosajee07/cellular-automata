@@ -67,17 +67,17 @@ impl WasmInterface {
 
     pub fn random_cells(&mut self) -> String {
         self.engine.random_cells();
-        self.automata_config()
+        self.automata_string()
     }
 
     pub fn step_game_of_life(&mut self) -> String {
         self.engine.step_game_of_life();
-        self.automata_config()
+        self.automata_string()
     }
 
     pub fn floodfill(&mut self) -> String {
         self.engine.floodfill();
-        self.automata_config()
+        self.automata_string()
     }
 
     pub fn change_format(&mut self, new_format: &str) {
@@ -93,7 +93,7 @@ impl WasmInterface {
         serde_json::to_string(&self.engine.storage).unwrap()
     }
 
-    pub fn automata_config(&self) -> String {
+    pub fn automata_string(&self) -> String {
         serde_json::to_string(&self.engine.automata).unwrap()
     }
 
