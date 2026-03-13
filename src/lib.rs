@@ -33,9 +33,11 @@ pub use cell_manager::gridmesh::GridMesh;
 pub mod automata {
     mod automata;
     mod conway_life;
+    mod floodfill;
 
     pub use automata::Automata;
     pub use conway_life::ConwayLife;
+    pub use floodfill::FloodFill;
 }
 
 // Core Engine

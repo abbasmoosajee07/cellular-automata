@@ -1,5 +1,5 @@
 use crate::{GridMesh, PatternIO, formats::PatternConfig};
-use crate::automata::{ConwayLife, Automata};
+use crate::automata::{Automata, FloodFill, ConwayLife};
 use std::{fs, path::{Path}};
 
 pub struct Engine {
@@ -70,7 +70,7 @@ impl Engine {
     }
 
     pub fn floodfill(&mut self) {
-        let active_cells = self.mesh.floodfill();
+        let active_cells = FloodFill::floodfill(&mut self.mesh);
         self.automata.live = active_cells;
         self.automata.gen_no += 1;
     }
