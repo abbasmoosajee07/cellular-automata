@@ -3,7 +3,6 @@ use crate::Engine;
 
 #[wasm_bindgen]
 pub struct WasmInterface {
-    // inner: GridMesh,
     engine: Engine,
 }
 

@@ -25,7 +25,7 @@ A web-based simulation of different variations of Cellular Automata
 - Heat maps (activity, population density, entropy).
 
 ### 📊 Analysis
-- Population statistics graph (live count of alive cells).
+- ~~Population statistics graph (live count of alive cells)~~.
 - Entropy measure (how chaotic the system is over time).
 - Pattern recognizer (detect gliders, oscillators, still lifes).
 - Stability detector (detect when the system freezes or loops).

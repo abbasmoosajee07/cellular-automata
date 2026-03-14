@@ -125,8 +125,7 @@ class SimulatorController{
         // Build grid
         const shape = this.selectedShape ?? "square";
         this._buildGrid({shape, wasm_engine});
-        const props = this.wasm_engine.automata_string();
-        this.updateAutomataStatus(props);
+        this.updateAutomataStatus();
     }
 
     async setupGrid({ preserveState = false } = {}) {
@@ -406,6 +405,7 @@ class SimulatorController{
                 if (this.drawTiles.checked || this.eraseTiles.checked) {
                     painting = true;
                     this.toggleAt(pointer.x, pointer.y);
+                    this.updateAutomataStatus();
                 } else {
                     draggingCam = true;
                 }
@@ -566,8 +566,10 @@ class SimulatorController{
         this.updateAutomataStatus(props);
     }
 
-    updateAutomataStatus(raw_info) {
-        const info = JSON.parse(raw_info);
+    updateAutomataStatus(raw_info = null) {
+        const info = raw_info 
+            ? JSON.parse(raw_info) 
+            : JSON.parse(this.wasm_engine.automata_string());
         this.status_pop.textContent = info.live;
         this.status_gen.textContent = info.gen_no;
         console.log(info);
