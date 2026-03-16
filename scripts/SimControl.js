@@ -500,9 +500,21 @@ class SimulatorController{
     }
 
     updateCameraStatus(px, py) {
-        this.status_zoom.textContent = this.gridManager.cameraView.zoom.toFixed(3) + "x";
+        const zoom = this.gridManager.cameraView.zoom;
+        const ratio = zoom >= 1
+            ? `${zoom.toFixed(0)}:1`
+            : `1:${(1 / zoom).toFixed(0)}`;
+        this.status_zoom.textContent = ratio;
         const [q, r, s] = this.gridManager.screenToCell(px, py)
         this.status_camera.textContent = `(${q},${r},${s})`;
+    }
+    updateAutomataStatus(raw_info = null) {
+        const info = raw_info 
+            ? JSON.parse(raw_info) 
+            : JSON.parse(this.wasm_engine.automata_string());
+        this.status_pop.textContent = info.live;
+        this.status_gen.textContent = info.gen_no;
+        console.log(info);
     }
 
     toggleAt(px, py) {
@@ -564,15 +576,6 @@ class SimulatorController{
                     `Render: ${renderTime.toFixed(2)}ms | ` +
                     `Total: ${totalTime.toFixed(2)}ms`);
         this.updateAutomataStatus(props);
-    }
-
-    updateAutomataStatus(raw_info = null) {
-        const info = raw_info 
-            ? JSON.parse(raw_info) 
-            : JSON.parse(this.wasm_engine.automata_string());
-        this.status_pop.textContent = info.live;
-        this.status_gen.textContent = info.gen_no;
-        console.log(info);
     }
 
     fillNeighbors() {
