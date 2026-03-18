@@ -813,3 +813,41 @@ button.io-upload-box {
     transparent
   );
 }
+
+/* 📊 Status Bar */
+#statusBar {
+  top: 10px;
+  left: 1vmin;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* individual items */
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 10px;
+  border-right: 1px solid var(--card-border);
+}
+
+/* remove divider on last */
+.status-item:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+/* icons */
+.status-item i {
+  color: var(--feature-color);
+  font-size: 0.9rem;
+}
+
+/* numbers */
+.status-item span {
+  color: var(--text-color);
+  font-weight: 500;
+}

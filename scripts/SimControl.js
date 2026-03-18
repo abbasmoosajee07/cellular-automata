@@ -508,9 +508,10 @@ class SimulatorController{
         const [q, r, s] = this.gridManager.screenToCell(px, py)
         this.status_camera.textContent = `(${q},${r},${s})`;
     }
+
     updateAutomataStatus(raw_info = null) {
-        const info = raw_info 
-            ? JSON.parse(raw_info) 
+        const info = raw_info
+            ? JSON.parse(raw_info)
             : JSON.parse(this.wasm_engine.automata_string());
         this.status_pop.textContent = info.live;
         this.status_gen.textContent = info.gen_no;

@@ -295,7 +295,7 @@
     <!-- Main Canvas -->
     <canvas id="gridCanvas"></canvas>
 
-    <!-- 🧭 Control Panel -->
+    <!--  Control Panel -->
     <div class="ui-panel control-panel">
         <button class="control-btn" id="themeToggle" aria-label="Toggle theme">
             <i id="themeIcon" class="bi"></i>
@@ -318,26 +318,30 @@
         </button>
     </div>
 
-    <!-- 📊 Status Bar -->
-    <div id="statusBar" class="ui-panel">
-        <div class="status-item">
-            <span class="status-label">Pop:</span>
-            <span id="status_pop">00</span>
-        </div>
-        <div class="status-item">
-            <span class="status-label">| Gen:</span>
-            <span id="status_gen">0</span>
-        </div>
-        <div class="status-item">
-            <span class="status-label">|</span>
-            <span id="status_camera">(0, 0)</span>
-        </div>
-        <div class="status-item">
-            <span class="status-label">|</span>
-            <span id="status_zoom">1:1</span>
-        </div>
-
+    <!--  Status Bar -->
+<div id="statusBar" class="ui-panel">
+    <div class="status-item" title="Population">
+        <i>Pop:</i>
+        <span id="status_pop">0</span>
     </div>
+
+    <div class="status-item" title="Generation">
+        <i>Gen:</i>
+        <span id="status_gen">0</span>
+    </div>
+
+    <div class="status-item"  title="Zoom">
+        <i>Zoom:</i>
+        <span id="status_zoom">1:1</span>
+    </div>
+
+    <div class="status-item"  title="Pointer Loc">
+        <i>Loc:</i>
+        <span id="status_camera">(0,0)</span>
+    </div>
+
+</div>
+
 
 <!-- Pattern Library -->
 <div id="library" class="pattern-library hidden">
