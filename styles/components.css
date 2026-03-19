@@ -1,0 +1,367 @@
+/* ==============================
+   Controls & Forms
+============================== */
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-size: 0.9rem;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+input, select {
+  padding: 0.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.form-row {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.form-row label {
+    white-space: nowrap;
+    margin: 0;
+}
+
+input[type="number"] { width: 60px; }
+input[type="checkbox"] { width: auto; }
+
+.size-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.grid-size-in {
+    padding: 6px 8px;
+    border: 1px solid var(--dark-color);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    width: 100%;
+}
+
+/* ==============================
+   Buttons
+============================== */
+.btn {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: center;
+  font-weight: 550;
+  color: black !important;
+  transition: filter 0.2s ease, background-color 0.2s ease;
+  user-select: none;
+  padding: 0.25rem 0.25rem;
+  font-size: 1.05rem;
+}
+
+.btn i { margin-right: 5px; }
+
+.btn:hover, .btn:focus, .btn:focus-visible {
+  filter: brightness(var(--hover-brightness)) !important;
+  transform: scale(1.05);
+}
+
+.btn:active {
+  filter: brightness(var(--active-brightness)) !important;
+}
+
+.btn:disabled {
+  background-color: #e0e0e0 !important;
+  color: #888 !important;
+  border-color: #ccc !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+.action-btn {
+  /* margin: 0.4rem 0; */
+  background: #333;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+  cursor: pointer;
+  width: 95%;
+}
+
+.action-btn:hover { background: #555; }
+
+.action-btn {
+  width: 100%;
+}
+
+.btn-remap { background-color: var(--remap) !important; }
+.btn-load { background-color: var(--load) !important; }
+.btn-update { background-color: var(--update) !important; }
+.btn-download { background-color: var(--download) !important; }
+
+/* =========================
+   Actions
+========================= */
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* =========================
+   Config Group
+========================= */
+.config-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin: 1em 0;
+}
+
+.config-group h3 {
+  color: var(--feature-color);
+  font-size: 14px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.config-label {
+  font-weight: 600;
+  margin-bottom: 0.4em;
+}
+
+/* =========================
+   Config Select
+========================= */
+.config-select {
+  height: 30px;
+  padding: 0 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: var(--card-bg);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.config-select:hover {
+  border-color: #888;
+}
+
+.config-select:focus {
+  outline: none;
+  border-color: var(--feature-color);
+  box-shadow: 0 0 0 2px var(--dark-color);
+}
+
+.config-desc {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  color: #555;
+  line-height: 1.4;
+}
+
+/* =========================
+   Export Header
+========================= */
+.pattern-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Input + Select alignment */
+.pattern-name,
+.config-select {
+  height: 30px;
+  padding: 0 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+/* Pattern Name Input */
+.pattern-name {
+  flex: 1.2;
+  background: var(--bg);
+  color: var(--text-color);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+}
+
+/* =========================
+  Config Options (radio tiles etc)
+========================= */
+.config-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.config-option {
+  flex: 1;
+  min-width: 120px;
+}
+
+.config-option input {
+  display: none;
+}
+
+.config-option label {
+  display: block;
+  padding: 6px;
+  background: var(--card-bg);
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  color: var(--text-color);
+}
+
+.config-option label:hover {
+  background: var(--feature-color);
+}
+
+.config-option input:checked + label {
+  background: var(--feature-color);
+  color: var(--text-color);
+  border-color: var(--feature-color);
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+}
+
+/* =========================
+   Labels
+========================= */
+.block-label {
+  font-size: 0.85rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--feature-color);
+}
+
+/* =========================
+   Upload Box
+========================= */
+.io-upload-box {
+  border: 2px dashed #2e3442;
+  border-radius: 8px;
+  padding: 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+button.io-upload-box {
+  background: none;
+  border: 2px dashed #2e3442; /* keep your border */
+  padding: 0.5rem;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.io-upload-box span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.io-upload-box small {
+  font-size: 0.75rem;
+  color: #9aa0aa;
+}
+
+.io-upload-box:hover {
+  border-color: var(--feature-color);
+  background: rgba(91, 140, 255, 0.08);
+}
+
+.io-upload-icon {
+  color: var(--feature-color);
+}
+
+/* =========================
+   Editor
+========================= */
+.text-editor {
+  width: 100%;
+  min-height: 250px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--bg);
+  color: var(--text-color);
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.text-editor[readonly] {
+  opacity: 0.85;
+}
+
+/* =========================
+   Toolbar
+========================= */
+.editor-toolbar {
+  display: flex;
+  gap: 6px;
+}
+
+.editor-btn {
+  background: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.editor-btn:hover {
+  background: var(--feature-color);
+  color: #111;
+  transform: translateY(-1px);
+}
+
+.editor-btn.danger:hover {
+  background: var(--remap);
+  color: #fff;
+}
