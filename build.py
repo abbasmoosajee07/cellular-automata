@@ -33,8 +33,8 @@ def main():
 
     # 4. Copy root HTML/CSS/JS/assets
     assets = [
-        "index.html", "styles.css", 
-        "scripts", "grids", "renderer", 
+        "index.html", "styles",
+        "scripts", "grids", "renderer",
         "patterns", "assets"]
     for asset in assets:
         src = os.path.join(project_root, asset)
