@@ -166,6 +166,10 @@ impl ChunkedCellManager {
         })
     }
 
+    pub fn count_live_cells(&self) -> i32 {
+        self.iter_cell().map(|[_, _, _, val]| val).sum()
+    }
+
     pub fn resize(&mut self, _new_width: usize, _new_height: usize, new_depth: usize) {
         self.depth = new_depth;
     }

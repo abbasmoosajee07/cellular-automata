@@ -85,4 +85,11 @@ impl CellBackend {
             CellBackend::Chunked(cm) => cm.get_chunk_cells(cx, cy, cz),
         }
     }
+
+    pub fn count_live_cells(&self) -> i32 {
+        match self {
+            CellBackend::Flat(fm) => fm.count_live_cells(),
+            CellBackend::Chunked(cm) => cm.count_live_cells(),
+        }
+    }
 }

@@ -138,6 +138,14 @@ impl GridMesh {
         self.inner.clear();
     }
 
+    pub fn each_live_cell(&self) -> Vec<i32> {
+        self.inner.each_live_cell()
+    }
+
+    pub fn count_live_cells(&self) -> i32 {
+        self.inner.count_live_cells()
+    }
+
     pub fn batch_update(
         &mut self,
         cell_data: Vec<(i32, i32, i32, u32)>,
@@ -147,10 +155,6 @@ impl GridMesh {
             let write_val = overwrite.unwrap_or(val);
             self.set_cell(q, r, s, write_val);
         }
-    }
-
-    pub fn each_live_cell(&self) -> Vec<i32> {
-        self.inner.each_live_cell()
     }
 
     // NEIGHBORHOOD
@@ -166,19 +170,6 @@ impl GridMesh {
         }
 
         all_neighbors
-    }
-
-    pub fn count_live_cells(&self) -> i32 {
-        let mut count = 0;
-        let arr = self.each_live_cell();
-
-        let mut i = 0;
-        while i + 3 < arr.len() {
-            let state = arr[i + 3] as i32;
-            count += state;
-            i += 4;
-        }
-        count
     }
 
     // RESIZING

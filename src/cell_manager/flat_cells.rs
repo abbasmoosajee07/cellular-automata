@@ -114,6 +114,10 @@ impl FlatCellManager {
         })
     }
 
+    pub fn count_live_cells(&self) -> i32 {
+        self.cells.iter().sum::<u32>() as i32
+    }
+
     pub fn resize(&mut self, new_width: usize, new_height: usize, new_depth: usize) {
         let new_origin = (
             (new_width as i32) / 2,
@@ -121,7 +125,7 @@ impl FlatCellManager {
             (new_depth as i32) * 0,
         );
 
-        let mut new_cells = vec![0u32; new_width * new_height * new_depth];
+        let mut new_cells: Vec<u32> = vec![0u32; new_width * new_height * new_depth];
         for s in 0..self.depth.min(new_depth) {
             for r in 0..self.height.min(new_height) {
                 for q in 0..self.width.min(new_width) {
@@ -154,4 +158,5 @@ impl FlatCellManager {
     pub fn get_chunk_cells(&self, _cx: i32, _cy: i32, _cz: i32) -> Vec<u32> {
         vec![0; self.width * self.height * self.depth]
     }
+
 }
