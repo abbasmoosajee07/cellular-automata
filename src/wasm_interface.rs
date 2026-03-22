@@ -96,20 +96,21 @@ impl WasmInterface {
         serde_json::to_string(&self.engine.automata).unwrap()
     }
 
-    pub fn get_chunk_size(&self) -> usize {
-        self.engine.mesh.inner.get_chunk_size()
-    }
-
     pub fn get_depth(&self) -> usize {
         self.engine.mesh.inner.get_depth()
     }
 
-    pub fn get_chunk_keys(&self) -> Vec<i32> {
+    pub fn get_chunk_size(&self) -> usize {
+        self.engine.mesh.inner.get_chunk_size()
+    }
+
+    pub fn get_chunk_keys(&self) -> Result<Vec<i32>, JsValue> {
         self.engine.mesh.inner.get_chunk_keys()
+            .map_err(|e| JsValue::from_str(&e))
     }
 
-    pub fn get_chunk_cells(&self, cx: i32, cy: i32, cz: i32) -> Vec<u32> {
+    pub fn get_chunk_cells(&self, cx: i32, cy: i32, cz: i32) -> Result<Vec<u32>, JsValue> {
         self.engine.mesh.inner.get_chunk_cells(cx, cy, cz)
+            .map_err(|e| JsValue::from_str(&e))
     }
-
 }

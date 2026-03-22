@@ -9,6 +9,14 @@ pub enum CellBackend {
 }
 
 impl CellBackend {
+
+    pub fn get_cell_struct(&mut self) -> String {
+        match self {
+            CellBackend::Flat(_fm) => "flat_cells".to_string(),
+            CellBackend::Chunked(_cm) => "chunk_cells".to_string(),
+        }
+    }
+
     pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
         match self {
             CellBackend::Flat(fm) => fm.set_cell(q, r, s, value),
@@ -51,17 +59,10 @@ impl CellBackend {
         }
     }
 
-    pub fn get_cell_struct(&mut self) -> String {
+    pub fn count_live_cells(&self) -> i32 {
         match self {
-            CellBackend::Flat(_fm) => "flat_cells".to_string(),
-            CellBackend::Chunked(_cm) => "chunk_cells".to_string(),
-        }
-    }
-
-    pub fn get_chunk_size(&self) -> usize {
-        match self {
-            CellBackend::Flat(fm) => fm.get_chunk_size(),
-            CellBackend::Chunked(cm) => cm.get_chunk_size(),
+            CellBackend::Flat(fm) => fm.count_live_cells(),
+            CellBackend::Chunked(cm) => cm.count_live_cells(),
         }
     }
 
@@ -72,24 +73,24 @@ impl CellBackend {
         }
     }
 
-    pub fn get_chunk_keys(&self) -> Vec<i32> {
+    pub fn get_chunk_size(&self) -> usize {
         match self {
-            CellBackend::Flat(fm) => fm.get_chunk_keys(),
-            CellBackend::Chunked(cm) => cm.get_chunk_keys(),
+            CellBackend::Flat(_fm) => 0 as usize,
+            CellBackend::Chunked(cm) => cm.get_chunk_size(),
         }
     }
 
-    pub fn get_chunk_cells(&self, cx: i32, cy: i32, cz: i32) -> Vec<u32> {
+    pub fn get_chunk_keys(&self) -> Result<Vec<i32>, String> {
         match self {
-            CellBackend::Flat(fm) => fm.get_chunk_cells(cx, cy, cz),
-            CellBackend::Chunked(cm) => cm.get_chunk_cells(cx, cy, cz),
+            CellBackend::Flat(_fm) => Err("get_chunk_keys is not supported for Flat backend".to_string()),
+            CellBackend::Chunked(cm) => Ok(cm.get_chunk_keys()),
         }
     }
 
-    pub fn count_live_cells(&self) -> i32 {
+    pub fn get_chunk_cells(&self, cx: i32, cy: i32, cz: i32) -> Result<Vec<u32>, String> {
         match self {
-            CellBackend::Flat(fm) => fm.count_live_cells(),
-            CellBackend::Chunked(cm) => cm.count_live_cells(),
+            CellBackend::Flat(_fm) => Err("get_chunk_cells is not supported for Flat backend".to_string()),
+            CellBackend::Chunked(cm) => Ok(cm.get_chunk_cells(cx, cy, cz)),
         }
     }
 }

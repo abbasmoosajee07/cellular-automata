@@ -143,20 +143,8 @@ impl FlatCellManager {
         self.cells = new_cells;
     }
 
-    pub fn get_chunk_size(&self) -> usize {
-        0 as usize
-    }
-
     pub fn get_depth(&self) -> usize {
         self.depth
-    }
-
-    pub fn get_chunk_keys(&self) -> Vec<i32> {
-        Vec::with_capacity(1 * 3)
-    }
-
-    pub fn get_chunk_cells(&self, _cx: i32, _cy: i32, _cz: i32) -> Vec<u32> {
-        vec![0; self.width * self.height * self.depth]
     }
 
 }
