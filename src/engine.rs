@@ -9,6 +9,8 @@ pub struct Engine {
 }
 
 impl Engine {
+
+    // New AUtomata Engine
     pub fn new(shape: String, width: usize, height: usize) -> Self {
 
         Self {
@@ -48,18 +50,33 @@ impl Engine {
 
         for (y, x, z, state) in &cfg.alive {
             if *state != 0 {
-                grid.mesh.set_cell(*y + shift_q, *x + shift_r, *z + shift_s, *state);
+                grid.set_cell(*y + shift_q, *x + shift_r, *z + shift_s, *state);
             }
         }
-        grid.automata.live = grid.mesh.count_live_cells();
+        grid.automata.live = grid.count_live_cells();
         grid
 
     }
 
-    // CONWAY GAME OF LIFE UPDATE
+    // BASIC OPERATIONS
+    pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
+        self.mesh.inner.set_cell(q, r, s, value);
+    }
+
+    pub fn clear(&mut self) {
+        self.mesh.inner.clear();
+        self.automata.live = self.count_live_cells();
+        self.automata.gen_no = 0;
+    }
+
+    pub fn count_live_cells(&self) -> i32 {
+        self.mesh.inner.count_live_cells()
+    }
+
+    // Automata Operations
     pub fn step_game_of_life(&mut self) {
         ConwayLife::step_game_of_life(&mut self.mesh);
-        self.automata.live = self.mesh.count_live_cells();
+        self.automata.live = self.count_live_cells();
         self.automata.gen_no += 1;
     }
 
@@ -75,6 +92,7 @@ impl Engine {
         self.automata.gen_no += 1;
     }
 
+    // Storage Operations
     pub fn update_storage(&mut self) {
         let mut new_storage = self.storage.clone();
         let config = self.mesh.config.clone();

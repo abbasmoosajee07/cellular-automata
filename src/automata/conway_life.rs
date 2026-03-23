@@ -14,7 +14,7 @@ impl ConwayLife {
 
             let mut alive_neighbors = 0;
             for (nq, nr, ns) in mesh.get_neighbors(q, r, s) {
-                if mesh.get_cell(nq, nr, ns) == 1 {
+                if mesh.inner.get_cell(nq, nr, ns) == 1 {
                     alive_neighbors += 1;
                 }
             }
@@ -47,7 +47,7 @@ impl ConwayLife {
                 }
 
                 for neigh in mesh.get_neighbors(q, r, s) {
-                    if mesh.get_cell(neigh.0, neigh.1, neigh.2) == 0 {
+                    if mesh.inner.get_cell(neigh.0, neigh.1, neigh.2) == 0 {
                         if seen.insert(neigh) {
                             potential_cells.push(neigh);
                         }
@@ -57,11 +57,11 @@ impl ConwayLife {
         }
 
         for (q, r, s) in potential_cells {
-            let state = mesh.get_cell(q, r, s) as i32;
+            let state = mesh.inner.get_cell(q, r, s) as i32;
 
             let mut alive_neighbors = 0;
             for (nq, nr, ns) in mesh.get_neighbors(q, r, s) {
-                if mesh.get_cell(nq, nr, ns) == 1 {
+                if mesh.inner.get_cell(nq, nr, ns) == 1 {
                     alive_neighbors += 1;
                 }
             }
@@ -100,7 +100,7 @@ impl ConwayLife {
 
         // Apply updates
         for chunk in next_states.chunks_exact(4) {
-            mesh.set_cell(chunk[0], chunk[1], chunk[2], chunk[3] as u32);
+            mesh.inner.set_cell(chunk[0], chunk[1], chunk[2], chunk[3] as u32);
         }
     }
 }

@@ -6,7 +6,7 @@ pub struct FloodFill;
 impl FloodFill {
 
     pub fn floodfill(mesh: &mut GridMesh) -> i32 {
-        let arr = mesh.each_live_cell();
+        let arr = mesh.inner.each_live_cell();
         let mut neighbors_to_activate = Vec::new();
         let mut cells_filled = 0;
         let mut i = 0;
@@ -23,10 +23,10 @@ impl FloodFill {
         }
 
         for (nq, nr, ns) in neighbors_to_activate {
-            if mesh.get_cell(nq, nr, ns) != 1 { // only count if not already active
+            if mesh.inner.get_cell(nq, nr, ns) != 1 { // only count if not already active
                 cells_filled += 1;
             }
-            mesh.set_cell(nq, nr, ns, 1);
+            mesh.inner.set_cell(nq, nr, ns, 1);
         }
 
         cells_filled

@@ -214,6 +214,7 @@ class SimulatorController{
 
         this.clearGrid.addEventListener('click', () => {
             this.gridManager.clearAll();
+            this.updateAutomataStatus();
             this.gridManager.renderGrid();
         });
 

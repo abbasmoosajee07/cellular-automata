@@ -28,23 +28,23 @@ impl WasmInterface {
     }
 
     pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
-        self.engine.mesh.set_cell(q, r, s, value);
+        self.engine.set_cell(q, r, s, value);
     }
 
     pub fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 {
-        self.engine.mesh.get_cell(q, r, s)
+        self.engine.mesh.inner.get_cell(q, r, s)
     }
 
     pub fn clear(&mut self) {
-        self.engine.mesh.clear();
+        self.engine.clear();
     }
 
     pub fn count_live_cells(&self) -> i32 {
-        self.engine.mesh.count_live_cells()
+        self.engine.count_live_cells()
     }
 
     pub fn each_live_cell(&self) -> Vec<i32> {
-        self.engine.mesh.each_live_cell()
+        self.engine.mesh.inner.each_live_cell()
     }
 
     pub fn resize(&mut self, w: usize, h: usize) {

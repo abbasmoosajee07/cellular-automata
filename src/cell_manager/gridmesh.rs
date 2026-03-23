@@ -125,27 +125,6 @@ impl GridMesh {
         }
     }
 
-    // BASIC OPERATIONS
-    pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
-        self.inner.set_cell(q, r, s, value);
-    }
-
-    pub fn get_cell(&self, q: i32, r: i32, s: i32) -> u32 {
-        self.inner.get_cell(q, r, s)
-    }
-
-    pub fn clear(&mut self) {
-        self.inner.clear();
-    }
-
-    pub fn each_live_cell(&self) -> Vec<i32> {
-        self.inner.each_live_cell()
-    }
-
-    pub fn count_live_cells(&self) -> i32 {
-        self.inner.count_live_cells()
-    }
-
     pub fn batch_update(
         &mut self,
         cell_data: Vec<(i32, i32, i32, u32)>,
@@ -153,7 +132,7 @@ impl GridMesh {
     ) {
         for (q, r, s, val) in cell_data {
             let write_val = overwrite.unwrap_or(val);
-            self.set_cell(q, r, s, write_val);
+            self.inner.set_cell(q, r, s, write_val);
         }
     }
 
@@ -219,7 +198,7 @@ impl GridMesh {
     }
 
     pub fn get_cell_extremes(&self) -> [i32; 6] {
-        let arr = self.each_live_cell();
+        let arr = self.inner.each_live_cell();
 
         // Initialize with opposite extremes
         let mut min_q = i32::MAX;
@@ -263,7 +242,7 @@ impl GridMesh {
                 for r in min_r.max(-rand_limit)..=max_r.min(rand_limit) {
                     let status = if fastrand::f32() < density { 1 } else { 0 };
                     if status == 1 { cells_filled += 1; }
-                    self.set_cell(q, r, s, status);
+                    self.inner.set_cell(q, r, s, status);
                 }
             }
         }
