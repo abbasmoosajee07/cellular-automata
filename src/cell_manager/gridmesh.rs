@@ -150,14 +150,12 @@ impl GridMesh {
     }
 
     pub fn calculate_total_cells(&self) -> i32 {
-        let total_cells: usize;
         if self.config.topology_type == "infinite" {
             let [min_q, max_q, min_r, max_r, min_s, max_s] = self.get_cell_extremes();
-            total_cells = ((max_q - min_q) * (max_r - min_r) * (max_s - min_s)) as usize;
+            (1 + max_q - min_q) * (1 + max_r - min_r) * (1 + max_s - min_s)
         } else {
-            total_cells = self.config.width * self.config.height * self.config.depth;
+            (self.config.width * self.config.height * self.config.depth) as i32
         }
-        total_cells as i32
     }
 
     pub fn resize(&mut self, new_width: usize, new_height: usize) {
