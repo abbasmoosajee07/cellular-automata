@@ -34,8 +34,8 @@ pub struct GridConfig {
 pub struct GridMesh {
     pub config: GridConfig,
     pub inner: CellBackend,
-    pub topology_manager: Topology,
     pub tile_manager: TileManager,
+    pub topology_manager: Topology,
 }
 
 impl GridMesh {
@@ -80,7 +80,6 @@ impl GridMesh {
         }
     }
 
-    // CONSTRUCTOR
     pub fn new(shape: String, width: usize, height: usize) -> Self {
         let defaultconfig = PatternConfig::default();
         let tile_manager = TileManager::configure(
@@ -120,8 +119,8 @@ impl GridMesh {
         Self {
             config,
             inner,
-            topology_manager,
             tile_manager,
+            topology_manager,
         }
     }
 
@@ -136,7 +135,6 @@ impl GridMesh {
         }
     }
 
-    // NEIGHBORHOOD
     pub fn get_neighbors(&self, q: i32, r: i32, s: i32) -> Vec<(i32, i32, i32)> {
         let mut all_neighbors = Vec::new();
 
@@ -151,7 +149,17 @@ impl GridMesh {
         all_neighbors
     }
 
-    // RESIZING
+    pub fn calculate_total_cells(&self) -> i32 {
+        let total_cells: usize;
+        if self.config.topology_type == "infinite" {
+            let [min_q, max_q, min_r, max_r, min_s, max_s] = self.get_cell_extremes();
+            total_cells = ((max_q - min_q) * (max_r - min_r) * (max_s - min_s)) as usize;
+        } else {
+            total_cells = self.config.width * self.config.height * self.config.depth;
+        }
+        total_cells as i32
+    }
+
     pub fn resize(&mut self, new_width: usize, new_height: usize) {
         let old_cells = self.inner.each_live_cell();
 
@@ -172,7 +180,6 @@ impl GridMesh {
         self.topology_manager.change_bounds(new_bounds);
     }
 
-    // BOUNDS
     pub fn get_bounds(&self) -> [i32; 6] {
         if self.config.topology_type == "infinite" {
             return [
@@ -230,7 +237,6 @@ impl GridMesh {
         [min_q, max_q, min_r, max_r, min_s, max_s]
     }
 
-    // RANDOM FILL
     pub fn random_cells(&mut self) -> i32 {
         let [min_q, max_q, min_r, max_r, min_s, max_s] = self.config.bounds;
         let rand_limit: i32 = 1000;
@@ -250,7 +256,6 @@ impl GridMesh {
         cells_filled
     }
 
-    // CHANGE GRID PROPERTIES
     pub fn change_grid_properties(
         &mut self,
         shape: String,

@@ -11,14 +11,15 @@ pub struct Engine {
 impl Engine {
 
     // New AUtomata Engine
-    pub fn new(shape: String, width: usize, height: usize) -> Self {
-
-        Self {
-            storage: PatternConfig::default(),
-            mesh: GridMesh::new(shape, width, height),
-            automata: Automata { live: 0, gen_no: 0 },
-        }
+pub fn new(shape: String, width: usize, height: usize) -> Self {
+    let grid_mesh = GridMesh::new(shape, width, height);
+    let total = grid_mesh.calculate_total_cells(); // compute before move
+    Self {
+        storage: PatternConfig::default(),
+        mesh: grid_mesh,
+        automata: Automata { live: 0, gen_no: 0, total },
     }
+}
 
     pub fn read_file<P: AsRef<Path>>(
         path: P,
@@ -36,10 +37,12 @@ impl Engine {
         let cfg = PatternIO::read_pattern(pattern_props, pattern_data);
 
         let [w, h, _d] = cfg.grid_size;
+        let grid_mesh = GridMesh::new(cfg.shape.clone(), w as usize, h as usize);
+        let total = grid_mesh.calculate_total_cells(); // compute before move
         let mut grid = Self {
             storage: cfg.clone(),
-            mesh: GridMesh::new(cfg.shape.clone(), w as usize, h as usize),
-            automata: Automata { live: 0, gen_no: 0 },
+            mesh: grid_mesh,
+            automata: Automata { live: 0, gen_no: 0, total},
         };
 
         grid.mesh.change_grid_properties(
