@@ -11,15 +11,15 @@ pub struct Engine {
 impl Engine {
 
     // New AUtomata Engine
-pub fn new(shape: String, width: usize, height: usize) -> Self {
-    let grid_mesh = GridMesh::new(shape, width, height);
-    let total = grid_mesh.calculate_total_cells(); // compute before move
-    Self {
-        storage: PatternConfig::default(),
-        mesh: grid_mesh,
-        automata: Automata { live: 0, gen_no: 0, total },
+    pub fn new(shape: String, width: usize, height: usize) -> Self {
+        let grid_mesh = GridMesh::new(shape, width, height);
+        let total = grid_mesh.calculate_total_cells(); // compute before move
+        Self {
+            storage: PatternConfig::default(),
+            mesh: grid_mesh,
+            automata: Automata { live: 0, gen_no: 0, total },
+        }
     }
-}
 
     pub fn read_file<P: AsRef<Path>>(
         path: P,
@@ -74,6 +74,16 @@ pub fn new(shape: String, width: usize, height: usize) -> Self {
 
     pub fn count_live_cells(&self) -> i32 {
         self.mesh.inner.count_live_cells()
+    }
+
+    pub fn resize(&mut self, w: usize, h: usize) {
+        self.mesh.resize(w, h);
+        self.automata.total = self.mesh.calculate_total_cells();
+    }
+
+    pub fn change_grid_properties(&mut self, shape: String, neighbor_type: String, range: i32, topology_type: String) {
+        self.mesh.change_grid_properties(shape, neighbor_type, range, topology_type);
+        self.automata.total = self.mesh.calculate_total_cells();
     }
 
     // Automata Operations

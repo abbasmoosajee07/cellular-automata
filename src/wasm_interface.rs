@@ -48,12 +48,12 @@ impl WasmInterface {
     }
 
     pub fn resize(&mut self, w: usize, h: usize) {
-        self.engine.mesh.resize(w, h);
+        self.engine.resize(w, h);
     }
 
     #[wasm_bindgen]
     pub fn change_grid_properties(&mut self, shape: String, neighbor_type: String, range: i32, topology_type: String) {
-        self.engine.mesh.change_grid_properties(shape, neighbor_type, range, topology_type);
+        self.engine.change_grid_properties(shape, neighbor_type, range, topology_type);
     }
 
     pub fn get_bounds(&self) -> Vec<i32> {
