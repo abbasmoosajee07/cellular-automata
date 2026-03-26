@@ -445,6 +445,7 @@ class SimulatorController{
             // --- PAINTING ---
             if (painting) {
                 this.toggleAt(pointer.x, pointer.y);
+                this.updateAutomataStatus();
             }
 
             // --- CAMERA DRAG ---

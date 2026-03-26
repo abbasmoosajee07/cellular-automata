@@ -64,6 +64,8 @@ impl Engine {
     // BASIC OPERATIONS
     pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
         self.mesh.inner.set_cell(q, r, s, value);
+        self.automata.live = self.count_live_cells();
+
     }
 
     pub fn clear(&mut self) {

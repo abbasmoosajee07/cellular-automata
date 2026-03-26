@@ -23,8 +23,8 @@ pub fn run_native_tests() {
         println!("Random fill time: {:?}", rand_elapsed);
         cm
     };
-    // cm.mesh.resize(10, 10);
-    cm.mesh.change_grid_properties(
+    // cm.resize(10, 10);
+    cm.change_grid_properties(
         "square".to_string(),
         "moore".to_string(),
         1,
