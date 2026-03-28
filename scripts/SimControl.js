@@ -8,7 +8,7 @@ class SimulatorController{
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
         "status_zoom", "status_camera", "status_pop", "status_gen",
-        "updateSim", "loadSim",
+        "updateSim", "loadSim", "statsPreview",
     ];
 
     shapeProps = {
@@ -471,14 +471,14 @@ class SimulatorController{
         this.gridCanvas.addEventListener('mouseleave', handleUp);
 
         // Touch
-        this.gridCanvas.addEventListener('touchstart', (e) => { 
-            e.preventDefault(); 
-            handleDown(getPointer(e)); 
+        this.gridCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleDown(getPointer(e));
         }, { passive: false });
 
-        this.gridCanvas.addEventListener('touchmove', (e) => { 
-            e.preventDefault(); 
-            handleMove(e); 
+        this.gridCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            handleMove(e);
         }, { passive: false });
 
         this.gridCanvas.addEventListener('touchend', handleUp);
@@ -517,7 +517,7 @@ class SimulatorController{
             : JSON.parse(this.wasm_engine.automata_string());
         this.status_pop.textContent = info.live;
         this.status_gen.textContent = info.gen_no;
-        console.log(info);
+        this.statsPreview.value = JSON.stringify(info, null, 2);
     }
 
     toggleAt(px, py) {
