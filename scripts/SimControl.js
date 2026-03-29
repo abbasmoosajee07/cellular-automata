@@ -102,6 +102,7 @@ class SimulatorController{
 
         // console.log(this.grid_config);
         // console.log(this.storage_pattern);
+        this.updateAutomataStatus();
     }
 
     async fromPattern({ patternData = ""} = {}) {
@@ -125,7 +126,6 @@ class SimulatorController{
         // Build grid
         const shape = this.selectedShape ?? "square";
         this._buildGrid({shape, wasm_engine});
-        this.updateAutomataStatus();
     }
 
     async setupGrid({ preserveState = false } = {}) {
@@ -517,6 +517,7 @@ class SimulatorController{
             : JSON.parse(this.wasm_engine.automata_string());
         this.status_pop.textContent = info.live;
         this.status_gen.textContent = info.gen_no;
+        info.density = info.live / info.total;
         this.statsPreview.value = JSON.stringify(info, null, 2);
     }
 

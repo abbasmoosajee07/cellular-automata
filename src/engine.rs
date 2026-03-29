@@ -79,6 +79,9 @@ impl Engine {
         let was_live = if prev != 0 { 1 } else { 0 };
         let is_live  = if value != 0 { 1 } else { 0 };
         self.automata.live += is_live - was_live;
+        if self.mesh.config.topology_type == "infinite" {
+            self.sync_automata();
+        }
     }
 
     pub fn clear(&mut self) {
@@ -93,7 +96,7 @@ impl Engine {
 
     pub fn resize(&mut self, w: usize, h: usize) {
         self.mesh.resize(w, h);
-        self.automata.total = self.mesh.calculate_total_cells();
+        self.sync_automata();
     }
 
     pub fn change_grid_properties(
@@ -104,7 +107,7 @@ impl Engine {
         topology_type: String,
     ) {
         self.mesh.change_grid_properties(shape, neighbor_type, range, topology_type);
-        self.automata.total = self.mesh.calculate_total_cells();
+        self.sync_automata();
     }
 
     // ── Simulation steps ─────────────────────────────────────────────────────
@@ -123,6 +126,7 @@ impl Engine {
     pub fn floodfill(&mut self) {
         let active_cells   = FloodFill::floodfill(&mut self.mesh);
         self.automata.live = active_cells;
+        self.automata.total = self.mesh.calculate_total_cells();
     }
 
     // ── Storage operations ────────────────────────────────────────────────────
