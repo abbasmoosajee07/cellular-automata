@@ -5,4 +5,5 @@ pub struct Automata {
     pub live: i32,
     pub gen_no: i32,
     pub total: i32,
+    pub density: f32,
 }

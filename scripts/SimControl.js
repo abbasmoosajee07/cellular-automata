@@ -517,7 +517,6 @@ class SimulatorController{
             : JSON.parse(this.wasm_engine.automata_string());
         this.status_pop.textContent = info.live;
         this.status_gen.textContent = info.gen_no;
-        info.density = info.live / info.total;
         this.statsPreview.value = JSON.stringify(info, null, 2);
     }
 

@@ -17,7 +17,7 @@ impl Engine {
         Self {
             storage: PatternConfig::default(),
             mesh: grid_mesh,
-            automata: Automata { live: 0, gen_no: 0, total },
+            automata: Automata { live: 0, gen_no: 0, total, density: 0.0 },
         }
     }
 
@@ -37,7 +37,7 @@ impl Engine {
         let mut engine = Self {
             storage: cfg.clone(),
             mesh: grid_mesh,
-            automata: Automata { live: 0, gen_no: 0, total },
+            automata: Automata { live: 0, gen_no: 0, total, density: 0.0 },
         };
 
         engine.mesh.change_grid_properties(
@@ -68,6 +68,7 @@ impl Engine {
     fn sync_automata(&mut self) {
         self.automata.live  = self.mesh.inner.count_live_cells();
         self.automata.total = self.mesh.calculate_total_cells();
+        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
     }
 
     // ── Basic operations ─────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ impl Engine {
         let was_live = if prev != 0 { 1 } else { 0 };
         let is_live  = if value != 0 { 1 } else { 0 };
         self.automata.live += is_live - was_live;
+        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
         if self.mesh.config.topology_type == "infinite" {
             self.sync_automata();
         }
@@ -88,6 +90,7 @@ impl Engine {
         self.mesh.inner.clear();
         self.automata.live   = 0;
         self.automata.gen_no = 0;
+        self.automata.density = 0.0;
     }
 
     pub fn count_live_cells(&self) -> i32 {
@@ -114,12 +117,14 @@ impl Engine {
     pub fn step_game_of_life(&mut self) {
         ConwayLife::step_game_of_life(&mut self.mesh);
         self.automata.live   = self.mesh.inner.count_live_cells();
+        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
         self.automata.gen_no += 1;
     }
 
     pub fn random_cells(&mut self) {
         let active_cells     = self.mesh.random_cells();
         self.automata.live   = active_cells;
+        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
         self.automata.gen_no = 0;
     }
 
@@ -127,6 +132,7 @@ impl Engine {
         let active_cells   = FloodFill::floodfill(&mut self.mesh);
         self.automata.live = active_cells;
         self.automata.total = self.mesh.calculate_total_cells();
+        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
     }
 
     // ── Storage operations ────────────────────────────────────────────────────
