@@ -81,13 +81,13 @@ class SimulatorController{
 
     _buildGrid({shape, wasm_engine, savedView = null}) {
         this.wasm_engine = wasm_engine;
-        this.grid_config = JSON.parse(wasm_engine.config_string());
-        this.storage_pattern = JSON.parse(wasm_engine.storage_string());
-        this.gridSize = [Number(this.grid_config.width), Number(this.grid_config.height), Number(this.grid_config.depth)]
+        this.gridConfig = JSON.parse(wasm_engine.config_string());
+        this.storageConfig = JSON.parse(wasm_engine.storage_string());
+        this.gridSize = [Number(this.gridConfig.width), Number(this.gridConfig.height), Number(this.gridConfig.depth)]
 
         this.gridManager = new GridManager(
             shape, this.gridSize,
-            wasm_engine, this.grid_config,
+            wasm_engine, this.gridConfig,
             this.gridCanvas, this.useWebgl,
         );
 
@@ -100,8 +100,8 @@ class SimulatorController{
         this.savedView = { ...this.gridManager.cameraView };
         this.gridManager.renderGrid(true);
 
-        // console.log(this.grid_config);
-        // console.log(this.storage_pattern);
+        // console.log(this.gridConfig);
+        // console.log(this.storageConfig);
         this.updateAutomataStatus();
     }
 
@@ -511,13 +511,14 @@ class SimulatorController{
         this.status_camera.textContent = `(${q},${r},${s})`;
     }
 
-    updateAutomataStatus(raw_info = null) {
-        const info = raw_info
-            ? JSON.parse(raw_info)
+    updateAutomataStatus(raw_stats = null) {
+        const stats = raw_stats
+            ? JSON.parse(raw_stats)
             : JSON.parse(this.wasm_engine.automata_string());
-        this.status_pop.textContent = info.live;
-        this.status_gen.textContent = info.gen_no;
-        this.statsPreview.value = JSON.stringify(info, null, 2);
+        this.automataConfig = stats;
+        this.status_pop.textContent = stats.live;
+        this.status_gen.textContent = stats.gen_no;
+        this.statsPreview.value = JSON.stringify(stats, null, 2);
     }
 
     toggleAt(px, py) {

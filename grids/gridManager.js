@@ -15,7 +15,7 @@ import { ChunkedRender } from '../renderer/ChunkedRender.js';
 class GridManager {
     constructor(
         shape, gridSize,
-        init_engine, grid_config,
+        init_engine, gridConfig,
         canvas,  useWebGL = false
     ) {
         // Core refs
@@ -26,8 +26,8 @@ class GridManager {
         // Grid configuration
         this.shape = shape;
         this.gridSize = gridSize;
-        this.bounds = grid_config.bounds;
-        this.chunked = grid_config.cell_struct === "chunk_cells";
+        this.bounds = gridConfig.bounds;
+        this.chunked = gridConfig.cell_struct === "chunk_cells";
 
         // Camera & rendering state
         this.cameraView = { camX: 0, camY: 0, zoom: 0 };
