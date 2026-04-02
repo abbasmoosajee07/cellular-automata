@@ -20,49 +20,7 @@
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/layout.css">
     <link rel="stylesheet" href="styles/components.css">
-    <style>
-        /* ── Stats chart wrapper ─────────────────────────────── */
-        .stats-chart-wrap {
-            margin: 8px 0 12px;
-            background: var(--chart-bg, rgba(0,0,0,0.08));
-            border: 1px solid var(--chart-axis, rgba(128,128,128,0.25));
-            border-radius: 6px;
-            padding: 8px 6px 4px;
-        }
-        .stats-chart-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-        .stats-chart-title {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            opacity: 0.7;
-            text-transform: uppercase;
-        }
-        #statsChart {
-            display: block;
-            width: 100%;
-            height: 140px;
-        }
-
-        /* ── CSS variables for chart theming ─────────────────── */
-        :root {
-            --chart-grid: rgba(128,128,128,0.18);
-            --chart-line: #4fc3f7;
-            --chart-fill: rgba(79,195,247,0.15);
-            --chart-text: #888;
-            --chart-axis: rgba(128,128,128,0.35);
-        }
-        /* Override when dark theme active (assumes .dark or [data-theme=dark] on <html>/<body>) */
-        .dark, [data-theme="dark"] {
-            --chart-line: #81d4fa;
-            --chart-fill: rgba(129,212,250,0.12);
-            --chart-text: #aaa;
-        }
-    </style>
+    <link rel="stylesheet" href="styles/stats.css">
 </head>
 
 <body>
@@ -378,58 +336,58 @@
         </button>
     </div>
 
-    <!--  Status Bar -->
-<div id="statusBar" class="ui-panel">
-    <div class="status-item" title="Population">
-        <i>Pop:</i>
-        <span id="status_pop">0</span>
+        <!--  Status Bar -->
+    <div id="statusBar" class="ui-panel">
+        <div class="status-item" title="Population">
+            <i>Pop:</i>
+            <span id="status_pop">0</span>
+        </div>
+
+        <div class="status-item" title="Generation">
+            <i>Gen:</i>
+            <span id="status_gen">0</span>
+        </div>
+
+        <div class="status-item"  title="Zoom">
+            <i>Zoom:</i>
+            <span id="status_zoom">1:1</span>
+        </div>
+
+        <div class="status-item"  title="Pointer Loc">
+            <i>Loc:</i>
+            <span id="status_camera">(0,0)</span>
+        </div>
+
     </div>
 
-    <div class="status-item" title="Generation">
-        <i>Gen:</i>
-        <span id="status_gen">0</span>
+
+    <!-- Pattern Library -->
+    <div id="library" class="pattern-library hidden">
+    <div class="library-header">
+        <h3><i class="bi bi-collection"></i> Pattern Library</h3>
+        <button id="closeLibrary" class="icon-btn">
+        <i class="bi bi-x-lg"></i>
+        </button>
     </div>
 
-    <div class="status-item"  title="Zoom">
-        <i>Zoom:</i>
-        <span id="status_zoom">1:1</span>
+    <input
+        type="text"
+        id="searchLibrary"
+        placeholder="Search patterns…"
+        class="library-search"
+    />
+
+    <table class="library-table">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Formats</th>
+            <th>Lines</th>
+        </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
     </div>
-
-    <div class="status-item"  title="Pointer Loc">
-        <i>Loc:</i>
-        <span id="status_camera">(0,0)</span>
-    </div>
-
-</div>
-
-
-<!-- Pattern Library -->
-<div id="library" class="pattern-library hidden">
-  <div class="library-header">
-    <h3><i class="bi bi-collection"></i> Pattern Library</h3>
-    <button id="closeLibrary" class="icon-btn">
-      <i class="bi bi-x-lg"></i>
-    </button>
-  </div>
-
-  <input
-    type="text"
-    id="searchLibrary"
-    placeholder="Search patterns…"
-    class="library-search"
-  />
-
-  <table class="library-table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Formats</th>
-        <th>Lines</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
-</div>
 
 </body>
 
