@@ -20,6 +20,49 @@
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/layout.css">
     <link rel="stylesheet" href="styles/components.css">
+    <style>
+        /* ── Stats chart wrapper ─────────────────────────────── */
+        .stats-chart-wrap {
+            margin: 8px 0 12px;
+            background: var(--chart-bg, rgba(0,0,0,0.08));
+            border: 1px solid var(--chart-axis, rgba(128,128,128,0.25));
+            border-radius: 6px;
+            padding: 8px 6px 4px;
+        }
+        .stats-chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .stats-chart-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        #statsChart {
+            display: block;
+            width: 100%;
+            height: 140px;
+        }
+
+        /* ── CSS variables for chart theming ─────────────────── */
+        :root {
+            --chart-grid: rgba(128,128,128,0.18);
+            --chart-line: #4fc3f7;
+            --chart-fill: rgba(79,195,247,0.15);
+            --chart-text: #888;
+            --chart-axis: rgba(128,128,128,0.35);
+        }
+        /* Override when dark theme active (assumes .dark or [data-theme=dark] on <html>/<body>) */
+        .dark, [data-theme="dark"] {
+            --chart-line: #81d4fa;
+            --chart-fill: rgba(129,212,250,0.12);
+            --chart-text: #aaa;
+        }
+    </style>
 </head>
 
 <body>
@@ -196,6 +239,17 @@
                     placeholder="Automata Base"
                     readonly
                 ></textarea>
+
+                <div class="stats-chart-wrap">
+                    <div class="stats-chart-header">
+                        <span class="stats-chart-title">Population over Time</span>
+                        <button id="clearStatsChart" class="editor-btn" title="Clear chart history">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </div>
+                    <canvas id="statsChart"></canvas>
+                </div>
+
             </div>
 
             <!-- File Panel -->

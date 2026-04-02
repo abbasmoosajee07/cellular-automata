@@ -1,6 +1,7 @@
 import {  GridManager  } from '../grids/gridManager.js';
 import {  SharePatterns  } from '../scripts/SharePatterns.js';
 import init, { WasmInterface  } from "../pkg/cellular_automata.js";
+import {  StatsDisplay  } from '../scripts/StatsDisplay.js';
 
 class SimulatorController{
     docIDs = [
@@ -10,6 +11,7 @@ class SimulatorController{
         "status_zoom", "status_camera", "status_pop", "status_gen",
         "updateSim", "loadSim", "statsPreview",
     ];
+
 
     shapeProps = {
         square: ["moore", "vonNeumann", "cross", "checkerboard", "star"],
@@ -29,6 +31,7 @@ class SimulatorController{
         await init(); // <-- wait for WASM to finish loading
 
         this.initElements();
+        this.statsDisplay = new StatsDisplay();
         this.patternSharer = new SharePatterns(this);
         await this.patternSharer.ready;
 
@@ -99,6 +102,9 @@ class SimulatorController{
 
         this.savedView = { ...this.gridManager.cameraView };
         this.gridManager.renderGrid(true);
+
+        // Reset chart history when a new grid is built
+        this.statsDisplay?.resetChart();
 
         // console.log(this.gridConfig);
         // console.log(this.storageConfig);
@@ -519,6 +525,8 @@ class SimulatorController{
         this.status_pop.textContent = stats.live;
         this.status_gen.textContent = stats.gen_no;
         this.statsPreview.value = JSON.stringify(stats, null, 2);
+
+        this.statsDisplay.updateStatsChart(stats);
     }
 
     toggleAt(px, py) {
