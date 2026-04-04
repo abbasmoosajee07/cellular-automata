@@ -2,13 +2,13 @@ class StatsDisplay {
     // Rolling history for the population chart
     _chartHistory = [];          // [{gen, live}, ...]
     _MAX_CHART_POINTS = 200;     // keep last N generations visible
+    _hoveredIndex = null;        // index into _chartHistory under cursor
     statsIDs = ["statsChart", "clearStatsChart"]
     constructor() {
         for (const id of this.statsIDs) {
             this[id] = document.getElementById(id);
         }
         this._initStatsChart()
-
     }
 
     resetChart() {
@@ -17,7 +17,6 @@ class StatsDisplay {
     }
 
     updateStatsChart(stats) {
-        // ── Push to chart history ──────────────────────────────
         this._chartHistory.push({ gen: Number(stats.gen_no), live: Number(stats.live) });
         if (this._chartHistory.length > this._MAX_CHART_POINTS) {
             this._chartHistory.shift();
@@ -25,7 +24,6 @@ class StatsDisplay {
         this._drawStatsChart();
     }
 
-    // ── Initialise chart canvas wiring ────────────────────────
     _initStatsChart() {
         if (this.clearStatsChart) {
             this.clearStatsChart.addEventListener('click', () => {
@@ -33,13 +31,41 @@ class StatsDisplay {
                 this._drawStatsChart();
             });
         }
-        // Redraw on resize (handles panel open/close reflows)
         const ro = new ResizeObserver(() => this._drawStatsChart());
         if (this.statsChart) ro.observe(this.statsChart);
+
+        if (this.statsChart) {
+            this.statsChart.addEventListener('mousemove', (e) => {
+                const data = this._chartHistory;
+                if (data.length < 2) return;
+
+                const rect  = this.statsChart.getBoundingClientRect();
+                const pad   = { left: 46, right: 10, top: 10, bottom: 28 };
+                const cW    = rect.width - pad.left - pad.right;
+                const mx    = e.clientX - rect.left;
+
+                // Map mouse X → nearest data index
+                const t     = (mx - pad.left) / cW;
+                const raw   = t * (data.length - 1);
+                const idx   = Math.round(Math.max(0, Math.min(data.length - 1, raw)));
+
+                if (idx !== this._hoveredIndex) {
+                    this._hoveredIndex = idx;
+                    this._drawStatsChart();
+                }
+            });
+
+            this.statsChart.addEventListener('mouseleave', () => {
+                if (this._hoveredIndex !== null) {
+                    this._hoveredIndex = null;
+                    this._drawStatsChart();
+                }
+            });
+        }
+
         this._drawStatsChart();
     }
 
-    // ── Lightweight canvas line chart (no external lib) ───────
     _drawStatsChart() {
         const canvas = this.statsChart;
         if (!canvas) return;
@@ -143,6 +169,57 @@ class StatsDisplay {
         ctx.arc(xOf(data.length - 1), yOf(last.live), 3.5, 0, Math.PI * 2);
         ctx.fillStyle = colLine;
         ctx.fill();
+
+        const hi = this._hoveredIndex;
+        if (hi !== null && hi >= 0 && hi < data.length) {
+            const hx = xOf(hi);
+            const hy = yOf(data[hi].live);
+
+            // Vertical crosshair line
+            ctx.strokeStyle = colAxis;
+            ctx.lineWidth   = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(hx, pad.top);
+            ctx.lineTo(hx, pad.top + cH);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Hover dot (larger)
+            ctx.beginPath();
+            ctx.arc(hx, hy, 5, 0, Math.PI * 2);
+            ctx.fillStyle   = colLine;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth   = 1.5;
+            ctx.stroke();
+
+            // Tooltip box
+            const label  = `Gen ${data[hi].gen}  |  Pop ${data[hi].live.toLocaleString()}`;
+            ctx.font     = 'bold 11px system-ui, sans-serif';
+            const tw     = ctx.measureText(label).width;
+            const bPad   = 5;
+            const bW     = tw + bPad * 2;
+            const bH     = 20;
+
+            // Keep box inside canvas
+            let bx = hx - bW / 2;
+            let by = hy - bH - 10;
+            bx = Math.max(pad.left, Math.min(bx, W - pad.right - bW));
+            by = by < pad.top ? hy + 10 : by;
+
+            ctx.fillStyle   = 'rgba(30,30,30,0.85)';
+            ctx.strokeStyle = colLine;
+            ctx.lineWidth   = 1;
+            ctx.beginPath();
+            ctx.roundRect(bx, by, bW, bH, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle  = '#fff';
+            ctx.textAlign  = 'left';
+            ctx.fillText(label, bx + bPad, by + bH - 6);
+        }
     }
 
 }
