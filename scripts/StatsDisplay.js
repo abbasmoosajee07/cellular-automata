@@ -39,18 +39,30 @@ class StatsDisplay {
                 const data = this._chartHistory;
                 if (data.length < 2) return;
 
-                const rect  = this.statsChart.getBoundingClientRect();
-                const pad   = { left: 46, right: 10, top: 10, bottom: 28 };
-                const cW    = rect.width - pad.left - pad.right;
-                const mx    = e.clientX - rect.left;
+                const rect   = this.statsChart.getBoundingClientRect();
+                const pad    = { left: 46, right: 10, top: 10, bottom: 28 };
+                const cW     = rect.width  - pad.left - pad.right;
+                const cH     = rect.height - pad.top  - pad.bottom;
+                const mx     = e.clientX - rect.left;
+                const my     = e.clientY - rect.top;
 
                 // Map mouse X → nearest data index
-                const t     = (mx - pad.left) / cW;
-                const raw   = t * (data.length - 1);
-                const idx   = Math.round(Math.max(0, Math.min(data.length - 1, raw)));
+                const t      = (mx - pad.left) / cW;
+                const raw    = t * (data.length - 1);
+                const idx    = Math.round(Math.max(0, Math.min(data.length - 1, raw)));
 
-                if (idx !== this._hoveredIndex) {
-                    this._hoveredIndex = idx;
+                // Map that index back to the line's Y position
+                const maxPop   = Math.max(...data.map(d => d.live), 1);
+                const minPop   = Math.min(...data.map(d => d.live), 0);
+                const popRange = maxPop - minPop || 1;
+                const lineY    = pad.top + cH - ((data[idx].live - minPop) / popRange) * cH;
+
+                // Only show tooltip when cursor is within 12px of the line
+                const HIT_RADIUS = 12;
+                const newIndex   = Math.abs(my - lineY) <= HIT_RADIUS ? idx : null;
+
+                if (newIndex !== this._hoveredIndex) {
+                    this._hoveredIndex = newIndex;
                     this._drawStatsChart();
                 }
             });
@@ -170,6 +182,7 @@ class StatsDisplay {
         ctx.fillStyle = colLine;
         ctx.fill();
 
+        // ── Tooltip (only when near the line) ─────────────────
         const hi = this._hoveredIndex;
         if (hi !== null && hi >= 0 && hi < data.length) {
             const hx = xOf(hi);
