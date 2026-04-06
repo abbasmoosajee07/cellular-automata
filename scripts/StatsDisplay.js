@@ -4,6 +4,7 @@ class StatsDisplay {
     _MAX_CHART_POINTS = 200;     // keep last N generations visible
     _hoveredIndex = null;        // index into _chartHistory under cursor
     statsIDs = ["statsChart", "clearStatsChart"]
+    activeProp = "live";
     constructor() {
         for (const id of this.statsIDs) {
             this[id] = document.getElementById(id);
@@ -17,10 +18,14 @@ class StatsDisplay {
     }
 
     updateStatsChart(stats) {
-        this._chartHistory.push({ gen: Number(stats.gen_no), live: Number(stats.live) });
-        if (this._chartHistory.length > this._MAX_CHART_POINTS) {
-            this._chartHistory.shift();
-        }
+        this._chartHistory.push({
+            gen: Number(stats.gen_no),
+            live: Number(stats.live),
+            density: Number(stats.density)
+        });
+        // if (this._chartHistory.length > this._MAX_CHART_POINTS) {
+        //     this._chartHistory.shift();
+        // }
         this._drawStatsChart();
     }
 
@@ -33,6 +38,7 @@ class StatsDisplay {
         }
         const ro = new ResizeObserver(() => this._drawStatsChart());
         if (this.statsChart) ro.observe(this.statsChart);
+        const activeProp = this.activeProp;
 
         if (this.statsChart) {
             this.statsChart.addEventListener('mousemove', (e) => {
@@ -52,10 +58,10 @@ class StatsDisplay {
                 const idx    = Math.round(Math.max(0, Math.min(data.length - 1, raw)));
 
                 // Map that index back to the line's Y position
-                const maxPop   = Math.max(...data.map(d => d.live), 1);
+                const maxPop   = Math.max(...data.map(d => d[activeProp]), 1);
                 const minPop   = Math.min(...data.map(d => d.live), 0);
                 const popRange = maxPop - minPop || 1;
-                const lineY    = pad.top + cH - ((data[idx].live - minPop) / popRange) * cH;
+                const lineY    = pad.top + cH - ((data[idx][activeProp] - minPop) / popRange) * cH;
 
                 // Only show tooltip when cursor is within 12px of the line
                 const HIT_RADIUS = 12;
@@ -80,6 +86,7 @@ class StatsDisplay {
 
     _drawStatsChart() {
         const canvas = this.statsChart;
+        const activeProp = this.activeProp;
         if (!canvas) return;
 
         const dpr   = window.devicePixelRatio || 1;
@@ -115,8 +122,8 @@ class StatsDisplay {
             return;
         }
 
-        const maxPop   = Math.max(...data.map(d => d.live), 1);
-        const minPop   = Math.min(...data.map(d => d.live), 0);
+        const maxPop   = Math.max(...data.map(d => d[activeProp]), 1);
+        const minPop   = Math.min(...data.map(d => d[activeProp]), 0);
         const popRange = maxPop - minPop || 1;
 
         const xOf = i => pad.left + (i / (data.length - 1)) * cW;
@@ -149,8 +156,8 @@ class StatsDisplay {
 
         // Filled area under the line
         ctx.beginPath();
-        ctx.moveTo(xOf(0), yOf(data[0].live));
-        data.forEach((d, i) => ctx.lineTo(xOf(i), yOf(d.live)));
+        ctx.moveTo(xOf(0), yOf(data[0][activeProp]));
+        data.forEach((d, i) => ctx.lineTo(xOf(i), yOf(d[activeProp])));
         ctx.lineTo(xOf(data.length - 1), pad.top + cH);
         ctx.lineTo(xOf(0),               pad.top + cH);
         ctx.closePath();
@@ -159,8 +166,8 @@ class StatsDisplay {
 
         // Line
         ctx.beginPath();
-        ctx.moveTo(xOf(0), yOf(data[0].live));
-        data.forEach((d, i) => ctx.lineTo(xOf(i), yOf(d.live)));
+        ctx.moveTo(xOf(0), yOf(data[0][activeProp]));
+        data.forEach((d, i) => ctx.lineTo(xOf(i), yOf(d[activeProp])));
         ctx.strokeStyle = colLine;
         ctx.lineWidth   = 2;
         ctx.lineJoin    = 'round';
@@ -178,7 +185,7 @@ class StatsDisplay {
         // Latest value dot
         const last = data[data.length - 1];
         ctx.beginPath();
-        ctx.arc(xOf(data.length - 1), yOf(last.live), 3.5, 0, Math.PI * 2);
+        ctx.arc(xOf(data.length - 1), yOf(last[activeProp]), 3.5, 0, Math.PI * 2);
         ctx.fillStyle = colLine;
         ctx.fill();
 
@@ -186,7 +193,7 @@ class StatsDisplay {
         const hi = this._hoveredIndex;
         if (hi !== null && hi >= 0 && hi < data.length) {
             const hx = xOf(hi);
-            const hy = yOf(data[hi].live);
+            const hy = yOf(data[hi][activeProp]);
 
             // Vertical crosshair line
             ctx.strokeStyle = colAxis;
@@ -208,7 +215,7 @@ class StatsDisplay {
             ctx.stroke();
 
             // Tooltip box
-            const label  = `Gen ${data[hi].gen}  |  Pop ${data[hi].live.toLocaleString()}`;
+            const label  = `Gen ${data[hi].gen}  |  Pop ${data[hi][activeProp].toLocaleString()}`;
             ctx.font     = 'bold 11px system-ui, sans-serif';
             const tw     = ctx.measureText(label).width;
             const bPad   = 5;
