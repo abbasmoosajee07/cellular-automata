@@ -31,7 +31,7 @@ A web-based simulation of different variations of Cellular Automata
 - Stability detector (detect when the system freezes or loops).
 - Cycle detection (recognize repeating states).
 - ~~Pattern comparison (export/import and compare runs)~~.
-
+- ~~Display stats and visualize them with graphs~~
 ### 🌍 Advanced Features
 - Multi-species interactions (predator-prey, competing organisms).
 - Rule evolution (rules mutate over time → evolutionary CA).

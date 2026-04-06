@@ -20,7 +20,7 @@ class SharePatterns {
 
     constructor(parentSim) {
         this.simManager = parentSim;
-        this.pendingPattern = null; // 🔑 queue
+        this.pendingPattern = null; // queue
         this.cacheDOM();
         this.ready = this.init();
     }
@@ -29,10 +29,8 @@ class SharePatterns {
         for (const id of this.shareIDs) {
             this[id] = document.getElementById(id);
         }
-
         this.nameInput    = document.querySelector(".pattern-name");
         this.formatSelect = document.getElementById("format-type");
-
     }
 
     async init() {

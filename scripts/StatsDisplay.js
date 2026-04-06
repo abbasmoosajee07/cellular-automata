@@ -1,8 +1,7 @@
 class StatsDisplay {
     // Rolling history for the population chart
-    _chartHistory = [];          // [{gen, live}, ...]
-    _MAX_CHART_POINTS = 200;     // keep last N generations visible
-    _hoveredIndex = null;        // index into _chartHistory under cursor
+    _chartHistory = [];
+    _hoveredIndex = null;
     statsIDs = ["statsChart", "clearStatsChart"]
     activeProp = "live";
     constructor() {
@@ -23,7 +22,7 @@ class StatsDisplay {
             live: Number(stats.live),
             density: Number(stats.density)
         });
-        // if (this._chartHistory.length > this._MAX_CHART_POINTS) {
+        // if (this._chartHistory.length > 200) {
         //     this._chartHistory.shift();
         // }
         this._drawStatsChart();
