@@ -60,14 +60,16 @@ impl Engine {
             }
         }
 
-        engine.sync_automata();
+        engine.sync_automata(None, Some(true));
         engine
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-    fn sync_automata(&mut self) {
-        self.automata.live  = self.mesh.inner.count_live_cells();
-        self.automata.total = self.mesh.calculate_total_cells();
+    fn sync_automata(&mut self, new_live: Option<i32>, recalculate_total: Option<bool>) {
+        if recalculate_total.unwrap_or(false) {
+            self.automata.total = self.mesh.calculate_total_cells();
+        }
+        self.automata.live    = new_live.unwrap_or_else(|| self.mesh.inner.count_live_cells());
         self.automata.density = self.automata.live as f32 / self.automata.total as f32;
     }
 
@@ -79,11 +81,10 @@ impl Engine {
         // Incremental update: O(1) instead of O(n).
         let was_live = if prev != 0 { 1 } else { 0 };
         let is_live  = if value != 0 { 1 } else { 0 };
-        self.automata.live += is_live - was_live;
-        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
-        if self.mesh.config.topology_type == "infinite" {
-            self.sync_automata();
-        }
+        self.sync_automata(
+            Some(self.automata.live + (is_live - was_live)),
+            Some(self.mesh.config.topology_type == "infinite"),
+        );
     }
 
     pub fn clear(&mut self) {
@@ -99,7 +100,7 @@ impl Engine {
 
     pub fn resize(&mut self, w: usize, h: usize) {
         self.mesh.resize(w, h);
-        self.sync_automata();
+        self.sync_automata(None, Some(true));
     }
 
     pub fn change_grid_properties(
@@ -110,29 +111,25 @@ impl Engine {
         topology_type: String,
     ) {
         self.mesh.change_grid_properties(shape, neighbor_type, range, topology_type);
-        self.sync_automata();
+        self.sync_automata(None, Some(true));
     }
 
     // ── Simulation steps ─────────────────────────────────────────────────────
     pub fn step_game_of_life(&mut self) {
         ConwayLife::step_game_of_life(&mut self.mesh);
-        self.automata.live   = self.mesh.inner.count_live_cells();
-        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
+        self.sync_automata(None, None);
         self.automata.gen_no += 1;
     }
 
     pub fn random_cells(&mut self) {
         let active_cells     = self.mesh.random_cells();
-        self.automata.live   = active_cells;
-        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
+        self.sync_automata(Some(active_cells), None);
         self.automata.gen_no = 0;
     }
 
     pub fn floodfill(&mut self) {
         let active_cells   = FloodFill::floodfill(&mut self.mesh);
-        self.automata.live = active_cells;
-        self.automata.total = self.mesh.calculate_total_cells();
-        self.automata.density = self.automata.live as f32 / self.automata.total as f32;
+        self.sync_automata(Some(active_cells), Some(self.mesh.config.topology_type == "infinite"));
     }
 
     // ── Storage operations ────────────────────────────────────────────────────
