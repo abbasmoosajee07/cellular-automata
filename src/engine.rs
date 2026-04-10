@@ -13,12 +13,12 @@ impl Engine {
     // New Automata Engine
     pub fn new(shape: String, width: usize, height: usize) -> Self {
         let grid_mesh = GridMesh::new(shape, width, height);
-        let total = grid_mesh.calculate_total_cells();
         Self {
             storage: PatternConfig::default(),
             mesh: grid_mesh,
-            automata: Automata { live: 0, gen_no: 0, total, density: 0.0 },
+            automata: Automata::default(),
         }
+
     }
 
     pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Self, std::io::Error> {
@@ -37,8 +37,9 @@ impl Engine {
         let mut engine = Self {
             storage: cfg.clone(),
             mesh: grid_mesh,
-            automata: Automata { live: 0, gen_no: 0, total, density: 0.0 },
+            automata: Automata::default(),
         };
+        engine.automata.total = total;
 
         engine.mesh.change_grid_properties(
             cfg.shape.clone(),

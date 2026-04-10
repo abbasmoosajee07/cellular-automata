@@ -7,3 +7,14 @@ pub struct Automata {
     pub total: i32,
     pub density: f32,
 }
+
+impl Default for Automata {
+    fn default() -> Self {
+        Self {
+            live:0,
+            gen_no: 0,
+            total: 0,
+            density: 0.0,
+        }
+    }
+}
