@@ -91,7 +91,7 @@ impl Engine {
     pub fn clear(&mut self) {
         self.mesh.inner.clear();
         self.automata.live   = 0;
-        self.automata.gen_no = 0;
+        self.automata.ticks = 0;
         self.automata.density = 0.0;
     }
 
@@ -119,13 +119,13 @@ impl Engine {
     pub fn step_game_of_life(&mut self) {
         ConwayLife::step_game_of_life(&mut self.mesh);
         self.sync_automata(None, None);
-        self.automata.gen_no += 1;
+        self.automata.ticks += 1;
     }
 
     pub fn random_cells(&mut self) {
         let active_cells     = self.mesh.random_cells();
         self.sync_automata(Some(active_cells), None);
-        self.automata.gen_no = 0;
+        self.automata.ticks = 0;
     }
 
     pub fn floodfill(&mut self) {

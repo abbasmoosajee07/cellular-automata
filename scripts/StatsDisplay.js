@@ -18,7 +18,7 @@ class StatsDisplay {
 
     updateStatsChart(stats) {
         this._chartHistory.push({
-            gen: Number(stats.gen_no),
+            ticks: Number(stats.ticks),
             live: Number(stats.live),
             density: Number(stats.density)
         });
@@ -145,9 +145,9 @@ class StatsDisplay {
         ctx.fillStyle = col.text;
         ctx.font      = '10px system-ui, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(`Gen ${data[0].gen}`, pad.left, H - 6);
+        ctx.fillText(`ticks ${data[0].ticks}`, pad.left, H - 6);
         ctx.textAlign = 'right';
-        ctx.fillText(`Gen ${data[data.length - 1].gen}`, pad.left + cW, H - 6);
+        ctx.fillText(`ticks ${data[data.length - 1].ticks}`, pad.left + cW, H - 6);
     }
 
     _drawLine(ctx, data, activeProp, xOf, yOf, col) {
@@ -216,7 +216,7 @@ class StatsDisplay {
         ctx.stroke();
 
         // Tooltip box
-        const label = `Gen ${data[hi].gen}  |  Pop ${data[hi][activeProp].toLocaleString()}`;
+        const label = `ticks ${data[hi].ticks}  |  Pop ${data[hi][activeProp].toLocaleString()}`;
         ctx.font     = 'bold 11px system-ui, sans-serif';
         const bPad   = 5;
         const bW     = ctx.measureText(label).width + bPad * 2;

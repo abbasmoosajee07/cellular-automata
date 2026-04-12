@@ -8,7 +8,7 @@ class SimulatorController{
         "gridCanvas", "menuPanel", "menuToggle", "reMap", "autoFit", "simCtrl",
         "drawTiles", "eraseTiles", "clearGrid", "randomFill", "rangeInput",
         "rowInput", "colInput", "resetView", "pinLoc", "neighborTiles",
-        "status_zoom", "status_camera", "status_pop", "status_gen",
+        "status_zoom", "status_camera", "status_pop", "status_tick",
         "updateSim", "loadSim", "statsPreview",
     ];
 
@@ -523,7 +523,7 @@ class SimulatorController{
             : JSON.parse(this.wasm_engine.automata_string());
         this.automataConfig = stats;
         this.status_pop.textContent = stats.live;
-        this.status_gen.textContent = stats.gen_no;
+        this.status_tick.textContent = stats.ticks;
         this.statsPreview.value = JSON.stringify(stats, null, 2);
 
         this.statsDisplay.updateStatsChart(stats);
