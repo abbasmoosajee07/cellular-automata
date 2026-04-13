@@ -1,6 +1,5 @@
 class StatsDisplay {
-    // Rolling history for the population chart
-    _chartHistory = [];
+    _chartHistory = new Map();
     _hoveredIndex = null;
     statsIDs = ["statsChart", "clearStatsChart"]
     activeProp = "live";
@@ -12,18 +11,20 @@ class StatsDisplay {
     }
 
     resetChart() {
-        this._chartHistory = [];
+        this._chartHistory.clear();
         this._drawStatsChart();
     }
 
     updateStatsChart(stats) {
-        this._chartHistory.push({
-            ticks: Number(stats.ticks),
-            live: Number(stats.live),
+        const tick = Number(stats.ticks);
+        this._chartHistory.set(tick, {
+            ticks:   tick,
+            live:    Number(stats.live),
             density: Number(stats.density)
         });
-        if (this._chartHistory.length > 250) {
-            this._chartHistory.shift();
+        if (this._chartHistory.size > 250) {
+            const oldestKey = this._chartHistory.keys().next().value;
+            this._chartHistory.delete(oldestKey);
         }
         this._drawStatsChart();
     }
@@ -31,7 +32,7 @@ class StatsDisplay {
     _initStatsChart() {
         if (this.clearStatsChart) {
             this.clearStatsChart.addEventListener('click', () => {
-                this._chartHistory = [];
+                this._chartHistory.clear();
                 this._drawStatsChart();
             });
         }
@@ -41,7 +42,7 @@ class StatsDisplay {
 
         if (this.statsChart) {
             this.statsChart.addEventListener('mousemove', (e) => {
-                const data = this._chartHistory;
+                const data = [...this._chartHistory.values()];
                 if (data.length < 2) return;
 
                 const rect   = this.statsChart.getBoundingClientRect();
@@ -245,7 +246,7 @@ class StatsDisplay {
         const { ctx, W, H } = this._setupCanvas();
         const col            = this._getChartColors();
         const { pad, cW, cH } = this._getChartLayout(W, H);
-        const data           = this._chartHistory;
+        const data           = [...this._chartHistory.values()];
         const activeProp     = this.activeProp;
 
         if (data.length < 2) {
