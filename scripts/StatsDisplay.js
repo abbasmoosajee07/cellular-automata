@@ -22,7 +22,7 @@ class StatsDisplay {
             live:    Number(stats.live),
             density: Number(stats.density)
         });
-        if (this._chartHistory.size > 250) {
+        if (this._chartHistory.size > 200) {
             const oldestKey = this._chartHistory.keys().next().value;
             this._chartHistory.delete(oldestKey);
         }

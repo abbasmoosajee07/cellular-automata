@@ -219,6 +219,7 @@ class SimulatorController{
         });
 
         this.clearGrid.addEventListener('click', () => {
+            this.statsDisplay?.resetChart();
             this.gridManager.clearAll();
             this.updateAutomataStatus();
             this.gridManager.renderGrid();
@@ -538,6 +539,7 @@ class SimulatorController{
     }
 
     randomCells() {
+        this.statsDisplay?.resetChart();
         // Start timer for entire step
         const stepStartTime = performance.now();
 
