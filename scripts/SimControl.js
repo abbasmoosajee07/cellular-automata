@@ -31,7 +31,7 @@ class SimulatorController{
         await init(); // <-- wait for WASM to finish loading
 
         this.initElements();
-        this.statsDisplay = new StatsDisplay();
+        this.statsDisplay = new StatsDisplay(this);
         this.patternSharer = new SharePatterns(this);
         await this.patternSharer.ready;
 

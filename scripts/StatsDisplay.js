@@ -3,11 +3,33 @@ class StatsDisplay {
     _hoveredIndex = null;
     statsIDs = ["statsChart"]
     activeProp = "live";
-    constructor() {
+    constructor(parentSim) {
+        this.simManager = parentSim;
         for (const id of this.statsIDs) {
             this[id] = document.getElementById(id);
         }
+        this.selectStatGraph();
         this._initStatsChart()
+    }
+
+    selectStatGraph(preffered = null) {
+        const statsProperty = {
+            selectId: 'stats-type',
+            descId: 'stats-desc',
+            defaultValue:  preffered || 'live',
+            types: {
+                live: {
+                    label: "Population",
+                    desc: ""
+                },
+                density: {
+                    label: "Density",
+                    desc: ""
+                },
+            }
+        };
+
+        this.simManager.setupDropdown(statsProperty, 'statGraphType');
     }
 
     resetChart() {
