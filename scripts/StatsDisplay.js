@@ -1,7 +1,7 @@
 class StatsDisplay {
     _chartHistory = new Map();
     _hoveredIndex = null;
-    statsIDs = ["statsChart", "clearStatsChart"]
+    statsIDs = ["statsChart"]
     activeProp = "live";
     constructor() {
         for (const id of this.statsIDs) {
@@ -30,12 +30,12 @@ class StatsDisplay {
     }
 
     _initStatsChart() {
-        if (this.clearStatsChart) {
-            this.clearStatsChart.addEventListener('click', () => {
-                this._chartHistory.clear();
-                this._drawStatsChart();
-            });
-        }
+        // if (this.clearStatsChart) {
+        //     this.clearStatsChart.addEventListener('click', () => {
+        //         this._chartHistory.clear();
+        //         this._drawStatsChart();
+        //     });
+        // }
         const ro = new ResizeObserver(() => this._drawStatsChart());
         if (this.statsChart) ro.observe(this.statsChart);
         const activeProp = this.activeProp;

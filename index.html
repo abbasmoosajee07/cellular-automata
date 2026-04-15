@@ -200,10 +200,16 @@
 
                 <div class="stats-chart-wrap">
                     <div class="stats-chart-header">
-                        <span class="stats-chart-title">Population over Time</span>
-                        <button id="clearStatsChart" class="editor-btn" title="Clear chart history">
+                        <span class="stats-chart-title">Graph:</span>
+                        <!-- <button id="clearStatsChart" class="editor-btn" title="Clear chart history">
                             <i class="bi bi-arrow-counterclockwise"></i>
-                        </button>
+                        </button> -->
+                        <div class="config-group">
+                            <!-- <h3>Stats Type</h3> -->
+                            <select id="stats-type" name="Stats" class="config-select"></select>
+                            <p id="stats-desc" class="config-desc"></p>
+                        </div>
+
                     </div>
                     <canvas id="statsChart"></canvas>
                 </div>
@@ -359,7 +365,6 @@
         </div>
 
     </div>
-
 
     <!-- Pattern Library -->
     <div id="library" class="pattern-library hidden">
