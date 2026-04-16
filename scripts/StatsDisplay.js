@@ -18,18 +18,16 @@ class StatsDisplay {
             descId: 'stats-desc',
             defaultValue:  preffered || 'live',
             types: {
-                live: {
-                    label: "Population",
-                    desc: ""
-                },
-                density: {
-                    label: "Density",
-                    desc: ""
-                },
+                live: {label: "Population", desc: ""},
+                density: {label: "Density", desc: ""},
             }
         };
 
-        this.simManager.setupDropdown(statsProperty, 'statGraphType');
+        this.simManager.setupDropdown(statsProperty, 'statGraphType', (value) => {
+            this.activeProp = value;
+            // console.log(value);
+            this._drawStatsChart();
+        });
     }
 
     resetChart() {

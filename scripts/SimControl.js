@@ -364,7 +364,7 @@ class SimulatorController{
         this.setupDropdown(NEIGHBORHOOD, "neighborhoodType");
     }
 
-    setupDropdown(config, propertyName) {
+    setupDropdown(config, propertyName, onChange = null) {
         const select = document.getElementById(config.selectId);
         const desc = document.getElementById(config.descId);
 
@@ -385,6 +385,7 @@ class SimulatorController{
             const selected = e.target.value;
             desc.textContent = config.types[selected]?.desc || "";
             this[propertyName] = selected;
+            onChange?.(selected); // call it if provided
         });
     }
 
