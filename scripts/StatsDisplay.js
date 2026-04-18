@@ -63,7 +63,6 @@ class StatsDisplay {
         if (this.statsChart) {
             this.statsChart.addEventListener('mousemove', (e) => {
                 const data = [...this._chartHistory.values()];
-                if (data.length < 2) return;
 
                 const rect   = this.statsChart.getBoundingClientRect();
                 const pad    = { left: 46, right: 10, top: 10, bottom: 28 };
@@ -269,11 +268,21 @@ class StatsDisplay {
         const data           = [...this._chartHistory.values()];
         const activeProp     = this.activeProp;
 
-        if (data.length < 2) {
+        if (data.length < 1) {
             ctx.fillStyle = col.text;
             ctx.font      = '12px system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('Run the simulation to see the chart', W / 2, H / 2);
+            return;
+        }
+
+        if (data.length === 1) {
+            const { maxPop, minPop, popRange } = this._drawGridLines(ctx, data, activeProp, pad, cW, cH, col);
+            const xOf = i => pad.left + cW / 2; // centre horizontally
+            const yOf = v => pad.top + cH - ((v - minPop) / popRange) * cH;
+            this._drawAxes(ctx, pad, cW, cH, col);
+            this._drawLastDot(ctx, data, activeProp, xOf, yOf, col);
+            this._drawXLabels(ctx, data, pad, cW, H, col);
             return;
         }
 
