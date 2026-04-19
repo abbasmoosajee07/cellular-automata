@@ -77,10 +77,10 @@ class StatsDisplay {
                 const idx    = Math.round(Math.max(0, Math.min(data.length - 1, raw)));
 
                 // Map that index back to the line's Y position
-                const maxPop   = Math.max(...data.map(d => d[activeProp]), 1);
-                const minPop   = Math.min(...data.map(d => d.live), 0);
+                const maxPop   = Math.max(...data.map(d => d[this.activeProp]), 1);
+                const minPop   = Math.min(...data.map(d => d[this.activeProp]), 0);
                 const popRange = maxPop - minPop || 1;
-                const lineY    = pad.top + cH - ((data[idx][activeProp] - minPop) / popRange) * cH;
+                const lineY    = pad.top + cH - ((data[idx][this.activeProp] - minPop) / popRange) * cH;
 
                 // Only show tooltip when cursor is within 12px of the line
                 const HIT_RADIUS = 12;
@@ -142,12 +142,15 @@ class StatsDisplay {
         const minPop   = Math.min(...data.map(d => d[activeProp]), 0);
         const popRange = maxPop - minPop || 1;
 
-        const GRID_LINES = 4;
+        const GRID_LINES = 5;
         ctx.strokeStyle  = col.grid;
         ctx.lineWidth    = 1;
         for (let i = 0; i <= GRID_LINES; i++) {
             const y   = pad.top + (i / GRID_LINES) * cH;
             const val = maxPop - (i / GRID_LINES) * popRange;
+            const formatted = popRange < 10
+                ? val.toFixed(2)
+                : Math.round(val).toLocaleString();
             ctx.beginPath();
             ctx.moveTo(pad.left, y);
             ctx.lineTo(pad.left + cW, y);
@@ -155,7 +158,7 @@ class StatsDisplay {
             ctx.fillStyle = col.text;
             ctx.font      = '10px system-ui, sans-serif';
             ctx.textAlign = 'right';
-            ctx.fillText(Math.round(val).toLocaleString(), pad.left - 4, y + 3.5);
+            ctx.fillText(formatted, pad.left - 4, y + 3.5);
         }
 
         return { maxPop, minPop, popRange };
@@ -165,9 +168,9 @@ class StatsDisplay {
         ctx.fillStyle = col.text;
         ctx.font      = '10px system-ui, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(`ticks ${data[0].ticks}`, pad.left, H - 6);
+        ctx.fillText(`Ticks ${data[0].ticks}`, pad.left, H - 6);
         ctx.textAlign = 'right';
-        ctx.fillText(`ticks ${data[data.length - 1].ticks}`, pad.left + cW, H - 6);
+        ctx.fillText(`Ticks ${data[data.length - 1].ticks}`, pad.left + cW, H - 6);
     }
 
     _drawLine(ctx, data, activeProp, xOf, yOf, col) {
