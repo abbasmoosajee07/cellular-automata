@@ -164,8 +164,6 @@ class StatsDisplay {
         return { maxPop, minPop, popRange };
     }
 
-
-
     _drawLine(ctx, data, activeProp, xOf, yOf, col) {
         // Fill
         ctx.beginPath();
@@ -267,13 +265,24 @@ class StatsDisplay {
     }
 
     _drawXLabels(ctx, data, pad, cW, H, col) {
-        ctx.fillStyle = col.text;
-        ctx.font      = '10px system-ui, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`${data[0].ticks}`, pad.left, H - 6);
-        ctx.textAlign = 'right';
-        ctx.fillText(`${data[data.length - 1].ticks}`, pad.left + cW, H - 6);
+        const X_LINES = 5;
+        ctx.strokeStyle = col.grid;
+        ctx.lineWidth   = 1;
+        for (let i = 0; i <= X_LINES; i++) {
+            const x = pad.left + (i / X_LINES) * cW;
+            const tickIndex = Math.round((i / X_LINES) * (data.length - 1));
+            ctx.beginPath();
+            ctx.moveTo(x, pad.top);
+            ctx.lineTo(x, pad.top + 1);
+            ctx.stroke();
+            ctx.fillStyle = col.text;
+            ctx.font      = '10px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${data[tickIndex].ticks}`, x, H - 6);
+        }
     }
+
+
 
     _labelXaxis(ctx, activeProp, pad, cH, col) {
         const label = "Ticks";
