@@ -164,14 +164,7 @@ class StatsDisplay {
         return { maxPop, minPop, popRange };
     }
 
-    _drawXLabels(ctx, data, pad, cW, H, col) {
-        ctx.fillStyle = col.text;
-        ctx.font      = '10px system-ui, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`Ticks ${data[0].ticks}`, pad.left, H - 6);
-        ctx.textAlign = 'right';
-        ctx.fillText(`Ticks ${data[data.length - 1].ticks}`, pad.left + cW, H - 6);
-    }
+
 
     _drawLine(ctx, data, activeProp, xOf, yOf, col) {
         // Fill
@@ -261,7 +254,7 @@ class StatsDisplay {
         ctx.fillText(label, bx + bPad, by + bH - 6);
     }
 
-    _drawYLabel(ctx, activeProp, pad, cH, col) {
+    _labelYaxis(ctx, activeProp, pad, cH, col) {
         const label = activeProp === 'density' ? 'Density' : 'Population';
         ctx.save();
         ctx.fillStyle = col.text;
@@ -270,6 +263,25 @@ class StatsDisplay {
         ctx.translate(10, pad.top + cH / 2);
         ctx.rotate(-Math.PI / 2);
         ctx.fillText(label, 0, 0);
+        ctx.restore();
+    }
+
+    _drawXLabels(ctx, data, pad, cW, H, col) {
+        ctx.fillStyle = col.text;
+        ctx.font      = '10px system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${data[0].ticks}`, pad.left, H - 6);
+        ctx.textAlign = 'right';
+        ctx.fillText(`${data[data.length - 1].ticks}`, pad.left + cW, H - 6);
+    }
+
+    _labelXaxis(ctx, activeProp, pad, cH, col) {
+        const label = "Ticks";
+        ctx.save();
+        ctx.fillStyle = col.text;
+        ctx.font      = '10px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, pad.left * 3, cH + 25);
         ctx.restore();
     }
 
@@ -298,7 +310,8 @@ class StatsDisplay {
             this._drawAxes(ctx, pad, cW, cH, col);
             this._drawLastDot(ctx, data, activeProp, xOf, yOf, col);
             this._drawXLabels(ctx, data, pad, cW, H, col);
-            this._drawYLabel(ctx, activeProp, pad, cH, col);
+            this._labelYaxis(ctx, activeProp, pad, cH, col);
+            this._labelXaxis(ctx, activeProp, pad, cH, col);
             return;
         }
 
@@ -311,7 +324,8 @@ class StatsDisplay {
         this._drawLine(ctx, data, activeProp, xOf, yOf, col);
         this._drawAxes(ctx, pad, cW, cH, col);
         this._drawLastDot(ctx, data, activeProp, xOf, yOf, col);
-        this._drawYLabel(ctx, activeProp, pad, cH, col);
+        this._labelYaxis(ctx, activeProp, pad, cH, col);
+        this._labelXaxis(ctx, activeProp, pad, cH, col);
         this._drawTooltip(ctx, data, activeProp, xOf, yOf, pad, W, col);
     }
 
