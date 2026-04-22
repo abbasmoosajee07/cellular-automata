@@ -3,6 +3,7 @@ class StatsDisplay {
     _hoveredIndex = null;
     statsIDs = ["statsChart"]
     activeProp = "live";
+    graphFont = '10px system-ui, sans-serif'
     constructor(parentSim) {
         this.simManager = parentSim;
         for (const id of this.statsIDs) {
@@ -156,7 +157,7 @@ class StatsDisplay {
             ctx.lineTo(pad.left + cW, y);
             ctx.stroke();
             ctx.fillStyle = col.text;
-            ctx.font      = '10px system-ui, sans-serif';
+            ctx.font      = this.graphFont;
             ctx.textAlign = 'right';
             ctx.fillText(formatted, pad.left - 4, y + 3.5);
         }
@@ -256,7 +257,7 @@ class StatsDisplay {
         const label = activeProp === 'density' ? 'Density' : 'Population';
         ctx.save();
         ctx.fillStyle = col.text;
-        ctx.font      = '10px system-ui, sans-serif';
+        ctx.font      = this.graphFont;
         ctx.textAlign = 'center';
         ctx.translate(10, pad.top + cH / 2);
         ctx.rotate(-Math.PI / 2);
@@ -265,7 +266,8 @@ class StatsDisplay {
     }
 
     _drawXLabels(ctx, data, pad, cW, H, col) {
-        const X_LINES = 5;
+        const X_LINES = Math.min(data.length, 5);
+
         ctx.strokeStyle = col.grid;
         ctx.lineWidth   = 1;
         for (let i = 0; i <= X_LINES; i++) {
@@ -276,19 +278,17 @@ class StatsDisplay {
             ctx.lineTo(x, pad.top + 1);
             ctx.stroke();
             ctx.fillStyle = col.text;
-            ctx.font      = '10px system-ui, sans-serif';
+            ctx.font      = this.graphFont;
             ctx.textAlign = 'center';
             ctx.fillText(`${data[tickIndex].ticks}`, x, H - 6);
         }
     }
 
-
-
     _labelXaxis(ctx, activeProp, pad, cH, col) {
         const label = "Ticks";
         ctx.save();
         ctx.fillStyle = col.text;
-        ctx.font      = '10px system-ui, sans-serif';
+        ctx.font      = this.graphFont;
         ctx.textAlign = 'center';
         ctx.fillText(label, pad.left * 3, cH + 25);
         ctx.restore();
@@ -306,7 +306,7 @@ class StatsDisplay {
 
         if (data.length < 1) {
             ctx.fillStyle = col.text;
-            ctx.font      = '12px system-ui, sans-serif';
+            ctx.font      = this.graphFont;
             ctx.textAlign = 'center';
             ctx.fillText('Run the simulation to see the chart', W / 2, H / 2);
             return;
