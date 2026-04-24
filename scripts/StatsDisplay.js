@@ -1,7 +1,7 @@
 class StatsDisplay {
     _chartHistory = new Map();
     _hoveredIndex = null;
-    statsIDs = ["statsChart"]
+    statsIDs = ["statsChart","status_pop", "status_tick","statsPreview",]
     activeProp = "live";
     graphFont = '10px system-ui, sans-serif'
     constructor(parentSim) {
@@ -36,8 +36,12 @@ class StatsDisplay {
         this._drawStatsChart();
     }
 
-    updateStatsChart(stats) {
+    updateStats(stats) {
         const tick = Number(stats.ticks);
+        this.status_pop.textContent = stats.live;
+        this.status_tick.textContent = stats.ticks;
+        this.statsPreview.value = JSON.stringify(stats, null, 2);
+
         this._chartHistory.set(tick, {
             ticks:   tick,
             live:    Number(stats.live),
