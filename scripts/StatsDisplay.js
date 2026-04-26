@@ -169,13 +169,12 @@ class StatsDisplay {
         return { maxPop, minPop, popRange };
     }
 
-    _drawLine(ctx, data, activeProp, xOf, yOf, col) {
-        // Fill
+    _drawLine(ctx, data, activeProp, xOf, yOf, col, minPop) {        // Fill
         ctx.beginPath();
         ctx.moveTo(xOf(0), yOf(data[0][activeProp]));
         data.forEach((d, i) => ctx.lineTo(xOf(i), yOf(d[activeProp])));
-        ctx.lineTo(xOf(data.length - 1), yOf(0));
-        ctx.lineTo(xOf(0),               yOf(0));
+        ctx.lineTo(xOf(data.length - 1), yOf(minPop));
+        ctx.lineTo(xOf(0),               yOf(minPop));
         ctx.closePath();
         ctx.fillStyle = col.fill;
         ctx.fill();
@@ -334,7 +333,7 @@ class StatsDisplay {
         const yOf = v => pad.top  + cH - ((v - minPop) / popRange) * cH;
 
         this._drawXLabels(ctx, data, pad, cW, H, col);
-        this._drawLine(ctx, data, activeProp, xOf, yOf, col);
+        this._drawLine(ctx, data, activeProp, xOf, yOf, col, minPop);
         this._drawAxes(ctx, pad, cW, cH, col);
         this._drawLastDot(ctx, data, activeProp, xOf, yOf, col);
         this._labelYaxis(ctx, activeProp, pad, cH, col);
