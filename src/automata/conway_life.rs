@@ -5,7 +5,7 @@ use std::collections::HashSet;
 pub struct ConwayLife;
 
 impl ConwayLife {
-    /// Dense mode – used when grid is highly populated
+
     fn dense_step(mesh: &mut GridMesh) -> Vec<i32> {
         let mut next_states = Vec::new();
 
@@ -33,7 +33,6 @@ impl ConwayLife {
         next_states
     }
 
-    /// Sparse mode – only evaluate live cells + dead neighbors
     fn sparse_step(mesh: &mut GridMesh) -> Vec<i32> {
         let mut next_states = Vec::new();
         let mut potential_cells = Vec::new();
@@ -80,9 +79,7 @@ impl ConwayLife {
         next_states
     }
 
-    /// Unified automatic-mode step
-    pub fn step_game_of_life(mesh: &mut GridMesh) {
-        // First pass for density
+    pub fn step_game_of_life(mesh: &mut GridMesh) -> (i32, i32) {
         let mut total = 0usize;
         let mut live = 0usize;
         for [_q, _r, _s, state] in mesh.inner.iter_cell() {
@@ -90,7 +87,7 @@ impl ConwayLife {
             if state != 0 { live += 1; }
         }
 
-        let is_dense = live * 6 > total; // ~16%
+        let is_dense = live * 6 > total;
 
         let next_states = if is_dense {
             Self::dense_step(mesh)
@@ -98,9 +95,20 @@ impl ConwayLife {
             Self::sparse_step(mesh)
         };
 
-        // Apply updates
+        let mut births = 0i32;
+        let mut deaths = 0i32;
+
         for chunk in next_states.chunks_exact(4) {
-            mesh.inner.set_cell(chunk[0], chunk[1], chunk[2], chunk[3] as u32);
+            let next_state = chunk[3];
+            // next_state != prev_state is guaranteed by both step fns
+            if next_state == 1 {
+                births += 1;
+            } else {
+                deaths += 1;
+            }
+            mesh.inner.set_cell(chunk[0], chunk[1], chunk[2], next_state as u32);
         }
+
+        (births, deaths)
     }
 }

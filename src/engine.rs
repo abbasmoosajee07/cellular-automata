@@ -18,7 +18,6 @@ impl Engine {
             mesh: grid_mesh,
             automata: Automata::default(),
         }
-
     }
 
     pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Self, std::io::Error> {
@@ -61,17 +60,20 @@ impl Engine {
             }
         }
 
-        engine.sync_automata(None, Some(true));
+        engine.sync_automata(None, Some(true), 0, 0);
         engine
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-    fn sync_automata(&mut self, new_live: Option<i32>, recalculate_total: Option<bool>) {
+    fn sync_automata(&mut self, new_live: Option<i32>, recalculate_total: Option<bool>, births: i32, deaths: i32) {
         if recalculate_total.unwrap_or(false) {
             self.automata.total = self.mesh.calculate_total_cells();
         }
-        self.automata.live    = new_live.unwrap_or_else(|| self.mesh.inner.count_live_cells());
+        self.automata.births = births;
+        self.automata.deaths = deaths;
+        self.automata.live = new_live.unwrap_or_else(|| self.mesh.inner.count_live_cells());
         self.automata.density = self.automata.live as f32 / self.automata.total as f32;
+        self.automata.mutation_rate = (births + deaths) as f32 / self.automata.total as f32;
     }
 
     // ── Basic operations ─────────────────────────────────────────────────────
@@ -79,20 +81,32 @@ impl Engine {
         let prev = self.mesh.inner.get_cell(q, r, s);
         self.mesh.inner.set_cell(q, r, s, value);
 
-        // Incremental update: O(1) instead of O(n).
-        let was_live = if prev != 0 { 1 } else { 0 };
-        let is_live  = if value != 0 { 1 } else { 0 };
+        let was_live = prev != 0;
+        let is_live  = value != 0;
+
+        let (births, deaths) = match (was_live, is_live) {
+            (false, true)  => (1, 0),
+            (true,  false) => (0, 1),
+            _              => (0, 0),
+        };
+
         self.sync_automata(
-            Some(self.automata.live + (is_live - was_live)),
+            Some(self.automata.live + (is_live as i32 - was_live as i32)),
             Some(self.mesh.config.topology_type == "infinite"),
+            births,
+            deaths,
         );
     }
 
     pub fn clear(&mut self) {
+        let old_live = self.automata.live;
         self.mesh.inner.clear();
-        self.automata.live   = 0;
-        self.automata.ticks = 0;
+        self.automata.births = 0;
+        self.automata.deaths = old_live;
+        self.automata.live    = 0;
+        self.automata.ticks   = 0;
         self.automata.density = 0.0;
+        self.automata.mutation_rate = old_live as f32 / self.automata.total as f32;
     }
 
     pub fn count_live_cells(&self) -> i32 {
@@ -101,7 +115,7 @@ impl Engine {
 
     pub fn resize(&mut self, w: usize, h: usize) {
         self.mesh.resize(w, h);
-        self.sync_automata(None, Some(true));
+        self.sync_automata(None, Some(true), 0, 0);
     }
 
     pub fn change_grid_properties(
@@ -112,25 +126,35 @@ impl Engine {
         topology_type: String,
     ) {
         self.mesh.change_grid_properties(shape, neighbor_type, range, topology_type);
-        self.sync_automata(None, Some(true));
+        self.sync_automata(None, Some(true), 0, 0);
     }
 
     // ── Simulation steps ─────────────────────────────────────────────────────
     pub fn step_game_of_life(&mut self) {
-        ConwayLife::step_game_of_life(&mut self.mesh);
-        self.sync_automata(None, None);
+        let (births, deaths) = ConwayLife::step_game_of_life(&mut self.mesh);
+        self.sync_automata(None, None, births, deaths);
         self.automata.ticks += 1;
     }
 
     pub fn random_cells(&mut self) {
-        let active_cells     = self.mesh.random_cells();
-        self.sync_automata(Some(active_cells), None);
+        let old_live = self.automata.live;
+        let active_cells = self.mesh.random_cells();
+        let births = (active_cells - old_live).max(0);
+        let deaths = (old_live - active_cells).max(0);
+        self.sync_automata(Some(active_cells), None, births, deaths);
         self.automata.ticks = 0;
     }
 
     pub fn floodfill(&mut self) {
-        let active_cells   = FloodFill::floodfill(&mut self.mesh);
-        self.sync_automata(Some(active_cells), Some(self.mesh.config.topology_type == "infinite"));
+        let old_live = self.automata.live;
+        let active_cells = FloodFill::floodfill(&mut self.mesh);
+        let births = (active_cells - old_live).max(0);
+        self.sync_automata(
+            Some(active_cells),
+            Some(self.mesh.config.topology_type == "infinite"),
+            births,
+            0,
+        );
     }
 
     // ── Storage operations ────────────────────────────────────────────────────
