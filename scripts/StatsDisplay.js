@@ -21,6 +21,9 @@ class StatsDisplay {
             types: {
                 live: {label: "Population vs Time", desc: ""},
                 density: {label: "Density vs Time", desc: ""},
+                mutation_rate: {label: "Mutation vs Time", desc: ""},
+                births: {label: "Births vs Time", desc: ""},
+                deaths: {label: "Deaths vs Time", desc: ""},
             }
         };
 
@@ -45,7 +48,10 @@ class StatsDisplay {
         this._chartHistory.set(tick, {
             ticks:   tick,
             live:    Number(stats.live),
-            density: Number(stats.density)
+            density: Number(stats.density),
+            births: Number(stats.births),
+            deaths: Number(stats.deaths),
+            mutation_rate: Number(stats.mutation_rate),
         });
         if (this._chartHistory.size > 200) {
             const oldestKey = this._chartHistory.keys().next().value;
@@ -257,7 +263,8 @@ class StatsDisplay {
     }
 
     _labelYaxis(ctx, activeProp, pad, cH, col) {
-        const label = activeProp === 'density' ? 'Density' : 'Population';
+        const capitalizeProp =  activeProp.charAt(0).toUpperCase() + activeProp.slice(1);
+        const label = activeProp === 'live' ? 'Population' : capitalizeProp;
         ctx.save();
         ctx.fillStyle = col.text;
         ctx.font      = this.graphFont;
