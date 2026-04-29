@@ -109,10 +109,6 @@ impl Engine {
         self.automata.mutation_rate = old_live as f32 / self.automata.total as f32;
     }
 
-    pub fn count_live_cells(&self) -> i32 {
-        self.mesh.inner.count_live_cells()
-    }
-
     pub fn resize(&mut self, w: usize, h: usize) {
         self.mesh.resize(w, h);
         self.sync_automata(None, Some(true), 0, 0);

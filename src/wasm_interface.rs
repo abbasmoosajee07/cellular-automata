@@ -40,7 +40,7 @@ impl WasmInterface {
     }
 
     pub fn count_live_cells(&self) -> i32 {
-        self.engine.count_live_cells()
+        self.engine.mesh.inner.count_live_cells()
     }
 
     pub fn each_live_cell(&self) -> Vec<i32> {
