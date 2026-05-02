@@ -5,7 +5,8 @@ class StatsDisplay {
     _cachedMax    = 1;        // avoid recomputing min/max
     _cachedMin    = 0;
     statsIDs = ["statsChart","status_pop", "status_tick","statsPreview"];
-    activeProp = "live";
+    y_var = "live";
+    x_var = "ticks";
     graphFont = '10px system-ui, sans-serif';
 
     constructor(parentSim) {
@@ -32,7 +33,7 @@ class StatsDisplay {
         };
 
         this.simManager.setupDropdown(statsProperty, 'statGraphType', (value) => {
-            this.activeProp = value;
+            this.y_var = value;
             this._invalidateCache();
             this._drawStatsChart();
         });
@@ -45,7 +46,7 @@ class StatsDisplay {
 
     _recomputeMinMax() {
         const data = this._cachedData;
-        const prop = this.activeProp;
+        const prop = this.y_var;
         if (data.length === 0) {
             this._cachedMax = 1;
             this._cachedMin = 0;
@@ -67,11 +68,15 @@ class StatsDisplay {
         this._drawStatsChart();
     }
 
-    updateStats(stats) {
-        const tick = Number(stats.ticks);
+    updateStatusBar(stats) {
         this.status_pop.textContent  = stats.live;
         this.status_tick.textContent = stats.ticks;
         this.statsPreview.value      = JSON.stringify(stats, null, 2);
+    }
+
+    updateStats(stats) {
+        const tick = Number(stats.ticks);
+        this.updateStatusBar(stats);
 
         this._chartHistory.set(tick, { ticks: tick, ...stats });
 
@@ -104,7 +109,7 @@ class StatsDisplay {
 
                 // Use cached min/max — no recompute on mousemove
                 const popRange = this._cachedMax - this._cachedMin || 1;
-                const lineY    = pad.top + cH - ((data[idx][this.activeProp] - this._cachedMin) / popRange) * cH;
+                const lineY    = pad.top + cH - ((data[idx][this.y_var] - this._cachedMin) / popRange) * cH;
 
                 const newIndex = Math.abs(my - lineY) <= 12 ? idx : null;
                 if (newIndex !== this._hoveredIndex) {
@@ -158,7 +163,7 @@ class StatsDisplay {
         return { pad, cW: W - pad.left - pad.right, cH: H - pad.top - pad.bottom };
     }
 
-    _drawGridLines(ctx, data, activeProp, pad, cW, cH, col) {
+    _drawGridLines(ctx, data, y_var, pad, cW, cH, col) {
         const maxPop   = this._cachedMax;
         const minPop   = this._cachedMin;
         const popRange = maxPop - minPop || 1;
@@ -186,10 +191,10 @@ class StatsDisplay {
         return { maxPop, minPop, popRange };
     }
 
-    _drawLine(ctx, data, activeProp, xOf, yOf, col, minPop) {
+    _drawLine(ctx, data, y_var, xOf, yOf, col, minPop) {
         ctx.beginPath();
-        ctx.moveTo(xOf(0), yOf(data[0][activeProp]));
-        for (let i = 1; i < data.length; i++) ctx.lineTo(xOf(i), yOf(data[i][activeProp]));
+        ctx.moveTo(xOf(0), yOf(data[0][y_var]));
+        for (let i = 1; i < data.length; i++) ctx.lineTo(xOf(i), yOf(data[i][y_var]));
         ctx.lineTo(xOf(data.length - 1), yOf(minPop));
         ctx.lineTo(xOf(0), yOf(minPop));
         ctx.closePath();
@@ -197,8 +202,8 @@ class StatsDisplay {
         ctx.fill();
 
         ctx.beginPath();
-        ctx.moveTo(xOf(0), yOf(data[0][activeProp]));
-        for (let i = 1; i < data.length; i++) ctx.lineTo(xOf(i), yOf(data[i][activeProp]));
+        ctx.moveTo(xOf(0), yOf(data[0][y_var]));
+        for (let i = 1; i < data.length; i++) ctx.lineTo(xOf(i), yOf(data[i][y_var]));
         ctx.strokeStyle = col.line;
         ctx.lineWidth   = 2;
         ctx.lineJoin    = 'round';
@@ -215,20 +220,20 @@ class StatsDisplay {
         ctx.stroke();
     }
 
-    _drawLastDot(ctx, data, activeProp, xOf, yOf, col) {
+    _drawLastDot(ctx, data, y_var, xOf, yOf, col) {
         const last = data[data.length - 1];
         ctx.beginPath();
-        ctx.arc(xOf(data.length - 1), yOf(last[activeProp]), 3.5, 0, Math.PI * 2);
+        ctx.arc(xOf(data.length - 1), yOf(last[y_var]), 3.5, 0, Math.PI * 2);
         ctx.fillStyle = col.line;
         ctx.fill();
     }
 
-    _drawTooltip(ctx, data, activeProp, xOf, yOf, pad, W, col) {
+    _drawTooltip(ctx, data, y_var, xOf, yOf, pad, W, col) {
         const hi = this._hoveredIndex;
         if (hi === null || hi < 0 || hi >= data.length) return;
 
         const hx = xOf(hi);
-        const hy = yOf(data[hi][activeProp]);
+        const hy = yOf(data[hi][y_var]);
 
         ctx.strokeStyle = col.axis;
         ctx.lineWidth   = 1;
@@ -247,8 +252,8 @@ class StatsDisplay {
         ctx.lineWidth   = 1.5;
         ctx.stroke();
 
-        const val   = data[hi][activeProp];
-        const label = `x= ${data[hi].ticks} | y= ${typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(4) : val}`;
+        const val   = data[hi][y_var];
+        const label = `x= ${hi} | y= ${typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(4) : val}`;
         ctx.font     = 'bold 11px system-ui, sans-serif';
         const bPad   = 5;
         const bW     = ctx.measureText(label).width + bPad * 2;
@@ -269,10 +274,10 @@ class StatsDisplay {
         ctx.fillText(label, bx + bPad, by + bH - 6);
     }
 
-    _labelYaxis(ctx, activeProp, pad, cH, col) {
-        const label = activeProp === 'live'
+    _labelYaxis(ctx, y_var, pad, cH, col) {
+        const label = y_var === 'live'
             ? 'Population'
-            : activeProp.charAt(0).toUpperCase() + activeProp.slice(1);
+            : y_var.charAt(0).toUpperCase() + y_var.slice(1);
         ctx.save();
         ctx.fillStyle = col.text;
         ctx.font      = this.graphFont;
@@ -298,11 +303,11 @@ class StatsDisplay {
             ctx.moveTo(x, pad.top);
             ctx.lineTo(x, pad.top + 1);
             ctx.stroke();
-            ctx.fillText(`${data[tickIndex].ticks}`, x, H - 6);
+            ctx.fillText(`${tickIndex}`, x, H - 6);
         }
     }
 
-    _labelXaxis(ctx, activeProp, pad, cH, col) {
+    _labelXaxis(ctx, y_var, pad, cH, col) {
         ctx.save();
         ctx.fillStyle = col.text;
         ctx.font      = this.graphFont;
@@ -319,7 +324,7 @@ class StatsDisplay {
         const col               = this._getChartColors();
         const { pad, cW, cH }  = this._getChartLayout(W, H);
         const data              = this._cachedData;          // no allocation
-        const activeProp        = this.activeProp;
+        const y_var        = this.y_var;
 
         if (data.length < 1) {
             ctx.fillStyle = col.text;
@@ -329,16 +334,16 @@ class StatsDisplay {
             return;
         }
 
-        const { maxPop, minPop, popRange } = this._drawGridLines(ctx, data, activeProp, pad, cW, cH, col);
+        const { maxPop, minPop, popRange } = this._drawGridLines(ctx, data, y_var, pad, cW, cH, col);
 
         if (data.length === 1) {
             const xOf = () => pad.left + cW / 2;
             const yOf = v => pad.top + cH - ((v - minPop) / popRange) * cH;
             this._drawAxes(ctx, pad, cW, cH, col);
-            this._drawLastDot(ctx, data, activeProp, xOf, yOf, col);
+            this._drawLastDot(ctx, data, y_var, xOf, yOf, col);
             this._drawXLabels(ctx, data, pad, cW, H, col);
-            this._labelYaxis(ctx, activeProp, pad, cH, col);
-            this._labelXaxis(ctx, activeProp, pad, cH, col);
+            this._labelYaxis(ctx, y_var, pad, cH, col);
+            this._labelXaxis(ctx, y_var, pad, cH, col);
             return;
         }
 
@@ -346,12 +351,12 @@ class StatsDisplay {
         const yOf = v => pad.top  + cH - ((v - minPop) / popRange) * cH;
 
         this._drawXLabels(ctx, data, pad, cW, H, col);
-        this._drawLine(ctx, data, activeProp, xOf, yOf, col, minPop);
+        this._drawLine(ctx, data, y_var, xOf, yOf, col, minPop);
         this._drawAxes(ctx, pad, cW, cH, col);
-        this._drawLastDot(ctx, data, activeProp, xOf, yOf, col);
-        this._labelYaxis(ctx, activeProp, pad, cH, col);
-        this._labelXaxis(ctx, activeProp, pad, cH, col);
-        this._drawTooltip(ctx, data, activeProp, xOf, yOf, pad, W, col);
+        this._drawLastDot(ctx, data, y_var, xOf, yOf, col);
+        this._labelYaxis(ctx, y_var, pad, cH, col);
+        this._labelXaxis(ctx, y_var, pad, cH, col);
+        this._drawTooltip(ctx, data, y_var, xOf, yOf, pad, W, col);
     }
 }
 
