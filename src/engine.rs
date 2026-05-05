@@ -99,14 +99,9 @@ impl Engine {
     }
 
     pub fn clear(&mut self) {
-        let old_live = self.automata.live;
         self.mesh.inner.clear();
-        self.automata.births = 0;
-        self.automata.deaths = old_live;
-        self.automata.live    = 0;
-        self.automata.ticks   = 0;
-        self.automata.density = 0.0;
-        self.automata.mutation_rate = old_live as f32 / self.automata.total as f32;
+        self.automata = Automata::default();
+        self.automata.total = self.mesh.calculate_total_cells();
     }
 
     pub fn resize(&mut self, w: usize, h: usize) {
