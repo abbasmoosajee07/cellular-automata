@@ -191,13 +191,38 @@
                 <div class="panel-header">
                     <h3><i class="bi bi-graph-up me-2"></i> Statistics</h3>
                 </div>
-                <textarea
-                    id="statsPreview"
-                    class="text-editor"
-                    placeholder="Automata Base"
-                    readonly
-                ></textarea>
 
+                <div id="statsPreview" class="stats-list">
+                    <div class="stat-row">
+                        <span class="stat-label">Population</span>
+                        <span class="stat-value" id="preview-live">0</span>
+                    </div>
+
+                    <div class="stat-row">
+                        <span class="stat-label">Ticks</span>
+                        <span class="stat-value" id="preview-ticks">0</span>
+                    </div>
+
+                    <div class="stat-row">
+                        <span class="stat-label">Births</span>
+                        <span class="stat-value" id="preview-births">0</span>
+                    </div>
+
+                    <div class="stat-row">
+                        <span class="stat-label">Deaths</span>
+                        <span class="stat-value" id="preview-deaths">0</span>
+                    </div>
+
+                    <div class="stat-row">
+                        <span class="stat-label">Mutation Rate</span>
+                        <span class="stat-value" id="preview-mutation_rate">0</span>
+                    </div>
+
+                    <div class="stat-row">
+                        <span class="stat-label">Density</span>
+                        <span class="stat-value" id="preview-density">0</span>
+                    </div>
+                </div>
                 <div class="stats-chart-wrap">
                     <div class="stats-chart-header">
                         <span class="stats-chart-title">Graph:</span>
@@ -210,7 +235,6 @@
                     </div>
                     <canvas id="statsChart"></canvas>
                 </div>
-
             </div>
 
             <!-- File Panel -->
