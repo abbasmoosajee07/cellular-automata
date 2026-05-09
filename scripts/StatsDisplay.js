@@ -4,7 +4,11 @@ class StatsDisplay {
     _cachedData   = [];       // avoid re-spreading every draw
     _cachedMax    = 1;        // avoid recomputing min/max
     _cachedMin    = 0;
-    statsIDs = ["statsChart","status_pop", "status_tick","statsPreview"];
+    statsIDs = [
+        "statsChart", "status_pop", "status_tick",
+        "preview_live", "preview_ticks","preview_births",
+        "preview_deaths","preview_mutation_rate","preview_density"
+    ];
     y_var = "live";
     x_var = "ticks";
     graphFont = '10px system-ui, sans-serif';
@@ -68,15 +72,31 @@ class StatsDisplay {
         this._drawStatsChart();
     }
 
-    updateStatusBar(stats) {
-        this.status_pop.textContent  = stats.live;
-        this.status_tick.textContent = stats.ticks;
-        this.statsPreview.value      = JSON.stringify(stats, null, 2);
+    _setText(id, value) {
+        const el = this[id];
+
+        if (!el) return;
+
+        el.textContent =
+            typeof value === 'number'
+                ? value.toLocaleString()
+                : value;
+    }
+
+    updateStatusText(stats) {
+        this._setText('status_pop', stats.live);
+        this._setText('status_tick', stats.ticks);
+        this._setText('preview_live', stats.live);
+        this._setText('preview_ticks', stats.ticks);
+        this._setText('preview_births', stats.births);
+        this._setText('preview_deaths', stats.deaths);
+        this._setText('preview_mutation_rate', stats.mutation_rate);
+        this._setText('preview_density', stats.density);
     }
 
     updateStats(stats) {
         const tick = Number(stats.ticks);
-        this.updateStatusBar(stats);
+        this.updateStatusText(stats);
 
         this._chartHistory.set(tick, { ticks: tick, ...stats });
 
