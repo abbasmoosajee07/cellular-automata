@@ -191,16 +191,28 @@
                 <div class="panel-header">
                     <h3><i class="bi bi-graph-up me-2"></i> Statistics</h3>
                 </div>
+                <label class="block-label">World Stats</label>
 
                 <div id="statsPreview" class="stats-list">
+
+                    <div class="stat-row">
+                        <span class="stat-label">Ticks</span>
+                        <span class="stat-value" id="preview_ticks">0</span>
+                    </div>
+
                     <div class="stat-row">
                         <span class="stat-label">Population</span>
                         <span class="stat-value" id="preview_live">0</span>
                     </div>
 
                     <div class="stat-row">
-                        <span class="stat-label">Ticks</span>
-                        <span class="stat-value" id="preview_ticks">0</span>
+                        <span class="stat-label">Total World</span>
+                        <span class="stat-value" id="preview_total">0</span>
+                    </div>
+
+                    <div class="stat-row">
+                        <span class="stat-label">Density</span>
+                        <span class="stat-value" id="preview_density">0</span>
                     </div>
 
                     <div class="stat-row">
@@ -217,15 +229,11 @@
                         <span class="stat-label">Mutation Rate</span>
                         <span class="stat-value" id="preview_mutation_rate">0</span>
                     </div>
-
-                    <div class="stat-row">
-                        <span class="stat-label">Density</span>
-                        <span class="stat-value" id="preview_density">0</span>
-                    </div>
                 </div>
+
+                <label class="block-label">Graph</label>
                 <div class="stats-chart-wrap">
                     <div class="stats-chart-header">
-                        <span class="stats-chart-title">Graph:</span>
                         <div class="config-group">
                             <!-- <h3>Stats Type</h3> -->
                             <select id="stats-type" name="Stats" class="config-select"></select>

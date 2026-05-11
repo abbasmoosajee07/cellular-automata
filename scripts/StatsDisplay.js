@@ -6,7 +6,7 @@ class StatsDisplay {
     _cachedMin    = 0;
     statsIDs = [
         "statsChart", "status_pop", "status_tick",
-        "preview_live", "preview_ticks","preview_births",
+        "preview_live", "preview_total", "preview_ticks","preview_births",
         "preview_deaths","preview_mutation_rate","preview_density"
     ];
     y_var = "live";
@@ -72,26 +72,28 @@ class StatsDisplay {
         this._drawStatsChart();
     }
 
-    _setText(id, value) {
-        const el = this[id];
-
-        if (!el) return;
-
-        el.textContent =
-            typeof value === 'number'
-                ? value.toLocaleString()
-                : value;
-    }
-
     updateStatusText(stats) {
-        this._setText('status_pop', stats.live);
-        this._setText('status_tick', stats.ticks);
-        this._setText('preview_live', stats.live);
-        this._setText('preview_ticks', stats.ticks);
-        this._setText('preview_births', stats.births);
-        this._setText('preview_deaths', stats.deaths);
-        this._setText('preview_mutation_rate', stats.mutation_rate);
-        this._setText('preview_density', stats.density);
+        this.statBindings = [
+            [this.status_pop, 'live'],
+            [this.status_tick, 'ticks'],
+            [this.preview_live, 'live'],
+            [this.preview_total, 'total'],
+            [this.preview_ticks, 'ticks'],
+            [this.preview_births, 'births'],
+            [this.preview_deaths, 'deaths'],
+            [this.preview_mutation_rate, 'mutation_rate'],
+            [this.preview_density, 'density'],
+        ];
+        for (const [el, statKey] of this.statBindings) {
+            if (!el) continue;
+
+            const value = stats[statKey];
+
+            el.textContent =
+                typeof value === 'number'
+                    ? value.toLocaleString()
+                    : value;
+        }
     }
 
     updateStats(stats) {
