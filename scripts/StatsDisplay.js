@@ -6,9 +6,11 @@ class StatsDisplay {
     _cachedMin    = 0;
     statsIDs = [
         "statsChart", "status_pop", "status_tick",
-        "preview_live", "preview_total", "preview_ticks","preview_births",
-        "preview_deaths","preview_mutation_rate","preview_density"
+        "card_live", "card_net_change",
+        "card_density_val", "card_density_bar", "card_total_cells",
+        "card_births", "card_deaths", "card_mutation",
     ];
+    _prevLive = null;
     y_var = "live";
     x_var = "ticks";
     graphFont = '10px system-ui, sans-serif';
@@ -73,26 +75,48 @@ class StatsDisplay {
     }
 
     updateStatusText(stats) {
+        // Legacy bindings (status bar + hidden preview elements)
         this.statBindings = [
             [this.status_pop, 'live'],
             [this.status_tick, 'ticks'],
-            [this.preview_live, 'live'],
-            [this.preview_total, 'total'],
-            [this.preview_ticks, 'ticks'],
-            [this.preview_births, 'births'],
-            [this.preview_deaths, 'deaths'],
-            [this.preview_mutation_rate, 'mutation_rate'],
-            [this.preview_density, 'density'],
         ];
         for (const [el, statKey] of this.statBindings) {
             if (!el) continue;
-
             const value = stats[statKey];
+            el.textContent = typeof value === 'number' ? value.toLocaleString() : value;
+        }
 
-            el.textContent =
-                typeof value === 'number'
-                    ? value.toLocaleString()
-                    : value;
+        // ── Hero row: Population card ─────────────────────────────
+        if (this.card_live) {
+            this.card_live.textContent = Number(stats.live).toLocaleString();
+        }
+        if (this.card_net_change) {
+            const net = this._prevLive !== null ? stats.live - this._prevLive : 0;
+            const sign = net > 0 ? '+' : '';
+            this.card_net_change.textContent = `${sign}${net.toLocaleString()}`;
+            this.card_net_change.className = 'stat-card__net ' +
+                (net > 0 ? 'stat-card__net--up' : net < 0 ? 'stat-card__net--down' : '');
+        }
+        this._prevLive = stats.live;
+
+        // ── Hero row: Density card ───────────────────────────────
+        if (this.card_density_val) {
+            const d = typeof stats.density === 'number' ? stats.density : parseFloat(stats.density) || 0;
+            this.card_density_val.textContent = (d * 100).toFixed(1) + '%';
+            if (this.card_density_bar) {
+                this.card_density_bar.style.width = Math.min(d * 100, 100) + '%';
+            }
+        }
+        if (this.card_total_cells) {
+            this.card_total_cells.textContent = Number(stats.total).toLocaleString() + ' cells';
+        }
+
+        // ── Births / Deaths / Mutation ───────────────────────────
+        if (this.card_births)   this.card_births.textContent   = Number(stats.births).toLocaleString();
+        if (this.card_deaths)   this.card_deaths.textContent   = Number(stats.deaths).toLocaleString();
+        if (this.card_mutation) {
+            const m = typeof stats.mutation_rate === 'number' ? stats.mutation_rate : parseFloat(stats.mutation_rate) || 0;
+            this.card_mutation.textContent = (m * 100).toFixed(2) + '%';
         }
     }
 
