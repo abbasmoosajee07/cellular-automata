@@ -6,9 +6,10 @@ class StatsDisplay {
     _cachedMin    = 0;
     statsIDs = [
         "statsChart", "status_pop", "status_tick",
-        "card_live", "card_net_change",
+        "card_live", "card_net_change", "card_ticks",
         "card_density_val", "card_density_bar", "card_total_cells",
         "card_births", "card_deaths", "card_mutation",
+        "card_shape", "card_topology", "card_neighbor",
     ];
     _prevLive = null;
     y_var = "live";
@@ -79,6 +80,7 @@ class StatsDisplay {
         this.statBindings = [
             [this.status_pop, 'live'],
             [this.status_tick, 'ticks'],
+            [this.card_ticks, 'ticks'],
         ];
         for (const [el, statKey] of this.statBindings) {
             if (!el) continue;
@@ -120,7 +122,21 @@ class StatsDisplay {
         }
     }
 
-    updateStats(stats) {
+    _fmtLabel(str) {
+        return str
+            .replace(/([a-z])([A-Z])/g, '$1 $2')  // camelCase → words
+            .replace(/_/g, ' ')                     // snake_case → words
+            .replace(/\b\w/g, c => c.toUpperCase()) // title case
+            .trim();
+    }
+
+    updateStats_GRID(grid_config) {
+        this.card_shape.textContent = this._fmtLabel(grid_config.shape);
+        this.card_topology.textContent = this._fmtLabel(grid_config.topology_type);
+        this.card_neighbor.textContent = this._fmtLabel(grid_config.neighbor_type);
+    }
+
+    updateStats_CA(stats) {
         const tick = Number(stats.ticks);
         this.updateStatusText(stats);
 

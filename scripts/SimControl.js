@@ -106,6 +106,7 @@ class SimulatorController{
 
         // console.log(this.gridConfig);
         // console.log(this.storageConfig);
+        this.statsDisplay.updateStats_GRID(this.gridConfig);
         this.updateAutomataStatus();
     }
 
@@ -522,7 +523,7 @@ class SimulatorController{
             ? JSON.parse(raw_stats)
             : JSON.parse(this.wasm_engine.automata_string());
         this.automataConfig = stats;
-        this.statsDisplay.updateStats(stats);
+        this.statsDisplay.updateStats_CA(stats);
     }
 
     toggleAt(px, py) {

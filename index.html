@@ -196,9 +196,15 @@
                 <div class="stats-cards">
                     <div class="stats-section">
 
+                        <!-- Row: Time Ticks -->
+                        <div class="stat-card stat-card--slim"">
+                            <div class="stat-card__label">Time Ticks</div>
+                            <div class="stat-card__value" id="card_ticks">0</div>
+                        </div>
+
                         <!-- Row: Population + Density -->
                         <div class="stats-row">
-                            <div class="stat-card stat-card--pop">
+                            <div class="stat-card stat-card">
                             <div class="stat-card__label">Population</div>
                             <div class="stat-card__value" id="card_live">0</div>
                             <div class="stat-card__net" id="card_net_change"></div>
@@ -218,12 +224,10 @@
                             <div class="stat-card">
                             <div class="stat-card__label">Births</div>
                             <div class="stat-card__value stat-card__value--sm" id="card_births">0</div>
-                            <div class="stat-card__net stat-card__net--up">—</div>
                             </div>
                             <div class="stat-card">
                             <div class="stat-card__label">Deaths</div>
                             <div class="stat-card__value stat-card__value--sm" id="card_deaths">0</div>
-                            <div class="stat-card__net stat-card__net--down">—</div>
                             </div>
                         </div>
 
@@ -233,13 +237,36 @@
                             <div class="stat-card__value" id="card_mutation">0</div>
                         </div>
 
+                        <!-- Row:  Cell Shape Info -->
+                        <div class="stats-row">
+                            <div class="stat-card">
+                            <div class="stat-card__label">Shape</div>
+                            <div class="stat-card__value stat-card__value--sm" id="card_shape">-</div>
+                            </div>
+                            <div class="stat-card">
+                            <div class="stat-card__label">Topology</div>
+                            <div class="stat-card__value stat-card__value--sm" id="card_topology">-</div>
+                            </div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-card">
+                            <div class="stat-card__label">Neighbor Type</div>
+                            <div class="stat-card__value stat-card__value--sm" id="card_neighbor">-</div>
+                            </div>
+                            <div class="stat-card">
+                            <div class="stat-card__label">Total Neighbors</div>
+                            <div class="stat-card__value stat-card__value--sm" id="card_shape">-</div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
-                <label class="block-label">Graph</label>
+
                 <div class="stats-chart-wrap">
                     <div class="stats-chart-header">
                         <div class="config-group">
                             <!-- <h3>Stats Type</h3> -->
+                            <!-- <label class="block-label">Graph</label> -->
                             <select id="stats-type" name="Stats" class="config-select"></select>
                             <p id="stats-desc" class="config-desc"></p>
                         </div>
