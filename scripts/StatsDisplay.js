@@ -9,7 +9,7 @@ class StatsDisplay {
         "card_live", "card_net_change", "card_ticks",
         "card_density_val", "card_density_bar", "card_total_cells",
         "card_births", "card_deaths", "card_mutation",
-        "card_shape", "card_topology", "card_neighbor",
+        "card_shape", "card_topology", "card_neighbor", "card_render_time"
     ];
     _prevLive = null;
     y_var = "live";
@@ -86,6 +86,12 @@ class StatsDisplay {
             if (!el) continue;
             const value = stats[statKey];
             el.textContent = typeof value === 'number' ? value.toLocaleString() : value;
+        }
+
+        if (this.card_render_time) {
+            this.card_render_time.textContent = stats.step_ms != null
+                ? stats.step_ms.toFixed(1) + 'ms'
+                : '—';
         }
 
         // ── Hero row: Population card ─────────────────────────────

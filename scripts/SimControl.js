@@ -525,7 +525,14 @@ class SimulatorController{
         this.automataConfig = stats;
         this.statsDisplay.updateStats_CA(stats);
     }
-
+updateAutomataStatus(raw_stats = null, stepTime = null) {
+    const stats = raw_stats
+        ? JSON.parse(raw_stats)
+        : JSON.parse(this.wasm_engine.automata_string());
+    if (stepTime !== null) stats.step_ms = stepTime;
+    this.automataConfig = stats;
+    this.statsDisplay.updateStats_CA(stats);
+}
     toggleAt(px, py) {
         this.gridManager.toggleAt(
             px, py,
@@ -535,63 +542,30 @@ class SimulatorController{
     }
 
     randomCells() {
-        this.statsDisplay?.resetChart();
-        // Start timer for entire step
         const stepStartTime = performance.now();
-
-        // Step 1: Run Game of Life simulation
-        const simStartTime = performance.now();
         const props = this.wasm_engine.random_cells();
-        const simEndTime = performance.now();
-        const simulationTime = simEndTime - simStartTime;
-
-        // Step 2: Clear and render
-        const renderStartTime = performance.now();
         this.gridManager.renderGrid(true);
-        const renderEndTime = performance.now();
-        const renderTime = renderEndTime - renderStartTime;
-        
-        // Total time
-        const stepEndTime = performance.now();
-        const totalTime = stepEndTime - stepStartTime;
-        
-        console.log(`Random Fill: ${simulationTime.toFixed(2)}ms | ` +
-                    `Render: ${renderTime.toFixed(2)}ms | ` +
-                    `Total: ${totalTime.toFixed(2)}ms`);
-        this.updateAutomataStatus(props);
+        const totalTime = performance.now() - stepStartTime;
+
+        this.updateAutomataStatus(props, totalTime);  // <-- pass totalTime
     }
 
     simulate_step() {
-        // Start timer for entire step
         const stepStartTime = performance.now();
-
-        // Step 1: Run Game of Life simulation
-        const simStartTime = performance.now();
         const props = this.wasm_engine.step_game_of_life();
-        const simEndTime = performance.now();
-        const simulationTime = simEndTime - simStartTime;
-
-        // Step 2: Render
-        const renderStartTime = performance.now();
         this.gridManager.renderGrid(true);
+        const totalTime = performance.now() - stepStartTime;
 
-        const renderEndTime = performance.now();
-        const renderTime = renderEndTime - renderStartTime;
-        
-        // Total time
-        const stepEndTime = performance.now();
-        const totalTime = stepEndTime - stepStartTime;
-        
-        console.log(`Simulation: ${simulationTime.toFixed(2)}ms | ` +
-                    `Render: ${renderTime.toFixed(2)}ms | ` +
-                    `Total: ${totalTime.toFixed(2)}ms`);
-        this.updateAutomataStatus(props);
+        this.updateAutomataStatus(props, totalTime);  // <-- pass totalTime
     }
 
     fillNeighbors() {
+        const stepStartTime = performance.now();
         const props = this.wasm_engine.floodfill();
-        this.updateAutomataStatus(props);
         this.gridManager.renderGrid(true);
+        const totalTime = performance.now() - stepStartTime;
+
+        this.updateAutomataStatus(props, totalTime);  // <-- pass totalTime
     }
 }
 
