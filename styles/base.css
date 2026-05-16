@@ -5,6 +5,7 @@
   --feature-color: #32cd32;
   --dark-color: #063706;
   --text-color: #eee;
+  --text-muted: #666;
   --muted: #aaa;
   --bg: #111;
   --card-bg: #1a1a1a;
@@ -20,6 +21,7 @@
 
 body.light {
   --text-color: #111;
+  --text-muted: #333333;
   --muted: #111;
   --bg: #fff;
   --card-bg: #fff;
