@@ -1,6 +1,7 @@
 use crate::{GridMesh, PatternIO, formats::PatternConfig};
 use crate::automata::{Automata, FloodFill, ConwayLife};
 use std::{fs, path::{Path}};
+use js_sys::Date;
 
 pub struct Engine {
     pub storage: PatternConfig,
@@ -96,6 +97,7 @@ impl Engine {
             births,
             deaths,
         );
+        self.automata.tick_time_ms = 0.0;
     }
 
     pub fn clear(&mut self) {
@@ -122,24 +124,30 @@ impl Engine {
 
     // ── Simulation steps ─────────────────────────────────────────────────────
     pub fn step_game_of_life(&mut self) {
+        let ts = Date::now();
         let (births, deaths) = ConwayLife::step_game_of_life(&mut self.mesh);
         self.sync_automata(None, None, births, deaths);
         self.automata.ticks += 1;
+        self.automata.tick_time_ms = Date::now() - ts;
     }
 
     pub fn random_cells(&mut self) {
+        let ts = Date::now();
         let old_live = self.automata.live;
         let active_cells = self.mesh.random_cells();
         let births = (active_cells - old_live).max(0);
         let deaths = (old_live - active_cells).max(0);
         self.sync_automata(Some(active_cells), None, births, deaths);
         self.automata.ticks = 0;
+        self.automata.tick_time_ms = Date::now() - ts;
     }
 
     pub fn floodfill(&mut self) {
+        let ts = Date::now();
         let old_live = self.automata.live;
         let active_cells = FloodFill::floodfill(&mut self.mesh);
         let births = (active_cells - old_live).max(0);
+        self.automata.tick_time_ms = Date::now() - ts;
         self.sync_automata(
             Some(active_cells),
             Some(self.mesh.config.topology_type == "infinite"),
