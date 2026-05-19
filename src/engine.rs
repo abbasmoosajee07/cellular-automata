@@ -1,7 +1,26 @@
 use crate::{GridMesh, PatternIO, formats::PatternConfig};
 use crate::automata::{Automata, FloodFill, ConwayLife};
 use std::{fs, path::{Path}};
-use js_sys::Date;
+
+#[cfg(target_arch = "wasm32")]
+fn now_ms() -> f64 {
+    js_sys::Date::now()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn now_ms() -> f64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs_f64() * 1000.0
+}
+
+fn measure_ms<F: FnOnce() -> T, T>(f: F) -> (T, f64) {
+    let start = now_ms();
+    let result = f();
+    (result, now_ms() - start)
+}
 
 pub struct Engine {
     pub storage: PatternConfig,
@@ -124,30 +143,27 @@ impl Engine {
 
     // ── Simulation steps ─────────────────────────────────────────────────────
     pub fn step_game_of_life(&mut self) {
-        let ts = Date::now();
-        let (births, deaths) = ConwayLife::step_game_of_life(&mut self.mesh);
+        let ((births, deaths), ms) = measure_ms(|| ConwayLife::step_game_of_life(&mut self.mesh));
         self.sync_automata(None, None, births, deaths);
         self.automata.ticks += 1;
-        self.automata.tick_time_ms = Date::now() - ts;
+        self.automata.tick_time_ms = ms;
     }
 
     pub fn random_cells(&mut self) {
-        let ts = Date::now();
         let old_live = self.automata.live;
-        let active_cells = self.mesh.random_cells();
+        let (active_cells, ms) = measure_ms(|| self.mesh.random_cells());
         let births = (active_cells - old_live).max(0);
         let deaths = (old_live - active_cells).max(0);
         self.sync_automata(Some(active_cells), None, births, deaths);
         self.automata.ticks = 0;
-        self.automata.tick_time_ms = Date::now() - ts;
+        self.automata.tick_time_ms = ms;
     }
 
     pub fn floodfill(&mut self) {
-        let ts = Date::now();
         let old_live = self.automata.live;
-        let active_cells = FloodFill::floodfill(&mut self.mesh);
+        let (active_cells, ms) = measure_ms(|| FloodFill::floodfill(&mut self.mesh));
         let births = (active_cells - old_live).max(0);
-        self.automata.tick_time_ms = Date::now() - ts;
+        self.automata.tick_time_ms = ms;
         self.sync_automata(
             Some(active_cells),
             Some(self.mesh.config.topology_type == "infinite"),
