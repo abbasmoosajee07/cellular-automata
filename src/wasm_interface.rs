@@ -22,6 +22,10 @@ impl WasmInterface {
         }
     }
 
+    pub fn is_wasm(&self) -> bool {
+        self.engine.wasm_interface
+    }
+
     pub fn update_preview(&mut self) -> String {
         self.engine.update_storage();
         self.engine.pattern_text()
@@ -113,4 +117,6 @@ impl WasmInterface {
         self.engine.mesh.inner.get_chunk_cells(cx, cy, cz)
             .map_err(|e| JsValue::from_str(&e))
     }
+
+
 }

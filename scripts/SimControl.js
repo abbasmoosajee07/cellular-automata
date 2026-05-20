@@ -518,21 +518,15 @@ class SimulatorController{
         this.status_camera.textContent = `(${q},${r},${s})`;
     }
 
-    updateAutomataStatus(raw_stats = null) {
+    updateAutomataStatus(raw_stats = null, stepTime = null) {
         const stats = raw_stats
             ? JSON.parse(raw_stats)
             : JSON.parse(this.wasm_engine.automata_string());
+        if (stepTime !== null) stats.step_ms = stepTime;
         this.automataConfig = stats;
         this.statsDisplay.updateStats_CA(stats);
     }
-updateAutomataStatus(raw_stats = null, stepTime = null) {
-    const stats = raw_stats
-        ? JSON.parse(raw_stats)
-        : JSON.parse(this.wasm_engine.automata_string());
-    if (stepTime !== null) stats.step_ms = stepTime;
-    this.automataConfig = stats;
-    this.statsDisplay.updateStats_CA(stats);
-}
+
     toggleAt(px, py) {
         this.gridManager.toggleAt(
             px, py,

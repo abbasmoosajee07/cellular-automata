@@ -23,6 +23,7 @@ fn measure_ms<F: FnOnce() -> T, T>(f: F) -> (T, f64) {
 }
 
 pub struct Engine {
+    pub wasm_interface: bool,
     pub storage: PatternConfig,
     pub mesh: GridMesh,
     pub automata: Automata,
@@ -34,6 +35,7 @@ impl Engine {
     pub fn new(shape: String, width: usize, height: usize) -> Self {
         let grid_mesh = GridMesh::new(shape, width, height);
         Self {
+            wasm_interface: cfg!(target_arch = "wasm32"),
             storage: PatternConfig::default(),
             mesh: grid_mesh,
             automata: Automata::default(),
@@ -54,6 +56,7 @@ impl Engine {
         let total = grid_mesh.calculate_total_cells();
 
         let mut engine = Self {
+            wasm_interface: cfg!(target_arch = "wasm32"),
             storage: cfg.clone(),
             mesh: grid_mesh,
             automata: Automata::default(),
