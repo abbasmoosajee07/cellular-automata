@@ -1,6 +1,5 @@
 
 use crate::Engine;
-use std::time::Instant;
 
 /// Runs a native test of a single Game of Life step
 pub fn run_native_tests() {
@@ -17,10 +16,8 @@ pub fn run_native_tests() {
     } else {
         let mut cm = Engine::new("square".to_string(), 250, 250);
         // Randomize cells (TIMED)
-        let start_rand = Instant::now();
         cm.random_cells();
-        let rand_elapsed = start_rand.elapsed();
-        println!("Random fill time: {:?}", rand_elapsed);
+        println!("Random fill time: {:?}", cm.automata.tick_time_ms);
         cm
     };
     // cm.resize(10, 10);
@@ -38,13 +35,11 @@ pub fn run_native_tests() {
 
     // Run one step of Game of Life (TIMED)
     println!("--- Running one GoL step ---");
-    let start_step = Instant::now();
     cm.step_game_of_life();
-    let step_elapsed = start_step.elapsed();
 
     // Show the new set of live cells
     println!("Cells after GoL step: {}", cm.automata.live);
-    println!("GoL step time: {:?}", step_elapsed);
+    println!("GoL step time: {:?}", cm.automata.tick_time_ms);
     println!("=== GoL Test Completed ===\n");
 
     println!("Post GOL: {:?}\n", cm.mesh.config);
