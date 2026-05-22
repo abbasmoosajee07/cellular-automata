@@ -89,8 +89,8 @@ class StatsDisplay {
         }
 
         if (this.card_render_time) {
-            this.card_render_time.textContent = stats.step_ms != null
-                ? stats.step_ms.toFixed(1) + 'ms'
+            this.card_render_time.textContent = stats.js_time != null
+                ? stats.js_time.toFixed(1) + 'ms'
                 : '—';
         }
 
@@ -154,6 +154,7 @@ class StatsDisplay {
 
         this._invalidateCache();
         this._drawStatsChart();
+        console.log("Rust=", stats.tick_time_ms, "JS=", stats.js_time);
     }
 
     _initStatsChart() {

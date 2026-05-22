@@ -61,6 +61,9 @@ class SimulatorController{
         });
     }
 
+    _stamp()     { this._timestamp = performance.now(); }
+    _elapsedMs() { return performance.now() - this._timestamp; }
+
     setupMenuControls() {
         const panel = this.menuPanel;
 
@@ -107,10 +110,11 @@ class SimulatorController{
         // console.log(this.gridConfig);
         // console.log(this.storageConfig);
         this.statsDisplay.updateStats_GRID(this.gridConfig);
-        this.updateAutomataStatus();
     }
 
     async fromPattern({ patternData = ""} = {}) {
+        this._stamp();
+
         // Parse pattern + config
         const patternName = this.patternSharer.getPatternName();
         const wasm_engine = WasmInterface.from_pattern(patternName, patternData);
@@ -131,9 +135,11 @@ class SimulatorController{
         // Build grid
         const shape = this.selectedShape ?? "square";
         this._buildGrid({shape, wasm_engine});
+        this.updateAutomataStatus(null, this._elapsedMs());
     }
 
     async setupGrid({ preserveState = false } = {}) {
+        this._stamp();
         const shape = this.selectedShape;
         const oldGrid = this.gridManager || null;
         const [cols, rows, _] = this.gridSize;
@@ -156,6 +162,7 @@ class SimulatorController{
             wasm_engine = new WasmInterface(shape, cols, rows);
         }
         this._buildGrid({shape, wasm_engine, savedView});
+        this.updateAutomataStatus(null, this._elapsedMs());
     }
 
     setupGridControls() {
@@ -411,9 +418,9 @@ class SimulatorController{
         const handleDown = (pointer) => {
             if (pointer.touches === 1) {
                 if (this.drawTiles.checked || this.eraseTiles.checked) {
+                    this._stamp();
                     painting = true;
                     this.toggleAt(pointer.x, pointer.y);
-                    this.updateAutomataStatus();
                 } else {
                     draggingCam = true;
                 }
@@ -451,8 +458,8 @@ class SimulatorController{
 
             // --- PAINTING ---
             if (painting) {
+                this._stamp();
                 this.toggleAt(pointer.x, pointer.y);
-                this.updateAutomataStatus();
             }
 
             // --- CAMERA DRAG ---
@@ -518,11 +525,11 @@ class SimulatorController{
         this.status_camera.textContent = `(${q},${r},${s})`;
     }
 
-    updateAutomataStatus(raw_stats = null, stepTime = null) {
+    updateAutomataStatus(raw_stats = null, js_time = null) {
         const stats = raw_stats
             ? JSON.parse(raw_stats)
             : JSON.parse(this.wasm_engine.automata_string());
-        if (stepTime !== null) stats.step_ms = stepTime;
+        if (js_time !== null) stats.js_time = js_time;
         this.automataConfig = stats;
         this.statsDisplay.updateStats_CA(stats);
     }
@@ -533,33 +540,28 @@ class SimulatorController{
             this.drawTiles.checked,
             this.eraseTiles.checked,
         );
+        this.updateAutomataStatus(null, this._elapsedMs());
     }
 
     randomCells() {
-        const stepStartTime = performance.now();
+        this._stamp();
         const props = this.wasm_engine.random_cells();
         this.gridManager.renderGrid(true);
-        const totalTime = performance.now() - stepStartTime;
-
-        this.updateAutomataStatus(props, totalTime);  // <-- pass totalTime
+        this.updateAutomataStatus(props, this._elapsedMs());
     }
 
     simulate_step() {
-        const stepStartTime = performance.now();
+        this._stamp();
         const props = this.wasm_engine.step_game_of_life();
         this.gridManager.renderGrid(true);
-        const totalTime = performance.now() - stepStartTime;
-
-        this.updateAutomataStatus(props, totalTime);  // <-- pass totalTime
+        this.updateAutomataStatus(props, this._elapsedMs());
     }
 
     fillNeighbors() {
-        const stepStartTime = performance.now();
+        this._stamp();
         const props = this.wasm_engine.floodfill();
         this.gridManager.renderGrid(true);
-        const totalTime = performance.now() - stepStartTime;
-
-        this.updateAutomataStatus(props, totalTime);  // <-- pass totalTime
+        this.updateAutomataStatus(props, this._elapsedMs());
     }
 }
 
