@@ -154,7 +154,7 @@ class StatsDisplay {
 
         this._invalidateCache();
         this._drawStatsChart();
-        console.log("Rust=", stats.tick_time_ms, "JS=", stats.js_time);
+        console.log("Rust=", stats.tick_time_ms, "Total=", stats.js_time);
     }
 
     _initStatsChart() {

@@ -1,21 +1,24 @@
 use crate::{GridMesh, PatternIO, formats::PatternConfig};
-use crate::automata::{Automata, FloodFill, ConwayLife};
+use crate::automata::{Automata, ConwayLife, FloodFill};
 use std::{fs, path::{Path}};
 
 #[cfg(target_arch = "wasm32")]
 fn now_ms() -> f64 {
-    js_sys::Date::now()
+    web_sys::window()
+        .expect("no window")
+        .performance()
+        .expect("no performance")
+        .now()  // returns f64 with sub-ms precision
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 fn now_ms() -> f64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs_f64() * 1000.0
+    use std::time::Instant;
+    thread_local! {
+        static ORIGIN: Instant = Instant::now();
+    }
+    ORIGIN.with(|o| o.elapsed().as_secs_f64() * 1000.0)
 }
-
 fn measure_ms<F: FnOnce() -> T, T>(f: F) -> (T, f64) {
     let start = now_ms();
     let result = f();
@@ -49,6 +52,7 @@ impl Engine {
     }
 
     pub fn new_with_pattern(pattern_props: &str, pattern_data: &str) -> Self {
+        let start = now_ms();
         let cfg = PatternIO::read_pattern(pattern_props, pattern_data);
 
         let [w, h, _d] = cfg.grid_size;
@@ -84,6 +88,7 @@ impl Engine {
         }
 
         engine.sync_automata(None, Some(true), 0, 0);
+        engine.automata.tick_time_ms = now_ms() - start;
         engine
     }
 
@@ -101,6 +106,7 @@ impl Engine {
 
     // ── Basic operations ─────────────────────────────────────────────────────
     pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
+        let start = now_ms();
         let prev = self.mesh.inner.get_cell(q, r, s);
         self.mesh.inner.set_cell(q, r, s, value);
 
@@ -119,7 +125,7 @@ impl Engine {
             births,
             deaths,
         );
-        self.automata.tick_time_ms = 0.0;
+        self.automata.tick_time_ms = now_ms() - start;
     }
 
     pub fn clear(&mut self) {
