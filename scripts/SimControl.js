@@ -525,11 +525,11 @@ class SimulatorController{
         this.status_camera.textContent = `(${q},${r},${s})`;
     }
 
-    updateAutomataStatus(raw_stats = null, js_time = null) {
+    updateAutomataStatus(raw_stats = null, dt_js = null) {
         const stats = raw_stats
             ? JSON.parse(raw_stats)
             : JSON.parse(this.wasm_engine.automata_string());
-        if (js_time !== null) stats.js_time = js_time;
+        if (dt_js !== null) stats.dt_js = dt_js;
         this.automataConfig = stats;
         this.statsDisplay.updateStats_CA(stats);
     }

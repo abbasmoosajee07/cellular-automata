@@ -17,7 +17,7 @@ pub fn run_native_tests() {
         let mut cm = Engine::new("square".to_string(), 250, 250);
         // Randomize cells (TIMED)
         cm.random_cells();
-        println!("Random fill time: {:?}", cm.automata.tick_time_ms);
+        println!("Random fill time: {:?}", cm.automata.dt_rs);
         cm
     };
     // cm.resize(10, 10);
@@ -39,7 +39,7 @@ pub fn run_native_tests() {
 
     // Show the new set of live cells
     println!("Cells after GoL step: {}", cm.automata.live);
-    println!("GoL step time: {:?}", cm.automata.tick_time_ms);
+    println!("GoL step time: {:?}", cm.automata.dt_rs);
     println!("=== GoL Test Completed ===\n");
 
     println!("Post GOL: {:?}\n", cm.mesh.config);

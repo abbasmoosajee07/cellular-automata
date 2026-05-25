@@ -31,7 +31,7 @@ impl Engine {
     }
 
     pub fn new_with_pattern(pattern_props: &str, pattern_data: &str) -> Self {
-        // let start = now_ms();
+        let init_stopwatch = Stopwatch::start();
         let cfg = PatternIO::read_pattern(pattern_props, pattern_data);
 
         let [w, h, _d] = cfg.grid_size;
@@ -40,7 +40,7 @@ impl Engine {
 
         let mut engine = Self {
             wasm_interface: cfg!(target_arch = "wasm32"),
-            stopwatch: Stopwatch::start(),
+            stopwatch: init_stopwatch,
             storage: cfg.clone(),
             mesh: grid_mesh,
             automata: Automata::default(),
@@ -68,7 +68,7 @@ impl Engine {
         }
 
         engine.sync_automata(None, Some(true), 0, 0);
-        engine.automata.tick_time_ms = engine.stopwatch.elapsed_ms();
+        engine.automata.dt_rs = engine.stopwatch.elapsed_ms();
         engine
     }
 
@@ -105,7 +105,7 @@ impl Engine {
             births,
             deaths,
         );
-        self.automata.tick_time_ms = self.stopwatch.elapsed_ms();
+        self.automata.dt_rs = self.stopwatch.elapsed_ms();
     }
 
     pub fn clear(&mut self) {
@@ -136,7 +136,7 @@ impl Engine {
         let (births, deaths)=  ConwayLife::step_game_of_life(&mut self.mesh);
         self.sync_automata(None, None, births, deaths);
         self.automata.ticks += 1;
-        self.automata.tick_time_ms = self.stopwatch.elapsed_ms();
+        self.automata.dt_rs = self.stopwatch.elapsed_ms();
     }
 
     pub fn random_cells(&mut self) {
@@ -147,7 +147,7 @@ impl Engine {
         let deaths = (old_live - active_cells).max(0);
         self.sync_automata(Some(active_cells), None, births, deaths);
         self.automata.ticks = 0;
-        self.automata.tick_time_ms = self.stopwatch.elapsed_ms();
+        self.automata.dt_rs = self.stopwatch.elapsed_ms();
     }
 
     pub fn floodfill(&mut self) {
@@ -161,7 +161,7 @@ impl Engine {
             births,
             0,
         );
-        self.automata.tick_time_ms = self.stopwatch.elapsed_ms();
+        self.automata.dt_rs = self.stopwatch.elapsed_ms();
     }
 
     // ── Storage operations ────────────────────────────────────────────────────
