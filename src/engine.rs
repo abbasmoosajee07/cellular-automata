@@ -1,32 +1,10 @@
-use crate::{GridMesh, PatternIO, formats::PatternConfig};
+use crate::{GridMesh, PatternIO, formats::PatternConfig, Stopwatch};
 use crate::automata::{Automata, ConwayLife, FloodFill};
 use std::{fs, path::{Path}};
 
-#[cfg(target_arch = "wasm32")]
-fn now_ms() -> f64 {
-    web_sys::window()
-        .expect("no window")
-        .performance()
-        .expect("no performance")
-        .now()  // returns f64 with sub-ms precision
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn now_ms() -> f64 {
-    use std::time::Instant;
-    thread_local! {
-        static ORIGIN: Instant = Instant::now();
-    }
-    ORIGIN.with(|o| o.elapsed().as_secs_f64() * 1000.0)
-}
-fn measure_ms<F: FnOnce() -> T, T>(f: F) -> (T, f64) {
-    let start = now_ms();
-    let result = f();
-    (result, now_ms() - start)
-}
-
 pub struct Engine {
     pub wasm_interface: bool,
+    pub stopwatch: Stopwatch,
     pub storage: PatternConfig,
     pub mesh: GridMesh,
     pub automata: Automata,
@@ -39,6 +17,7 @@ impl Engine {
         let grid_mesh = GridMesh::new(shape, width, height);
         Self {
             wasm_interface: cfg!(target_arch = "wasm32"),
+            stopwatch: Stopwatch::start(),
             storage: PatternConfig::default(),
             mesh: grid_mesh,
             automata: Automata::default(),
@@ -52,7 +31,7 @@ impl Engine {
     }
 
     pub fn new_with_pattern(pattern_props: &str, pattern_data: &str) -> Self {
-        let start = now_ms();
+        // let start = now_ms();
         let cfg = PatternIO::read_pattern(pattern_props, pattern_data);
 
         let [w, h, _d] = cfg.grid_size;
@@ -61,6 +40,7 @@ impl Engine {
 
         let mut engine = Self {
             wasm_interface: cfg!(target_arch = "wasm32"),
+            stopwatch: Stopwatch::start(),
             storage: cfg.clone(),
             mesh: grid_mesh,
             automata: Automata::default(),
@@ -88,7 +68,7 @@ impl Engine {
         }
 
         engine.sync_automata(None, Some(true), 0, 0);
-        engine.automata.tick_time_ms = now_ms() - start;
+        engine.automata.tick_time_ms = engine.stopwatch.elapsed_ms();
         engine
     }
 
@@ -106,7 +86,7 @@ impl Engine {
 
     // ── Basic operations ─────────────────────────────────────────────────────
     pub fn set_cell(&mut self, q: i32, r: i32, s: i32, value: u32) {
-        let start = now_ms();
+        self.stopwatch.stamp();
         let prev = self.mesh.inner.get_cell(q, r, s);
         self.mesh.inner.set_cell(q, r, s, value);
 
@@ -125,7 +105,7 @@ impl Engine {
             births,
             deaths,
         );
-        self.automata.tick_time_ms = now_ms() - start;
+        self.automata.tick_time_ms = self.stopwatch.elapsed_ms();
     }
 
     pub fn clear(&mut self) {
@@ -152,33 +132,36 @@ impl Engine {
 
     // ── Simulation steps ─────────────────────────────────────────────────────
     pub fn step_game_of_life(&mut self) {
-        let ((births, deaths), ms) = measure_ms(|| ConwayLife::step_game_of_life(&mut self.mesh));
+        self.stopwatch.stamp();
+        let (births, deaths)=  ConwayLife::step_game_of_life(&mut self.mesh);
         self.sync_automata(None, None, births, deaths);
         self.automata.ticks += 1;
-        self.automata.tick_time_ms = ms;
+        self.automata.tick_time_ms = self.stopwatch.elapsed_ms();
     }
 
     pub fn random_cells(&mut self) {
+        self.stopwatch.stamp();
         let old_live = self.automata.live;
-        let (active_cells, ms) = measure_ms(|| self.mesh.random_cells());
+        let active_cells = self.mesh.random_cells();
         let births = (active_cells - old_live).max(0);
         let deaths = (old_live - active_cells).max(0);
         self.sync_automata(Some(active_cells), None, births, deaths);
         self.automata.ticks = 0;
-        self.automata.tick_time_ms = ms;
+        self.automata.tick_time_ms = self.stopwatch.elapsed_ms();
     }
 
     pub fn floodfill(&mut self) {
+        self.stopwatch.stamp();
         let old_live = self.automata.live;
-        let (active_cells, ms) = measure_ms(|| FloodFill::floodfill(&mut self.mesh));
+        let active_cells= FloodFill::floodfill(&mut self.mesh);
         let births = (active_cells - old_live).max(0);
-        self.automata.tick_time_ms = ms;
         self.sync_automata(
             Some(active_cells),
             Some(self.mesh.config.topology_type == "infinite"),
             births,
             0,
         );
+        self.automata.tick_time_ms = self.stopwatch.elapsed_ms();
     }
 
     // ── Storage operations ────────────────────────────────────────────────────

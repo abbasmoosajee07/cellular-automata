@@ -59,6 +59,9 @@ pub mod formats {
 
 pub use formats::pattern_io::PatternIO;
 
+pub mod stopwatch;
+pub use stopwatch::Stopwatch;
+
 // Include native interface for normal Rust builds
 #[cfg(not(target_arch = "wasm32"))]
 pub mod native_interface;
