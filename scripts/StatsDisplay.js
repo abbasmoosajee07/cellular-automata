@@ -6,10 +6,11 @@ class StatsDisplay {
     _cachedMin    = 0;
     statsIDs = [
         "statsChart", "status_pop", "status_tick",
-        "card_live", "card_net_change", "card_ticks",
+        "card_live", "card_net_change", "card_ticks", "status_fps",
         "card_density_val", "card_density_bar", "card_total_cells",
         "card_births", "card_deaths", "card_mutation",
-        "card_shape", "card_topology", "card_neighbor", "card_render_time"
+        "card_shape", "card_topology", "card_neighbor",
+        "card_fps","card_render_time"
     ];
     _prevLive = null;
     y_var = "live";
@@ -89,9 +90,10 @@ class StatsDisplay {
         }
 
         if (this.card_render_time) {
-            this.card_render_time.textContent = stats.dt_js != null
-                ? stats.dt_js.toFixed(1) + 'ms'
-                : '—';
+            this.card_render_time.innerHTML = `dt: <span class="time-rust">${stats.dt_rs.toFixed(1)} ms </span>| <span class="time-js">${stats.dt_js.toFixed(1)} ms</span>`;
+            const fps = (1000/stats.dt_js).toFixed(1);
+            this.card_fps.textContent = fps;
+            this.status_fps.textContent = fps;
         }
 
         // ── Hero row: Population card ─────────────────────────────

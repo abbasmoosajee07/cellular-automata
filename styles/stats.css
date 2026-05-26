@@ -300,6 +300,8 @@ body.light {
     transition: width 0.4s ease;
 }
 
+.time-rust { color: #D34516; }
+.time-js   { color: #e3f545; }
 /* =========================================================
    Compact Config Card
 ========================================================= */

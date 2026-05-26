@@ -196,25 +196,17 @@
                 <div class="stats-cards">
                     <div class="stats-section">
 
-                        <!-- Row: Time Ticks -->
-                        <!-- <div class="stat-card stat-card--slim"">
-                            <div class="stat-card__label">Time Ticks</div>
-                            <div class="stat-card__value" id="card_ticks">0</div>
-                        </div> -->
                         <!-- Row: Ticks + FPS -->
                         <div class="stats-row">
                             <div class="stat-card stat-card">
                             <div class="stat-card__label">Ticks</div>
                             <div class="stat-card__value" id="card_ticks">0</div>
-                            <div class="stat-card__net" id="card_gen_jump"></div>
+                            <div class="stat-card__net" id="card_tick_jump">+1</div>
                             </div>
-                            <div class="stat-card stat-card--density">
-                            <div class="stat-card__label">Time</div>
-                            <div class="stat-card__value stat-card__value--sm" id="card_render_time">0</div>
-                            <!-- <div class="stat-card__sub" id="card_render_time">Avg FPS</div> -->
-                            <div class="stat-card__bar-track">
-                                <div class="stat-card__bar" id="card_speed"></div>
-                            </div>
+                            <div class="stat-card stat-card">
+                            <div class="stat-card__label">Speed</div>
+                            <div class="stat-card__value stat-card__value" id="card_fps">0</div>
+                            <div class="stat-card__sub" id="card_render_time">0</div>
                             </div>
                         </div>
 
@@ -431,7 +423,7 @@
         </button>
     </div>
 
-        <!--  Status Bar -->
+    <!--  Status Bar -->
     <div id="statusBar" class="ui-panel">
         <div class="status-item" title="Population">
             <i>Pop:</i>
@@ -443,6 +435,11 @@
             <span id="status_tick">0</span>
         </div>
 
+        <div class="status-item"  title="Sim Speed">
+            <i>FPS:</i>
+            <span id="status_fps">0</span>
+        </div>
+
         <div class="status-item"  title="Zoom">
             <i>Zoom:</i>
             <span id="status_zoom">1:1</span>
@@ -452,7 +449,6 @@
             <i>Loc:</i>
             <span id="status_camera">(0,0)</span>
         </div>
-
     </div>
 
     <!-- Pattern Library -->
