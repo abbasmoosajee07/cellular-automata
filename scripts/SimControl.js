@@ -45,6 +45,12 @@ class SimulatorController{
         this.gridManager.renderGrid();
     }
 
+    getPanelWidth() {
+        const panel = this.menuPanel;
+        if (!panel) return 0;
+        return panel.classList.contains('open') ? panel.offsetWidth : 0;
+    }
+
     initElements() {
         for (const id of this.docIDs) {
             this[id] = document.getElementById(id);
@@ -68,8 +74,14 @@ class SimulatorController{
         const panel = this.menuPanel;
 
         this.menuToggle.addEventListener('click', () => {
-        panel.classList.toggle('open');
+            panel.classList.toggle('open');
+            // Apply if auto-resizing needed when panels are open and closed
+            // setTimeout(() => {
+            //     this.gridManager.fitGrid(this.getPanelWidth());
+            //     this.gridManager.renderGrid();
+            // }, 300);
         });
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             // deactivate all
@@ -98,7 +110,7 @@ class SimulatorController{
         if (savedView) {
             Object.assign(this.gridManager.cameraView, savedView);
         } else {
-            this.gridManager.fitGrid();
+            this.gridManager.fitGrid(this.getPanelWidth());
         }
 
         this.savedView = { ...this.gridManager.cameraView };
@@ -106,9 +118,6 @@ class SimulatorController{
 
         // Reset chart history when a new grid is built
         this.statsDisplay?.resetChart();
-
-        // console.log(this.gridConfig);
-        // console.log(this.storageConfig);
         this.statsDisplay.updateStats_GRID(this.gridConfig);
     }
 
@@ -210,7 +219,7 @@ class SimulatorController{
 
     setupEventListeners() {
         this.autoFit.addEventListener('click', () => {
-            this.gridManager.fitGrid();
+            this.gridManager.fitGrid(this.getPanelWidth());
             this.gridManager.renderGrid();
         });
 

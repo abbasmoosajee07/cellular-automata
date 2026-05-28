@@ -226,7 +226,7 @@ class GridManager {
         return [minQ, maxQ, minR, maxR, minS, maxS];
     }
 
-    fitGrid() {
+    fitGrid(panelWidth = 0) {
         const [minQ, maxQ, minR, maxR, minS, maxS] = this.selectGridLimits();
         const gridCorners = this.shapeGrid.getGridCorners(
             minQ, maxQ, minR, maxR, minS, maxS
@@ -247,8 +247,12 @@ class GridManager {
         const worldW = maxX - minX;
         const worldH = maxY - minY;
 
-        const zoomX = this.width  / worldW;
-        const zoomY = this.height / worldH;
+        // Available canvas area after accounting for the panel
+        const availableWidth = this.width - panelWidth;
+        const availableHeight = this.height;
+
+        const zoomX = availableWidth  / worldW;
+        const zoomY = availableHeight / worldH;
         const zoom  = Math.min(zoomX, zoomY);
 
         this.cameraView.zoom = zoom;
@@ -256,7 +260,10 @@ class GridManager {
         const worldCX = (minX + maxX) * 0.5;
         const worldCY = (minY + maxY) * 0.5;
 
-        this.cameraView.camX = -worldCX * zoom;
+        // Shift the camera left by half the panel width
+        const panelOffset = panelWidth / 2;
+
+        this.cameraView.camX = -worldCX * zoom - panelOffset;
         this.cameraView.camY =  worldCY * zoom;
     }
 
