@@ -214,6 +214,12 @@ body.light {
     font-size: 13px;
 }
 
+.row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 /* =========================================================
    Typography
 ========================================================= */
@@ -260,11 +266,13 @@ body.light {
     font-variant-numeric: tabular-nums;
 }
 
-.stat-card__net--up {
+.stat-card__net--up,
+.config-item__value.stat-card__net--up {
     color: #4ade80;
 }
 
-.stat-card__net--down {
+.stat-card__net--down,
+.config-item__value.stat-card__net--down {
     color: #f87171;
 }
 

@@ -4,6 +4,7 @@ class StatsDisplay {
     _cachedData   = [];       // avoid re-spreading every draw
     _cachedMax    = 1;        // avoid recomputing min/max
     _cachedMin    = 0;
+    _peakPop      = 0;
     statsIDs = [
         "statsChart", "status_pop", "status_tick",
         "card_live", "card_net_change", "card_ticks", "status_fps",
@@ -99,6 +100,8 @@ class StatsDisplay {
         // ── Hero row: Population card ─────────────────────────────
         if (this.card_live) {
             this.card_live.textContent = Number(stats.live).toLocaleString();
+            this._peakPop = Math.max(stats.live, this._peakPop);
+            this.card_peak_pop.textContent = this._peakPop.toLocaleString();
         }
         if (this.card_net_change) {
             const net = this._prevLive !== null ? stats.live - this._prevLive : 0;
