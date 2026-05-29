@@ -10,7 +10,7 @@ class StatsDisplay {
         "card_density_val", "card_density_bar", "card_total_cells",
         "card_births", "card_deaths", "card_mutation",
         "card_shape", "card_topology", "card_neighbor",
-        "card_fps","card_render_time"
+        "card_fps","card_render_time", "card_peak_pop"
     ];
     _prevLive = null;
     y_var = "live";

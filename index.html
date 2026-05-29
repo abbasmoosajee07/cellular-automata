@@ -196,55 +196,6 @@
                 <div class="stats-cards">
                     <div class="stats-section">
 
-                        <!-- Row: Ticks + FPS -->
-                        <div class="stats-row">
-                            <div class="stat-card stat-card">
-                            <div class="stat-card__label">Ticks</div>
-                            <div class="stat-card__value" id="card_ticks">0</div>
-                            <div class="stat-card__net" id="card_tick_jump">+1</div>
-                            </div>
-                            <div class="stat-card stat-card">
-                            <div class="stat-card__label">Speed</div>
-                            <div class="stat-card__value stat-card__value" id="card_fps">0</div>
-                            <div class="stat-card__sub" id="card_render_time">0</div>
-                            </div>
-                        </div>
-
-                        <!-- Row: Population + Density -->
-                        <div class="stats-row">
-                            <div class="stat-card stat-card">
-                            <div class="stat-card__label">Population</div>
-                            <div class="stat-card__value" id="card_live">0</div>
-                            <div class="stat-card__net" id="card_net_change"></div>
-                            </div>
-                            <div class="stat-card stat-card--density">
-                            <div class="stat-card__label">Density</div>
-                            <div class="stat-card__value stat-card__value--sm" id="card_density_val">0.00</div>
-                            <div class="stat-card__sub" id="card_total_cells">of 0 cells</div>
-                            <div class="stat-card__bar-track">
-                                <div class="stat-card__bar" id="card_density_bar"></div>
-                            </div>
-                            </div>
-                        </div>
-
-                        <!-- Row: Births + Deaths -->
-                        <div class="stats-row">
-                            <div class="stat-card">
-                            <div class="stat-card__label">Births</div>
-                            <div class="stat-card__value stat-card__value--sm" id="card_births">0</div>
-                            </div>
-                            <div class="stat-card">
-                            <div class="stat-card__label">Deaths</div>
-                            <div class="stat-card__value stat-card__value--sm" id="card_deaths">0</div>
-                            </div>
-                        </div>
-
-                        <!-- Row: Mutation Rate (slim) -->
-                        <div class="stat-card stat-card--slim">
-                            <div class="stat-card__label">Mutation Rate</div>
-                            <div class="stat-card__value" id="card_mutation">0</div>
-                        </div>
-
                         <!-- Row: Grid Configuration -->
                         <div class="stat-card stat-card--config">
                             <div class="stat-card__label">Grid Configuration</div>
@@ -266,21 +217,74 @@
                             </div>
                         </div>
 
-                        <!-- Row: Automata Configuration  -->
-                        <!-- <div class="stat-card stat-card--config">
-                            <div class="stat-card__label">Automata Configuration</div>
+                        <!-- Row: Ticks + FPS -->
+                        <div class="stats-row">
+                            <div class="stat-card stat-card">
+                            <div class="stat-card__label">Ticks</div>
+                            <div class="stat-card__value" id="card_ticks">0</div>
+                            <div class="stat-card__net" id="card_tick_jump">+1</div>
+                            </div>
+                            <div class="stat-card stat-card">
+                            <div class="stat-card__label">Speed</div>
+                            <div class="stat-card__value stat-card__value" id="card_fps">0</div>
+                            <div class="stat-card__sub" id="card_render_time">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Row: Population + Density -->
+                        <div class="stats-row">
+                            <div class="stat-card stat-card">
+                            <div class="stat-card__label">Population</div>
+                            <div class="stat-card__value" id="card_live">0</div>
+                            <div class="stat-card__net" id="card_peak_pop">Inf</div>
+                            </div>
+                            <div class="stat-card stat-card--density">
+                            <div class="stat-card__label">Density</div>
+                            <div class="stat-card__value stat-card__value--sm" id="card_density_val">0.00</div>
+                            <div class="stat-card__sub" id="card_total_cells">of 0 cells</div>
+                            <div class="stat-card__bar-track">
+                                <div class="stat-card__bar" id="card_density_bar"></div>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Row: Births + Deaths -->
+
+                        <div class="stat-card stat-card--config">
                             <div class="config-grid-row">
                                 <div class="config-item">
-                                    <span class="config-item__value" id="card_automata">Life</span>
-                                    <span class="config-item__label"></span>
+                                    <span class="config-item__value stat-card__net--up" id="card_births">0</span>
+                                    <span class="config-item__label">Births</span>
                                 </div>
                                 <div class="config-divider"></div>
                                 <div class="config-item">
-                                    <span class="config-item__value" id="card_rule">B3/S23</span>
-                                    <span class="config-item__label">Rule</span>
+                                    <span class="config-item__value stat-card__net--down" id="card_deaths">0</span>
+                                    <span class="config-item__label">Deaths</span>
+                                </div>
+                                <div class="config-divider"></div>
+                                <div class="config-item">
+                                    <span class="config-item__value" id="card_net_change">0</span>
+                                    <span class="config-item__label">Net</span>
                                 </div>
                             </div>
-                        </div> -->
+                        </div>
+
+                        <!-- Row: Mutation Rate (slim) -->
+                        <div class="stats-row">
+                            <div class="stat-card stat-card--slim">
+                                <div class="stat-card__label">Mutation</div>
+                                <div class="stat-card__value" id="card_mutation">0</div>
+                            </div>
+                            <div class="stat-card stat-card--slim">
+                                <div class="stat-card__label">Survival</div>
+                                <div class="stat-card__value" id="card_rule">0.0%</div>
+                            </div>
+                        </div>
+                        <!-- Row: Mutation Rate (slim) -->
+                        <div class="stat-card stat-card--slim">
+                            <div class="stat-card__label">CA Rule</div>
+                            <div class="stat-card__value" id="card_rule">B3/S23</div>
+                        </div>
                     </div>
                 </div>
 
