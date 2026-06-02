@@ -11,7 +11,8 @@ class StatsDisplay {
         "card_density_val", "card_density_bar", "card_total_cells",
         "card_births", "card_deaths", "card_mutation",
         "card_shape", "card_topology", "card_neighbor",
-        "card_fps","card_render_time", "card_peak_pop"
+        "card_fps","card_render_time", "card_peak_pop",
+        "pauseGraph", "clearGraph", "exportGraph"
     ];
     _prevLive = null;
     y_var = "live";
@@ -25,6 +26,7 @@ class StatsDisplay {
         }
         this.selectStatGraph();
         this._initStatsChart();
+        this.graphControls();
     }
 
     selectStatGraph(preffered = null) {
@@ -33,11 +35,11 @@ class StatsDisplay {
             descId: 'stats-desc',
             defaultValue: preffered || 'live',
             types: {
-                live:          { label: "Population vs Time", desc: "" },
-                density:       { label: "Density vs Time",    desc: "" },
-                mutation_rate: { label: "Mutation vs Time",   desc: "" },
-                births:        { label: "Births vs Time",     desc: "" },
-                deaths:        { label: "Deaths vs Time",     desc: "" },
+                live:          { label: "Population", desc: "" },
+                density:       { label: "Density",    desc: "" },
+                mutation_rate: { label: "Mutation",   desc: "" },
+                births:        { label: "Births",     desc: "" },
+                deaths:        { label: "Deaths",     desc: "" },
             }
         };
 
@@ -75,6 +77,20 @@ class StatsDisplay {
         this._chartHistory.clear();
         this._invalidateCache();
         this._drawStatsChart();
+    }
+
+    graphControls() {
+        this.pauseGraph.addEventListener("click", () => {
+            const paused = this.pauseGraph.style.backgroundColor === "red";
+            this.pauseGraph.style.backgroundColor = paused ? "" : "red";
+        });
+        // this.exportGraph.addEventListener("click", async () => {
+
+        // });
+
+        this.clearGraph.addEventListener("click", () => {
+            this.resetChart();
+        });
     }
 
     updateStatusText(stats) {

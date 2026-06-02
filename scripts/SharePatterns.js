@@ -150,6 +150,7 @@ class SharePatterns {
         this.editPreview.addEventListener("click", () => {
             const ro = this.patternPreview.hasAttribute("readonly");
             this.patternPreview.toggleAttribute("readonly", !ro);
+            this.editPreview.style.backgroundColor = ro ? "var(--feature-color)" : "";
             if (ro) this.patternPreview.focus();
         });
 

@@ -44,7 +44,7 @@ body.light {
     align-items: center;
     justify-content: space-between;
 
-    margin-bottom: 4px;
+    margin-bottom: 0px;
 }
 
 .stats-chart-title {
@@ -60,7 +60,7 @@ body.light {
 #statsChart {
     display: block;
     width: 100%;
-    height: 180px;
+    height: 200px;
 }
 
 /* =========================================================
@@ -111,7 +111,7 @@ body.light {
 
 .stats-header-actions {
     display: flex;
-    gap: 4px;
+    gap: 2px;
     margin-left: auto;
 }
 

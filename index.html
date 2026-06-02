@@ -296,12 +296,21 @@
                 <div class="stats-chart-wrap">
                     <div class="stats-chart-header">
                         <div class="config-group">
-                            <!-- <h3>Stats Type</h3> -->
-                            <!-- <label class="block-label">Graph</label> -->
                             <select id="stats-type" name="Stats" class="config-select"></select>
                             <p id="stats-desc" class="config-desc"></p>
                         </div>
-                </div>
+                        <div class="stats-header-actions">
+                            <button class="stats-icon-btn" id="pauseGraph" title="Pause updates">
+                                <i class="bi bi-pause-fill"></i>
+                            </button>
+                            <button class="stats-icon-btn" id="exportGraph" title="Export chart as PNG">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <button class="stats-icon-btn" id="clearGraph" title="Reset chart">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                        </div>
+                    </div>
                     <canvas id="statsChart"></canvas>
                 </div>
             </div>
