@@ -51,24 +51,60 @@
 .sidenav-tabs {
   display: flex;
   flex-direction: column;
-  width: 50px;
-  background: transparent;
-  border-right: 1px solid #333;
+  width: 52px;
+  border-right: 1px solid var(--card-border);
+  padding: 8px 6px;
+  gap: 4px;
 }
-.tab-btn {
-  padding: 1rem;
-  background: transparent;
-  color: var(--text-color);
-  border: none;
-  border-bottom: 1px solid #333;
-  text-align: center;
-  cursor: pointer;
-  transition: background 0.2s;
-  font-size: 0.9rem;
-}
-.tab-btn:hover { background: #333; }
-.tab-btn.active { background: var(--feature-color); }
 
+.tab-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 1.15rem;
+  border: none;
+  background: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab-btn.active {
+  background: color-mix(in srgb, var(--feature-color) 15%, transparent);
+  color: var(--feature-color);
+}
+
+.tab-btn:hover:not(.active) {
+  background: var(--dark-color);
+  color: var(--text-color);
+}
+
+.tab-tooltip {
+  position: absolute;
+  left: 46px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-color);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 1200;
+}
+
+.tab-wrap:hover .tab-tooltip { opacity: 1; }
 
 /* ==============================
     Panel Area
