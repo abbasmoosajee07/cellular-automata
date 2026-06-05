@@ -1,6 +1,7 @@
 class StatsDisplay {
     _chartHistory = new Map();
     _hoveredIndex = null;
+    _pausePlotting = false;
     _cachedData   = [];       // avoid re-spreading every draw
     _cachedMax    = 1;        // avoid recomputing min/max
     _cachedMin    = 0;
@@ -81,8 +82,8 @@ class StatsDisplay {
 
     graphControls() {
         this.pauseGraph.addEventListener("click", () => {
-            const paused = this.pauseGraph.style.backgroundColor === "red";
-            this.pauseGraph.style.backgroundColor = paused ? "" : "red";
+            this._pausePlotting = !this._pausePlotting;
+            this.pauseGraph.style.backgroundColor = this._pausePlotting ? "red" : "";
         });
         // this.exportGraph.addEventListener("click", async () => {
 
@@ -174,7 +175,7 @@ class StatsDisplay {
         }
 
         this._invalidateCache();
-        this._drawStatsChart();
+        if (!this._pausePlotting) this._drawStatsChart();
         console.log("Rust=", stats.dt_rs, "Total=", stats.dt_js);
     }
 
