@@ -36,11 +36,12 @@ class StatsDisplay {
             descId: 'stats-desc',
             defaultValue: preffered || 'live',
             types: {
-                live:          { label: "Population", desc: "" },
-                density:       { label: "Density",    desc: "" },
-                mutation_rate: { label: "Mutation",   desc: "" },
-                births:        { label: "Births",     desc: "" },
-                deaths:        { label: "Deaths",     desc: "" },
+                live:          { label: "Population",           desc: "" },
+                density:       { label: "Density",              desc: "" },
+                mutation_rate: { label: "Mutation",             desc: "" },
+                births:        { label: "Births",               desc: "" },
+                deaths:        { label: "Deaths",               desc: "" },
+                histogram:     { label: "Population histogram", desc: "" },
             }
         };
 
@@ -58,7 +59,7 @@ class StatsDisplay {
 
     _recomputeMinMax() {
         const data = this._cachedData;
-        const prop = this.y_var;
+        const prop = this.y_var === 'histogram' ? 'live' : this.y_var;
         if (data.length === 0) {
             this._cachedMax = 1;
             this._cachedMin = 0;
@@ -185,7 +186,9 @@ class StatsDisplay {
 
         if (this.statsChart) {
             this.statsChart.addEventListener('mousemove', (e) => {
-                const data = this._cachedData;           // no allocation
+                if (this.y_var === 'histogram') return;
+
+                const data = this._cachedData;
                 if (!data.length) return;
 
                 const rect = this.statsChart.getBoundingClientRect();
@@ -368,6 +371,8 @@ class StatsDisplay {
     _labelYaxis(ctx, y_var, pad, cH, col) {
         const label = y_var === 'live'
             ? 'Population'
+            : y_var === 'frequency'
+            ? 'Frequency'
             : y_var.charAt(0).toUpperCase() + y_var.slice(1);
         ctx.save();
         ctx.fillStyle = col.text;
@@ -407,15 +412,110 @@ class StatsDisplay {
         ctx.restore();
     }
 
+    // ── Histogram ────────────────────────────────────────────────
+    _drawHistogram() {
+        const canvas = this.statsChart;
+        if (!canvas) return;
+
+        const { ctx, W, H }   = this._setupCanvas();
+        const col              = this._getChartColors();
+        const { pad, cW, cH } = this._getChartLayout(W, H);
+        const data             = this._cachedData;
+
+        if (data.length < 2) {
+            ctx.fillStyle = col.text;
+            ctx.font      = this.graphFont;
+            ctx.textAlign = 'center';
+            ctx.fillText('Not enough data for histogram', W / 2, H / 2);
+            return;
+        }
+
+        const values  = data.map(d => d.live);
+        const min     = Math.min(...values);
+        const max     = Math.max(...values);
+        const BINS    = Math.min(20, Math.max(4, Math.ceil(Math.sqrt(data.length))));
+        const binSize = (max - min) / BINS || 1;
+
+        const counts = new Array(BINS).fill(0);
+        values.forEach(v => {
+            const b = Math.min(Math.floor((v - min) / binSize), BINS - 1);
+            counts[b]++;
+        });
+
+        const maxCount = Math.max(...counts, 1);
+        const barW     = cW / BINS;
+
+        // horizontal grid lines + y-axis labels
+        const GRID = 5;
+        ctx.strokeStyle = col.grid;
+        ctx.lineWidth   = 1;
+        ctx.fillStyle   = col.text;
+        ctx.font        = this.graphFont;
+        ctx.textAlign   = 'right';
+        for (let i = 0; i <= GRID; i++) {
+            const y   = pad.top + (i / GRID) * cH;
+            const val = Math.round(maxCount * (1 - i / GRID));
+            ctx.beginPath();
+            ctx.moveTo(pad.left, y);
+            ctx.lineTo(pad.left + cW, y);
+            ctx.stroke();
+            ctx.fillText(val.toLocaleString(), pad.left - 4, y + 3.5);
+        }
+
+        // bars
+        counts.forEach((count, i) => {
+            const x  = pad.left + i * barW;
+            const bH = (count / maxCount) * cH;
+            const y  = pad.top + cH - bH;
+
+            ctx.fillStyle = col.fill;
+            ctx.fillRect(x + 0.5, y, barW - 1, bH);
+            ctx.strokeStyle = col.line;
+            ctx.lineWidth   = 1;
+            ctx.strokeRect(x + 0.5, y, barW - 1, bH);
+        });
+
+        // x-axis bin boundary labels (~5 evenly spaced)
+        const labelStep = Math.max(1, Math.floor(BINS / 5));
+        ctx.fillStyle   = col.text;
+        ctx.font        = this.graphFont;
+        ctx.textAlign   = 'center';
+        for (let i = 0; i <= BINS; i += labelStep) {
+            const x   = pad.left + i * barW;
+            const val = Math.round(min + i * binSize);
+            ctx.fillText(val.toLocaleString(), x, H - 6);
+        }
+
+        // axes frame
+        this._drawAxes(ctx, pad, cW, cH, col);
+
+        // y-axis label
+        this._labelYaxis(ctx, 'frequency', pad, cH, col);
+
+        // x-axis label
+        ctx.save();
+        ctx.fillStyle = col.text;
+        ctx.font      = this.graphFont;
+        ctx.textAlign = 'center';
+        ctx.fillText('Population', pad.left + cW / 2, H - 2);
+        ctx.restore();
+    }
+
     _drawStatsChart() {
         const canvas = this.statsChart;
         if (!canvas) return;
 
+        // Route histogram to its own renderer
+        if (this.y_var === 'histogram') {
+            this._drawHistogram();
+            return;
+        }
+
         const { ctx, W, H }    = this._setupCanvas();
         const col               = this._getChartColors();
         const { pad, cW, cH }  = this._getChartLayout(W, H);
-        const data              = this._cachedData;          // no allocation
-        const y_var        = this.y_var;
+        const data              = this._cachedData;
+        const y_var             = this.y_var;
 
         if (data.length < 1) {
             ctx.fillStyle = col.text;
