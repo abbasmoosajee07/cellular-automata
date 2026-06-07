@@ -10,7 +10,7 @@ class StatsDisplay {
         "statsChart", "status_pop", "status_tick",
         "card_live", "card_net_change", "card_ticks", "status_fps",
         "card_density_val", "card_density_bar", "card_total_cells",
-        "card_births", "card_deaths", "card_mutation",
+        "card_births", "card_deaths", "card_mutation", "card_activity",
         "card_shape", "card_topology", "card_neighbor",
         "card_fps","card_render_time", "card_peak_pop",
         "pauseGraph", "clearGraph", "exportGraph"
@@ -38,7 +38,7 @@ class StatsDisplay {
             types: {
                 live:          { label: "Population",           desc: "" },
                 density:       { label: "Density",              desc: "" },
-                mutation_rate: { label: "Mutation",             desc: "" },
+                mutation: { label: "Mutation",             desc: "" },
                 births:        { label: "Births",               desc: "" },
                 deaths:        { label: "Deaths",               desc: "" },
                 histogram:     { label: "Population histogram", desc: "" },
@@ -146,8 +146,10 @@ class StatsDisplay {
         if (this.card_births)   this.card_births.textContent   = Number(stats.births).toLocaleString();
         if (this.card_deaths)   this.card_deaths.textContent   = Number(stats.deaths).toLocaleString();
         if (this.card_mutation) {
-            const m = typeof stats.mutation_rate === 'number' ? stats.mutation_rate : parseFloat(stats.mutation_rate) || 0;
+            const m = typeof stats.mutation === 'number' ? stats.mutation : parseFloat(stats.mutation) || 0;
             this.card_mutation.textContent = (m * 100).toFixed(2) + '%';
+            const a = typeof stats.activity === 'number' ? stats.activity : parseFloat(stats.activity) || 0;
+            this.card_activity.textContent = (a * 100).toFixed(2) + '%';
         }
     }
 

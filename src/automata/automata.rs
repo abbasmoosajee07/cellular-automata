@@ -9,7 +9,8 @@ pub struct Automata {
     pub deaths: i32,
     pub density: f32,
     pub dt_rs: f64,
-    pub mutation_rate: f32,
+    pub mutation: f32,
+    pub activity: f32,
 }
 
 impl Default for Automata {
@@ -22,7 +23,8 @@ impl Default for Automata {
             deaths: 0,
             density: 0.0,
             dt_rs: 0.0,
-            mutation_rate: 0.0,
+            mutation: 0.0,
+            activity: 0.0,
         }
     }
 }

@@ -81,7 +81,8 @@ impl Engine {
         self.automata.deaths = deaths;
         self.automata.live = new_live.unwrap_or_else(|| self.mesh.inner.count_live_cells());
         self.automata.density = self.automata.live as f32 / self.automata.total as f32;
-        self.automata.mutation_rate = (births + deaths) as f32 / self.automata.total as f32;
+        self.automata.mutation = (births + deaths) as f32 / self.automata.live as f32;
+        self.automata.activity = (births + deaths) as f32 / self.automata.total as f32;
     }
 
     // ── Basic operations ─────────────────────────────────────────────────────
