@@ -2,14 +2,15 @@ class StatsDisplay {
     _chartHistory = new Map();
     _hoveredIndex = null;
     _pausePlotting = false;
+    _speedFPS     = 0.0;
     _cachedData   = [];       // avoid re-spreading every draw
     _cachedMax    = 1;        // avoid recomputing min/max
     _cachedMin    = 0;
     _peakPop      = 0;
     statsIDs = [
-        "statsChart", "status_pop", "status_tick",
+        "statsPanel", "statsChart", "status_pop", "status_tick",
         "card_live", "card_net_change", "card_ticks", "status_fps",
-        "card_density_val", "card_density_bar", "card_total_cells",
+        "card_density_val", "card_density_bar", "card_total",
         "card_births", "card_deaths", "card_mutation", "card_activity",
         "card_shape", "card_topology", "card_neighbor",
         "card_fps","card_render_time", "card_peak_pop",
@@ -19,6 +20,26 @@ class StatsDisplay {
     y_var = "live";
     x_var = "ticks";
     graphFont = '10px system-ui, sans-serif';
+
+    _toStr(val) {
+        return val.toLocaleString()
+    }
+
+    _toNum(val) {
+        return typeof val === 'number' ? val : parseFloat(val) || 0;
+    }
+
+    _pct(val, decimals = 1) {
+        return (this._toNum(val) * 100).toFixed(decimals) + '%';
+    }
+
+    _fmtLabel(str) {
+        return str
+            .replace(/([a-z])([A-Z])/g, '$1 $2')  // camelCase → words
+            .replace(/_/g, ' ')                     // snake_case → words
+            .replace(/\b\w/g, c => c.toUpperCase()) // title case
+            .trim();
+    }
 
     constructor(parentSim) {
         this.simManager = parentSim;
@@ -95,88 +116,57 @@ class StatsDisplay {
         });
     }
 
-    updateStatusText(stats) {
-        // Legacy bindings (status bar + hidden preview elements)
-        this.statBindings = [
-            [this.status_pop, 'live'],
-            [this.status_tick, 'ticks'],
-            [this.card_ticks, 'ticks'],
-        ];
-        for (const [el, statKey] of this.statBindings) {
-            if (!el) continue;
-            const value = stats[statKey];
-            el.textContent = typeof value === 'number' ? value.toLocaleString() : value;
-        }
-
-        if (this.card_render_time) {
-            this.card_render_time.innerHTML = `dt: <span class="time-rust">${stats.dt_rs.toFixed(1)} ms </span>| <span class="time-js">${stats.dt_js.toFixed(1)} ms</span>`;
-            const fps = (1000/stats.dt_js).toFixed(1);
-            this.card_fps.textContent = fps;
-            this.status_fps.textContent = fps;
-        }
-
-        // ── Hero row: Population card ─────────────────────────────
-        if (this.card_live) {
-            this.card_live.textContent = Number(stats.live).toLocaleString();
-            this._peakPop = Math.max(stats.live, this._peakPop);
-            this.card_peak_pop.textContent = this._peakPop.toLocaleString();
-        }
-        if (this.card_net_change) {
-            const net = this._prevLive !== null ? stats.live - this._prevLive : 0;
-            const sign = net > 0 ? '+' : '';
-            this.card_net_change.textContent = `${sign}${net.toLocaleString()}`;
-            this.card_net_change.className = 'stat-card__net ' +
-                (net > 0 ? 'stat-card__net--up' : net < 0 ? 'stat-card__net--down' : '');
-        }
-        this._prevLive = stats.live;
-
-        // ── Hero row: Density card ───────────────────────────────
-        if (this.card_density_val) {
-            const d = typeof stats.density === 'number' ? stats.density : parseFloat(stats.density) || 0;
-            this.card_density_val.textContent = (d * 100).toFixed(1) + '%';
-            if (this.card_density_bar) {
-                this.card_density_bar.style.width = Math.min(d * 100, 100) + '%';
-            }
-        }
-        if (this.card_total_cells) {
-            this.card_total_cells.textContent = Number(stats.total).toLocaleString() + ' cells';
-        }
-
-        // ── Births / Deaths / Mutation ───────────────────────────
-        if (this.card_births)   this.card_births.textContent   = Number(stats.births).toLocaleString();
-        if (this.card_deaths)   this.card_deaths.textContent   = Number(stats.deaths).toLocaleString();
-        if (this.card_mutation) {
-            const m = typeof stats.mutation === 'number' ? stats.mutation : parseFloat(stats.mutation) || 0;
-            this.card_mutation.textContent = (m * 100).toFixed(2) + '%';
-            const a = typeof stats.activity === 'number' ? stats.activity : parseFloat(stats.activity) || 0;
-            this.card_activity.textContent = (a * 100).toFixed(2) + '%';
-        }
-    }
-
-    _fmtLabel(str) {
-        return str
-            .replace(/([a-z])([A-Z])/g, '$1 $2')  // camelCase → words
-            .replace(/_/g, ' ')                     // snake_case → words
-            .replace(/\b\w/g, c => c.toUpperCase()) // title case
-            .trim();
-    }
-
     updateStats_GRID(grid_config) {
         this.card_shape.textContent = this._fmtLabel(grid_config.shape);
         this.card_topology.textContent = this._fmtLabel(grid_config.topology_type);
         this.card_neighbor.textContent = this._fmtLabel(grid_config.neighbor_type);
     }
 
+    _updateStatsPanel(stats) {
+        const net  = this._prevLive !== null ? stats.live - this._prevLive : 0;
+        const sign = net > 0 ? '+' : '';
+        this._peakPop = Math.max(stats.live, this._peakPop);
+        this.card_peak_pop.textContent   = this._peakPop.toLocaleString();
+
+        this.card_ticks.textContent      = stats.ticks.toLocaleString();
+        this.card_live.textContent       = stats.live.toLocaleString();
+        this.card_total.textContent      = stats.total.toLocaleString() + ' cells';
+        this.card_births.textContent     = stats.births.toLocaleString();
+        this.card_deaths.textContent     = stats.deaths.toLocaleString();
+        this.card_net_change.textContent = `${sign}${net.toLocaleString()}`;
+        this.card_net_change.className   = 'stat-card__net ' +
+            (net > 0 ? 'stat-card__net--up' : net < 0 ? 'stat-card__net--down' : '');
+    
+        this._prevLive = stats.live;
+
+        this.card_density_val.textContent = this._pct(stats.density);
+        this.card_density_bar.style.width = Math.min(stats.density * 100, 100) + '%';
+
+        this.card_mutation.textContent = this._pct(stats.mutation);
+        this.card_activity.textContent = this._pct(stats.activity);
+
+        this.card_fps.textContent   = this._speedFPS;
+    }
+
     updateStats_CA(stats) {
-        const tick = Number(stats.ticks);
-        this.updateStatusText(stats);
+        const ticks = Number(stats.ticks);
+        if (stats.dt_js) {
+            this._speedFPS = (1000 / stats.dt_js).toFixed(1);
+            this.status_fps.textContent = this._speedFPS;
+            this.card_render_time.innerHTML =
+                `dt: <span class="time-rust">${stats.dt_rs.toFixed(1)} ms</span>` +
+                ` | <span class="time-js">${stats.dt_js.toFixed(1)} ms</span>`;
+        }
 
-        this._chartHistory.set(tick, { ticks: tick, ...stats });
-
+        this.status_pop.textContent     = stats.live.toLocaleString();
+        this.status_tick.textContent    = ticks.toLocaleString();
+        this._chartHistory.set(ticks, { ticks: ticks, ...stats });
         if (this._chartHistory.size > 200) {
             this._chartHistory.delete(this._chartHistory.keys().next().value);
         }
 
+        if (!this.statsPanel?.classList.contains('active')) return
+        this._updateStatsPanel(stats);
         this._invalidateCache();
         if (!this._pausePlotting) this._drawStatsChart();
         console.log("Rust=", stats.dt_rs, "Total=", stats.dt_js);

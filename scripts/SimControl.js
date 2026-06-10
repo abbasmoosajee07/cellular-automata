@@ -91,6 +91,7 @@ class SimulatorController{
             // activate chosen
             btn.classList.add('active');
             document.getElementById(btn.dataset.panel).classList.add('active');
+            this.updateAutomataStatus();
         });
         });
     }
