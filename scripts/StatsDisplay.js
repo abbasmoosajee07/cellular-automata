@@ -245,7 +245,7 @@ class StatsDisplay {
     }
 
     _getChartLayout(W, H) {
-        const pad = { top: 10, right: 10, bottom: 28, left: 46 };
+        const pad = { top: 20, right: 10, bottom: 25, left: 45 };
         return { pad, cW: W - pad.left - pad.right, cH: H - pad.top - pad.bottom };
     }
 
@@ -404,6 +404,15 @@ class StatsDisplay {
         ctx.restore();
     }
 
+    _addTitle(ctx, title, pad, cH, col) {
+        ctx.save();
+        ctx.fillStyle = col.text;
+        ctx.font      = 'bold 14px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(this._fmtLabel(title), pad.left * 3, cH - 140);
+        ctx.restore();
+    }
+
     _drawHistogram() {
         const canvas = this.statsChart;
         if (!canvas) return;
@@ -517,6 +526,7 @@ class StatsDisplay {
         }
 
         const { maxPop, minPop, popRange } = this._drawGridLines(ctx, data, y_var, pad, cW, cH, col);
+        const title = `${this.x_var} vs ${this.y_var}`;
 
         if (data.length === 1) {
             const xOf = () => pad.left + cW / 2;
@@ -525,6 +535,7 @@ class StatsDisplay {
             this._drawLastDot(ctx, data, y_var, xOf, yOf, col);
             this._drawXLabels(ctx, data, pad, cW, H, col);
             this._labelYaxis(ctx, y_var, pad, cH, col);
+            this._addTitle(ctx, title, pad, cH, col);
             this._labelXaxis(ctx, y_var, pad, cH, col);
             return;
         }
@@ -538,6 +549,7 @@ class StatsDisplay {
         this._drawLastDot(ctx, data, y_var, xOf, yOf, col);
         this._labelYaxis(ctx, y_var, pad, cH, col);
         this._labelXaxis(ctx, y_var, pad, cH, col);
+        this._addTitle(ctx, title, pad, cH, col);
         this._drawTooltip(ctx, data, y_var, xOf, yOf, pad, W, col);
     }
 }
