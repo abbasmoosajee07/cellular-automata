@@ -245,37 +245,10 @@ class StatsDisplay {
     }
 
     _getChartLayout(W, H) {
-        const pad = { top: 20, right: 10, bottom: 25, left: 45 };
+        const pad = { top: 20, right: 10, bottom: 25, left: 40};
         return { pad, cW: W - pad.left - pad.right, cH: H - pad.top - pad.bottom };
     }
 
-    _drawGridLines(ctx, data, y_var, pad, cW, cH, col) {
-        const maxPop   = this._cachedMax;
-        const minPop   = this._cachedMin;
-        const popRange = maxPop - minPop || 1;
-
-        const GRID_LINES = 5;
-        ctx.strokeStyle  = col.grid;
-        ctx.lineWidth    = 1;
-        ctx.fillStyle    = col.text;
-        ctx.font         = this.graphFont;
-        ctx.textAlign    = 'right';
-
-        for (let i = 0; i <= GRID_LINES; i++) {
-            const y   = pad.top + (i / GRID_LINES) * cH;
-            const val = maxPop - (i / GRID_LINES) * popRange;
-            const formatted = popRange < 10
-                ? val.toFixed(2)
-                : Math.round(val).toLocaleString();
-            ctx.beginPath();
-            ctx.moveTo(pad.left, y);
-            ctx.lineTo(pad.left + cW, y);
-            ctx.stroke();
-            ctx.fillText(formatted, pad.left - 4, y + 3.5);
-        }
-
-        return { maxPop, minPop, popRange };
-    }
 
     _drawLine(ctx, data, y_var, xOf, yOf, col, minPop) {
         ctx.beginPath();
@@ -360,6 +333,34 @@ class StatsDisplay {
         ctx.fillText(label, bx + bPad, by + bH - 6);
     }
 
+    _drawGridLines(ctx, data, y_var, pad, cW, cH, col) {
+        const maxPop   = this._cachedMax;
+        const minPop   = this._cachedMin;
+        const popRange = maxPop - minPop || 1;
+
+        const GRID_LINES = 5;
+        ctx.strokeStyle  = col.grid;
+        ctx.lineWidth    = 1;
+        ctx.fillStyle    = col.text;
+        ctx.font         = this.graphFont;
+        ctx.textAlign    = 'right';
+
+        for (let i = 0; i <= GRID_LINES; i++) {
+            const y   = pad.top + (i / GRID_LINES) * cH;
+            const val = maxPop - (i / GRID_LINES) * popRange;
+            const formatted = popRange < 10
+                ? val.toFixed(2)
+                : Math.round(val).toLocaleString();
+            ctx.beginPath();
+            ctx.moveTo(pad.left, y);
+            ctx.lineTo(pad.left + cW, y);
+            ctx.stroke();
+            ctx.fillText(formatted, pad.left - 4, y + 3.5);
+        }
+
+        return { maxPop, minPop, popRange };
+    }
+
     _labelYaxis(ctx, y_var, pad, cH, col) {
         const label = y_var === 'live'
             ? 'Population'
@@ -400,7 +401,7 @@ class StatsDisplay {
         ctx.fillStyle = col.text;
         ctx.font      = this.graphFont;
         ctx.textAlign = 'center';
-        ctx.fillText('Ticks', pad.left * 3, cH + 25);
+        ctx.fillText('Ticks', pad.left * 3, cH + 35);
         ctx.restore();
     }
 
@@ -409,7 +410,7 @@ class StatsDisplay {
         ctx.fillStyle = col.text;
         ctx.font      = 'bold 14px system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(this._fmtLabel(title), pad.left * 3, cH - 140);
+        ctx.fillText(this._fmtLabel(title), pad.left * 3.5, cH - 140);
         ctx.restore();
     }
 
@@ -505,17 +506,16 @@ class StatsDisplay {
         const canvas = this.statsChart;
         if (!canvas) return;
 
-        // Route histogram to its own renderer
         if (this.y_var === 'histogram') {
             this._drawHistogram();
             return;
         }
 
-        const { ctx, W, H }    = this._setupCanvas();
-        const col               = this._getChartColors();
-        const { pad, cW, cH }  = this._getChartLayout(W, H);
-        const data              = this._cachedData;
-        const y_var             = this.y_var;
+        const { ctx, W, H }   = this._setupCanvas();
+        const col             = this._getChartColors();
+        const { pad, cW, cH } = this._getChartLayout(W, H);
+        const data            = this._cachedData;
+        const y_var           = this.y_var;
 
         if (data.length < 1) {
             ctx.fillStyle = col.text;
@@ -525,32 +525,22 @@ class StatsDisplay {
             return;
         }
 
-        const { maxPop, minPop, popRange } = this._drawGridLines(ctx, data, y_var, pad, cW, cH, col);
-        const title = `${this.x_var} vs ${this.y_var}`;
+        const { minPop, popRange } = this._drawGridLines(ctx, data, y_var, pad, cW, cH, col);
+        const single = data.length === 1;
 
-        if (data.length === 1) {
-            const xOf = () => pad.left + cW / 2;
-            const yOf = v => pad.top + cH - ((v - minPop) / popRange) * cH;
-            this._drawAxes(ctx, pad, cW, cH, col);
-            this._drawLastDot(ctx, data, y_var, xOf, yOf, col);
-            this._drawXLabels(ctx, data, pad, cW, H, col);
-            this._labelYaxis(ctx, y_var, pad, cH, col);
-            this._addTitle(ctx, title, pad, cH, col);
-            this._labelXaxis(ctx, y_var, pad, cH, col);
-            return;
-        }
-
-        const xOf = i => pad.left + (i / (data.length - 1)) * cW;
-        const yOf = v => pad.top  + cH - ((v - minPop) / popRange) * cH;
+        const xOf = single
+            ? () => pad.left + cW / 2
+            : i => pad.left + (i / (data.length - 1)) * cW;
+        const yOf = v => pad.top + cH - ((v - minPop) / popRange) * cH;
 
         this._drawXLabels(ctx, data, pad, cW, H, col);
-        this._drawLine(ctx, data, y_var, xOf, yOf, col, minPop);
+        if (!single) this._drawLine(ctx, data, y_var, xOf, yOf, col, minPop);
         this._drawAxes(ctx, pad, cW, cH, col);
         this._drawLastDot(ctx, data, y_var, xOf, yOf, col);
         this._labelYaxis(ctx, y_var, pad, cH, col);
         this._labelXaxis(ctx, y_var, pad, cH, col);
-        this._addTitle(ctx, title, pad, cH, col);
-        this._drawTooltip(ctx, data, y_var, xOf, yOf, pad, W, col);
+        this._addTitle(ctx, `${this.x_var} vs ${this.y_var}`, pad, cH, col);
+        if (!single) this._drawTooltip(ctx, data, y_var, xOf, yOf, pad, W, col);
     }
 }
 
