@@ -66,7 +66,7 @@ class StatsDisplay {
 
         this.card_density_val.textContent = this._pct(stats.density);
         this.card_density_bar.style.width = Math.min(stats.density * 100, 100) + '%';
-        this.card_mutation.textContent    = this._pct(stats.mutation_rate, 2);
+        this.card_mutation.textContent    = this._pct(stats.mutation, 2);
         this.card_activity.textContent    = this._pct(stats.activity, 2);
         this.card_fps.textContent         = this._speedFPS;
     }
@@ -112,6 +112,7 @@ class StatsDisplay {
                 live:      { label: 'Population',           desc: '' },
                 density:   { label: 'Density',              desc: '' },
                 mutation:  { label: 'Mutation',             desc: '' },
+                activity:  { label: 'Activity',             desc: '' },
                 births:    { label: 'Births',               desc: '' },
                 deaths:    { label: 'Deaths',               desc: '' },
                 histogram: { label: 'Population histogram', desc: '' },
