@@ -258,8 +258,8 @@ class SimulatorController{
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
             radio.checked = (radio.value === value);
         });
-        const shape_desc = document.getElementById("shape-desc");
-        shape_desc.textContent = `Euclidean Tiling: ${value}`;
+        // const shape_desc = document.getElementById("shape-desc");
+        // shape_desc.textContent = `Euclidean Tiling: ${value}`;
         this.selectNeighbor();
     }
 
@@ -558,6 +558,7 @@ class SimulatorController{
         const props = this.wasm_engine.random_cells();
         this.gridManager.renderGrid(true);
         this.updateAutomataStatus(props, this._elapsedMs());
+        this.statsDisplay.resetChart();
     }
 
     simulate_step() {
