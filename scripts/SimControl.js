@@ -492,7 +492,10 @@ class SimulatorController{
         this.gridCanvas.addEventListener('mousedown', (e) => handleDown(getPointer(e)));
         this.gridCanvas.addEventListener('mousemove', handleMove);
         this.gridCanvas.addEventListener('mouseup', handleUp);
-        this.gridCanvas.addEventListener('mouseleave', handleUp);
+        this.gridCanvas.addEventListener('mouseleave', () => {
+            handleUp();
+            this.setCameraStatusOffGrid();
+        });
 
         // Touch
         this.gridCanvas.addEventListener('touchstart', (e) => {
@@ -505,9 +508,14 @@ class SimulatorController{
             handleMove(e);
         }, { passive: false });
 
-        this.gridCanvas.addEventListener('touchend', handleUp);
-        this.gridCanvas.addEventListener('touchcancel', handleUp);
-
+        this.gridCanvas.addEventListener('touchend', () => {
+            handleUp();
+            this.setCameraStatusOffGrid();
+        });
+        this.gridCanvas.addEventListener('touchcancel', () => {
+            handleUp();
+            this.setCameraStatusOffGrid();
+        });
         // Disable right-click menu
         this.gridCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -533,6 +541,10 @@ class SimulatorController{
         this.status_zoom.textContent = ratio;
         const [q, r, s] = this.gridManager.screenToCell(px, py)
         this.status_camera.textContent = `(${q},${r},${s})`;
+    }
+
+    setCameraStatusOffGrid() {
+        this.status_camera.textContent = "offWorld";
     }
 
     updateAutomataStatus(raw_stats = null, dt_js = null) {
