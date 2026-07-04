@@ -11,11 +11,23 @@ class SimulatorController{
         "status_zoom", "status_camera", "updateSim", "loadSim",
     ];
 
-    shapeProps = {
-        square: ["moore", "vonNeumann", "cross", "checkerboard", "star"],
-        hexagon: ["hexagonal", "tripod", "asterix"],
-        rhombus: ["Qbert"],
-        triangle: ["vonNeumann", "biohazard", "inner", "vertices", "moore"],
+    shapesData = {
+        square: {
+            info: "The square tiling is the most familiar 2D tiling, with cell positions defined via Cartesian coordinates",
+            props: ["moore", "vonNeumann", "cross", "checkerboard", "star"]
+        },
+        hexagon: {
+            info: "Six sided hexagons using an axial coords, based of the 3D cube coordinates(q+r+s=0)",
+            props: ["hexagonal", "tripod", "asterix"]
+        },
+        rhombus: {
+            info: "Similar to hexagons, but with each split into three and have the third coord be identifier",
+            props: ["Qbert"]
+        },
+        triangle: {
+            info: "Uses Cartesian Coordinates of square tilings, but splits each square tile down the diagonal, adding it as the third coord.",
+            props: ["vonNeumann", "biohazard", "inner", "vertices", "moore"]
+        }
     };
 
     GRID_LIMITS = [-2147483648, 2147483647];
@@ -258,8 +270,8 @@ class SimulatorController{
         document.querySelectorAll('input[name="shape"]').forEach(radio => {
             radio.checked = (radio.value === value);
         });
-        // const shape_desc = document.getElementById("shape-desc");
-        // shape_desc.textContent = `Euclidean Tiling: ${value}`;
+        const shape_desc = document.getElementById("shape-desc");
+        shape_desc.textContent = this.shapesData[value].info;
         this.selectNeighbor();
     }
 
@@ -357,7 +369,7 @@ class SimulatorController{
             }
         };
 
-        const usedNeighborhoods = this.shapeProps[this.selectedShape] || [];
+        const usedNeighborhoods = this.shapesData[this.selectedShape].props || [];
         // Filter only relevant types for this shape
         const filteredTypes = Object.fromEntries(
             usedNeighborhoods
