@@ -107,4 +107,12 @@ impl TileManager {
             .map(|&(dq, dr, ds)| (q + dq, r + dr, s + ds))
             .collect()
     }
+
+    // Count total possible neighbors for any cell topology and range
+    pub fn count_total_neighbors(&self, q: i32, r: i32, s: i32) -> usize {
+        self.neighbor_offsets(s)
+            .iter()
+            .map(|&(dq, dr, ds)| (q + dq, r + dr, s + ds))
+            .count()
+    }
 }

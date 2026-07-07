@@ -25,6 +25,7 @@ pub struct GridConfig {
     pub shape: String,
     pub neighbor_type: String,
     pub range: i32,
+    pub total_neighbors: usize,
 
     pub topology_type: String,
     pub bounds: [i32; 6],
@@ -102,6 +103,7 @@ impl GridMesh {
             shape: shape.to_string(),
             neighbor_type: defaultconfig.neighbor_type,
             range: defaultconfig.range,
+            total_neighbors: tile_manager.count_total_neighbors(0, 0, 0),
 
             topology_type: defaultconfig.topology_type,
             bounds: [
@@ -274,6 +276,7 @@ impl GridMesh {
         self.config.neighbor_type = neighbor_type.clone();
         self.config.topology_type = topology_type.clone();
         self.config.depth = self.tile_manager.splits;
+        self.config.total_neighbors = self.tile_manager.count_total_neighbors(0, 0, 0);
 
         self.topology_manager.change_topology(&topology_type);
 
