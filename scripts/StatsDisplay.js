@@ -17,7 +17,7 @@ class StatsDisplay {
         'card_live', 'card_net_change', 'card_ticks', 'status_fps',
         'card_density_val', 'card_density_bar', 'card_total',
         'card_births', 'card_deaths', 'card_mutation', 'card_activity',
-        'card_shape', 'card_topology', 'card_neighbor',
+        'card_shape', 'card_topology', 'card_neighbor', "card_totalneighbors",
         'card_fps', 'card_render_time', 'card_peak_pop',
         'pauseGraph', 'clearGraph', 'exportGraph',
     ];
@@ -100,6 +100,7 @@ class StatsDisplay {
         this.card_shape.textContent    = this._fmtLabel(grid_config.shape);
         this.card_topology.textContent = this._fmtLabel(grid_config.topology_type);
         this.card_neighbor.textContent = this._fmtLabel(grid_config.neighbor_type);
+        this.card_totalneighbors.textContent = grid_config.total_neighbors;
     }
 
     // ── Graph controls ────────────────────────────────────────────────────────
@@ -517,6 +518,9 @@ class StatsDisplay {
         ctx.font      = this.graphFont;
         ctx.textAlign = 'center';
         ctx.fillText('Population', pad.left + cW / 2, H - 2);
+        // ctx.fillText('Population Histogram', pad.left + cW / 2, H - 180);
+        this._addTitle(ctx, `Population HHHistogram`, pad.left + cW / 2, H - 100, col);
+        ctx.restore();
     }
 }
 

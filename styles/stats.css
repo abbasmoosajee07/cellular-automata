@@ -318,70 +318,44 @@ body.light {
 
 .stat-card--config {
     padding: 5px 6px;
-    gap: 8px;
+    gap: 4px;
 }
 
 .config-grid-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-
+    gap: 4px;
     overflow-x: auto;
-}
-
-.config-item {
-    display: flex;
-    flex-direction: column;
-
-    min-width: 0;
-    flex: 1;
-}
-
-.config-item__value {
-    overflow: hidden;
-
-    font-size: 11px;
-    font-weight: 600;
-
-    color: var(--text-color);
-
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.config-item__label {
-    margin-top: 2px;
-
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-
-    color: var(--text-muted);
 }
 
 .config-divider {
     width: 1px;
     height: 24px;
-
     flex-shrink: 0;
-
-    background: var(--surface-2);
-}
-
-.config-item__value {
-    overflow: hidden;
-    font-size: 11px;
-    font-weight: 600;
-    color: inherit;        /* ← was var(--text-color) */
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    background: var(--card-border);
 }
 
 .config-item {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    flex: 1;
-    color: var(--text-color);  /* ← default color lives here now */
+    flex: 1 1 auto;   /* was: flex: 1 */
+}
+
+.config-item__label {
+    margin-top: 2px;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.config-item__value {
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 600;
+    color: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
