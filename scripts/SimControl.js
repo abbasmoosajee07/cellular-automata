@@ -55,7 +55,7 @@ class SimulatorController{
         this.setupMenuControls();
 
         this.gridManager.renderGrid();
-        this._addtextContext("status_sim", "initSim")
+        this._addtextContent("status_sim", "initSim")
     }
 
     getPanelWidth() {
@@ -82,7 +82,7 @@ class SimulatorController{
 
     _stamp()     { this._timestamp = performance.now(); }
     _elapsedMs() { return performance.now() - this._timestamp; }
-    _addtextContext(id, text) {this[id].textContent = text}
+    _addtextContent(id, text) {this[id].textContent = text}
 
     setupMenuControls() {
         const panel = this.menuPanel;
@@ -215,7 +215,7 @@ class SimulatorController{
         // --- Rebuild / Remap Grid Button ---
         this.reMap.addEventListener('click', () => {
             this.setupGrid({ preserveState: true });
-            this._addtextContext("status_sim", "reMapped")
+            this._addtextContent("status_sim", "reMapped")
         });
 
         this.updateSim.addEventListener('click', () => {
@@ -230,7 +230,7 @@ class SimulatorController{
                 preserveState: false
             });
             this.gridManager.renderGrid();
-            this._addtextContext("status_sim", "loadSim")
+            this._addtextContent("status_sim", "loadSim")
         });
     }
 
@@ -255,7 +255,7 @@ class SimulatorController{
             this.gridManager.clearAll();
             this.updateAutomataStatus();
             this.gridManager.renderGrid();
-            this._addtextContext("status_sim", "clearGrid")
+            this._addtextContent("status_sim", "clearGrid")
         });
 
         this.randomFill.addEventListener('click', () => this.randomCells());
@@ -511,7 +511,7 @@ class SimulatorController{
         this.gridCanvas.addEventListener('mouseup', handleUp);
         this.gridCanvas.addEventListener('mouseleave', () => {
             handleUp();
-            this._addtextContext("status_camera", "offWorld");
+            this._addtextContent("status_camera", "offWorld");
         });
 
         // Touch
@@ -527,11 +527,11 @@ class SimulatorController{
 
         this.gridCanvas.addEventListener('touchend', () => {
             handleUp();
-            this._addtextContext("status_camera", "offWorld");
+            this._addtextContent("status_camera", "offWorld");
         });
         this.gridCanvas.addEventListener('touchcancel', () => {
             handleUp();
-            this._addtextContext("status_camera", "offWorld");
+            this._addtextContent("status_camera", "offWorld");
         });
         // Disable right-click menu
         this.gridCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -584,7 +584,7 @@ class SimulatorController{
         this.gridManager.renderGrid(true);
         this.updateAutomataStatus(props, this._elapsedMs());
         this.statsDisplay.resetChart();
-        this._addtextContext("status_sim", "randFill")
+        this._addtextContent("status_sim", "randFill")
     }
 
     simulate_step() {
@@ -592,7 +592,7 @@ class SimulatorController{
         const props = this.wasm_engine.step_game_of_life();
         this.gridManager.renderGrid(true);
         this.updateAutomataStatus(props, this._elapsedMs());
-        this._addtextContext("status_sim", "lifeStep")
+        this._addtextContent("status_sim", "lifeStep")
     }
 
     fillNeighbors() {
@@ -600,7 +600,7 @@ class SimulatorController{
         const props = this.wasm_engine.floodfill();
         this.gridManager.renderGrid(true);
         this.updateAutomataStatus(props, this._elapsedMs());
-        this._addtextContext("status_sim", "Floodfill")
+        this._addtextContent("status_sim", "Floodfill")
     }
 }
 
